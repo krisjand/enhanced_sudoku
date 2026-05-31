@@ -25,6 +25,9 @@ RUN apt-get update \
         -o /tmp/flutter.tar.xz \
     && tar xf /tmp/flutter.tar.xz -C /opt \
     && rm /tmp/flutter.tar.xz \
+    # The Flutter tarball contains a .git directory; git 2.39+ refuses to run
+    # in it as root unless the directory is explicitly marked safe.
+    && git config --global --add safe.directory "${FLUTTER_HOME}" \
     # Remove directories not needed for unit/widget test CI
     && rm -rf \
         "${FLUTTER_HOME}/dev/benchmarks" \
