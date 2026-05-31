@@ -17,7 +17,7 @@ This will make the correct versions of `go`, `flutter`, and `golangci-lint` avai
 ```
 enhanced_sudoku/
 ├── backend/    # Go backend (HTTP API)
-└── frontend/   # Flutter mobile application
+└── frontend/   # Flutter application (Android, iOS, Web)
 ```
 
 ## Running the Backend
@@ -27,7 +27,11 @@ cd backend
 go run .
 ```
 
-The server starts on `http://localhost:8080`.
+The server starts on `http://localhost:8080` by default. Override with the `PORT` environment variable:
+
+```bash
+PORT=9090 go run .
+```
 
 ## Running the Frontend
 
