@@ -8,6 +8,10 @@ on:
       - 'frontend/**'
       - '.github/workflows/ci-frontend.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend:
     name: Flutter — test

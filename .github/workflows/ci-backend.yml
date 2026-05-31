@@ -8,6 +8,10 @@ on:
       - 'backend/**'
       - '.github/workflows/ci-backend.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Go — lint & test
