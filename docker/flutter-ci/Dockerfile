@@ -4,7 +4,7 @@ ARG FLUTTER_VERSION=3.44.0
 
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH="$FLUTTER_HOME/bin:$FLUTTER_HOME/bin/cache/dart-sdk/bin:$PATH"
-ENV PUB_CACHE=/root/.pub-cache
+ENV PUB_CACHE=/opt/pub-cache
 ENV FLUTTER_VERSION=${FLUTTER_VERSION}
 
 # Install dependencies, download Flutter, pre-warm, and clean up in a single layer
@@ -25,14 +25,17 @@ RUN apt-get update \
     && tar xf /tmp/flutter.tar.xz -C /opt \
     && rm /tmp/flutter.tar.xz \
     # The Flutter tarball contains a .git directory; git 2.39+ refuses to run
-    # in it as root unless the directory is explicitly marked safe.
-    && git config --global --add safe.directory "${FLUTTER_HOME}" \
-    # Remove directories not needed for unit/widget test CI
+    # in a directory owned by a different user. Use --system so the config
+    # lives in /etc/gitconfig and applies regardless of HOME or runtime user.
+    && git config --system --add safe.directory "${FLUTTER_HOME}" \
+    # Remove content not needed for unit/widget test CI.
+    # examples/ must remain as an empty directory — flutter analyze scans it
+    # internally via listSync() and crashes if the path does not exist.
     && rm -rf \
         "${FLUTTER_HOME}/dev/benchmarks" \
         "${FLUTTER_HOME}/dev/docs" \
         "${FLUTTER_HOME}/dev/integration_tests" \
-        "${FLUTTER_HOME}/examples" \
+        "${FLUTTER_HOME}/examples/"* \
     # Disable analytics and pre-warm only the artifacts needed for unit/widget tests
     && flutter config --no-analytics \
     && flutter precache --no-android --no-ios --no-linux --no-windows --no-macos --no-fuchsia --no-web \
