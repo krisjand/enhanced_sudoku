@@ -34,10 +34,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Flutter version from Dockerfile
+      - name: Extract Flutter version
         id: version
         run: |
-          VERSION=$(grep 'ARG FLUTTER_VERSION=' docker/flutter-ci/Dockerfile | cut -d= -f2)
+          DOCKERFILE_VERSION=$(grep 'ARG FLUTTER_VERSION=' docker/flutter-ci/Dockerfile | cut -d= -f2)
+          INPUT_VERSION="${{ github.event.inputs.flutter_version }}"
+          VERSION="${INPUT_VERSION:-$DOCKERFILE_VERSION}"
           echo "flutter_version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate image metadata
