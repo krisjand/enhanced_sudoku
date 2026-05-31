@@ -28,12 +28,14 @@ RUN apt-get update \
     # in a directory owned by a different user. Use --system so the config
     # lives in /etc/gitconfig and applies regardless of HOME or runtime user.
     && git config --system --add safe.directory "${FLUTTER_HOME}" \
-    # Remove directories not needed for unit/widget test CI
+    # Remove content not needed for unit/widget test CI.
+    # examples/ must remain as an empty directory — flutter analyze scans it
+    # internally via listSync() and crashes if the path does not exist.
     && rm -rf \
         "${FLUTTER_HOME}/dev/benchmarks" \
         "${FLUTTER_HOME}/dev/docs" \
         "${FLUTTER_HOME}/dev/integration_tests" \
-        "${FLUTTER_HOME}/examples" \
+        "${FLUTTER_HOME}/examples/"* \
     # Disable analytics and pre-warm only the artifacts needed for unit/widget tests
     && flutter config --no-analytics \
     && flutter precache --no-android --no-ios --no-linux --no-windows --no-macos --no-fuchsia --no-web \
