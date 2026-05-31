@@ -1,0 +1,24 @@
+name: CI — Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  backend:
+    name: Go — lint & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+      - name: Run linter
+        working-directory: backend
+        run: golangci-lint run
+      - name: Run tests
+        working-directory: backend
+        run: go test ./...

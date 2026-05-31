@@ -1,0 +1,24 @@
+name: CI — Frontend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  frontend:
+    name: Flutter — test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+      - name: Get dependencies
+        working-directory: frontend
+        run: flutter pub get
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test
