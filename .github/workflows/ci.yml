@@ -68,6 +68,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Trust Flutter installation directory
+        run: git config --system --add safe.directory /opt/flutter
       - name: Get dependencies
         working-directory: frontend
         run: flutter pub get
