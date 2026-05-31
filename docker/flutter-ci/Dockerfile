@@ -17,7 +17,6 @@ RUN apt-get update \
         git \
         unzip \
         xz-utils \
-        zip \
     && rm -rf /var/lib/apt/lists/* \
     # Download Flutter as a tarball — avoids the .git directory overhead from git clone
     && curl -fsSL \
