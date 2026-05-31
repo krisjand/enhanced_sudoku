@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Detect changed paths
+        id: filter
+        run: |
+          CHANGED=$(git diff --name-only HEAD^1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          if echo "$CHANGED" | grep -qE '^(backend/|\.github/workflows/ci\.yml)'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$CHANGED" | grep -qE '^(frontend/|\.github/workflows/ci\.yml)'; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=false" >> $GITHUB_OUTPUT
+          fi
+
+  backend:
+    name: Go — lint & test
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # v1
+        with:
+          cache: "true"
+      - name: Run linter
+        working-directory: backend
+        run: golangci-lint run
+      - name: Run tests
+        working-directory: backend
+        run: go test ./...
+
+  frontend:
+    name: Flutter — lint & test
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # v1
+        with:
+          cache: "true"
+      - name: Get dependencies
+        working-directory: frontend
+        run: flutter pub get
+      - name: Check formatting
+        working-directory: frontend
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        working-directory: frontend
+        run: flutter analyze
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test
