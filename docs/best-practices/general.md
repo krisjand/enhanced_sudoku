@@ -2,6 +2,10 @@
 
 This file documents workflow, branching, and PR conventions learned during development.
 
+## Code Reviews
+
+- Always post review comments as inline PR comments on the specific line of code they refer to. Only post as a top-level review comment when the relevant code no longer exists in the PR (e.g. the file or line was removed or changed in a later commit).
+
 ## Branching & PRs
 
 - Always rebase feature branches on `main` before opening a PR.
