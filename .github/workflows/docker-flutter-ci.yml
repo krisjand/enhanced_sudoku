@@ -1,0 +1,59 @@
+name: Build Flutter CI image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker/flutter-ci/Dockerfile'
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: Flutter version to build (must match Dockerfile ARG default)
+        required: false
+        default: '3.44.0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Flutter version from Dockerfile
+        id: version
+        run: |
+          VERSION=$(grep 'ARG FLUTTER_VERSION=' docker/flutter-ci/Dockerfile | cut -d= -f2)
+          echo "flutter_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}/flutter-ci
+          tags: |
+            type=raw,value=${{ steps.version.outputs.flutter_version }}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: docker/flutter-ci
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: FLUTTER_VERSION=${{ steps.version.outputs.flutter_version }}
