@@ -1,0 +1,9 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose      # HTTP response body must be closed
+    - errorlint      # correct error wrapping with errors.Is/As
+    - copyloopvar    # loop variable capture bugs
+    - gocritic       # broad style and correctness checks

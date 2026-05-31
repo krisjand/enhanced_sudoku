@@ -1,0 +1,35 @@
+name: CI — Frontend
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/ci-frontend.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Flutter — test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: cashapp/activate-hermit@e49f5cb4dd64ff0b0b659d1d8df499595451155a # v1
+        with:
+          cache: "true"
+      - name: Get dependencies
+        working-directory: frontend
+        run: flutter pub get
+      - name: Check formatting
+        working-directory: frontend
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        working-directory: frontend
+        run: flutter analyze
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test
