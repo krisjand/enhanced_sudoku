@@ -20,3 +20,11 @@ This file documents Go-specific best practices learned during development.
 
 - Test HTTP handlers directly using `httptest.NewRecorder()` and `httptest.NewRequest()` — no need to spin up a real server.
 - Assert the full response contract in tests: status code, `Content-Type` header, and response body shape.
+- Use table-driven tests for every exported function, even those with a single case — makes it easy to add cases later without restructuring.
+- Return test fixtures from functions (not package-level variables) and accept optional `func(*T)` modifiers. This keeps fixtures reusable while allowing per-test mutations inline: `fixtureX(func(x *X) { x.Field = value })`.
+- Put shared fixtures used across multiple test files in a `testdata_test.go` file in the same package. Duplicating fixture data across files causes silent drift.
+
+## Performance
+
+- Use `math/bits.OnesCount16` / `TrailingZeros16` instead of manual bit-counting loops — these compile to single hardware instructions (POPCNT, BSF/TZCNT) on x86/ARM.
+- In recursive algorithms, avoid recomputing derived state at every level. Pass pre-computed state as a parameter and update it incrementally. For backtracking specifically, Go value types (arrays, structs) copy on assignment — `next := state` gives a clean copy for the next level with zero heap allocation, making backtracking state management both safe and fast.
