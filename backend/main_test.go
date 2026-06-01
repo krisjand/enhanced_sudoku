@@ -69,6 +69,7 @@ func TestPuzzleHandler(t *testing.T) {
 				Puzzle      sudoku.Grid `json:"puzzle"`
 				Solution    sudoku.Grid `json:"solution"`
 				GeneratedMs int64       `json:"generated_ms"`
+				GeneratedUs int64       `json:"generated_us"`
 			}
 			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 				t.Fatalf("failed to decode response: %v", err)
@@ -81,6 +82,9 @@ func TestPuzzleHandler(t *testing.T) {
 			}
 			if resp.GeneratedMs < 0 {
 				t.Errorf("generated_ms = %d, want >= 0", resp.GeneratedMs)
+			}
+			if resp.GeneratedUs < 0 {
+				t.Errorf("generated_us = %d, want >= 0", resp.GeneratedUs)
 			}
 		})
 	}

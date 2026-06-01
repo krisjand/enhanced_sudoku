@@ -50,10 +50,12 @@ func puzzleHandler(w http.ResponseWriter, r *http.Request) {
 		Puzzle      sudoku.Grid `json:"puzzle"`
 		Solution    sudoku.Grid `json:"solution"`
 		GeneratedMs int64       `json:"generated_ms"`
+		GeneratedUs int64       `json:"generated_us"`
 	}{
 		Puzzle:      puzzle,
 		Solution:    solution,
 		GeneratedMs: dur.Milliseconds(),
+		GeneratedUs: dur.Microseconds(),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
