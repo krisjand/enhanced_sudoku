@@ -24,51 +24,64 @@ func fixtureNearComplete() (puzzle Grid, wantActions []CellAction) {
 	return g, wantActions
 }
 
-func TestNakedSinglesFound(t *testing.T) {
-	puzzle, wantActions := fixtureNearComplete()
-	cands := Init(puzzle)
+func TestNakedSingles(t *testing.T) {
+	nearComplete, wantActions := fixtureNearComplete()
 
-	steps := NakedSingles(puzzle, cands)
+	tests := []struct {
+		name        string
+		grid        Grid
+		wantActions []CellAction // nil means no step expected
+	}{
+		{
+			name:        "near-complete puzzle returns all naked singles",
+			grid:        nearComplete,
+			wantActions: wantActions,
+		},
+		{
+			name:        "empty grid has no naked singles",
+			grid:        Grid{},
+			wantActions: nil,
+		},
+		{
+			name:        "solved grid has no naked singles",
+			grid:        fixtureUniqueSolution(),
+			wantActions: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cands := Init(tt.grid)
+			steps := NakedSingles(tt.grid, cands)
 
-	if len(steps) != 1 {
-		t.Fatalf("NakedSingles() returned %d steps, want 1", len(steps))
-	}
-	step := steps[0]
-	if step.Technique != "Naked Singles" {
-		t.Errorf("Technique = %q, want \"Naked Singles\"", step.Technique)
-	}
-	if len(step.Actions) != len(wantActions) {
-		t.Fatalf("len(Actions) = %d, want %d", len(step.Actions), len(wantActions))
-	}
-	for i, want := range wantActions {
-		got := step.Actions[i]
-		if got.Row != want.Row || got.Col != want.Col || got.Digit != want.Digit || got.Type != want.Type {
-			t.Errorf("Actions[%d] = {%d,%d,d=%d,t=%d}, want {%d,%d,d=%d,t=%d}",
-				i, got.Row, got.Col, got.Digit, got.Type,
-				want.Row, want.Col, want.Digit, want.Type)
-		}
-	}
-	if step.Duration <= 0 {
-		t.Error("step.Duration should be > 0")
-	}
-}
+			if tt.wantActions == nil {
+				if steps != nil {
+					t.Errorf("NakedSingles() = %v, want nil", steps)
+				}
+				return
+			}
 
-func TestNakedSinglesNone(t *testing.T) {
-	// Empty grid: every cell has all 9 candidates — no naked singles.
-	var g Grid
-	cands := Init(g)
-
-	if steps := NakedSingles(g, cands); steps != nil {
-		t.Errorf("NakedSingles() = %v, want nil", steps)
-	}
-}
-
-func TestNakedSinglesAlreadySolved(t *testing.T) {
-	g := fixtureUniqueSolution()
-	cands := Init(g)
-
-	if steps := NakedSingles(g, cands); steps != nil {
-		t.Errorf("NakedSingles() on solved grid = %v, want nil", steps)
+			if len(steps) != 1 {
+				t.Fatalf("len(steps) = %d, want 1", len(steps))
+			}
+			step := steps[0]
+			if step.Technique != "Naked Singles" {
+				t.Errorf("Technique = %q, want \"Naked Singles\"", step.Technique)
+			}
+			if len(step.Actions) != len(tt.wantActions) {
+				t.Fatalf("len(Actions) = %d, want %d", len(step.Actions), len(tt.wantActions))
+			}
+			for i, want := range tt.wantActions {
+				got := step.Actions[i]
+				if got.Row != want.Row || got.Col != want.Col || got.Digit != want.Digit || got.Type != want.Type {
+					t.Errorf("Actions[%d] = {%d,%d,d=%d,t=%d}, want {%d,%d,d=%d,t=%d}",
+						i, got.Row, got.Col, got.Digit, got.Type,
+						want.Row, want.Col, want.Digit, want.Type)
+				}
+			}
+			if step.Duration <= 0 {
+				t.Error("step.Duration should be > 0")
+			}
+		})
 	}
 }
 
