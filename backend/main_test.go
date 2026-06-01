@@ -53,6 +53,7 @@ func TestPuzzleHandler(t *testing.T) {
 		wantStatus int
 	}{
 		{name: "GET returns puzzle", method: http.MethodGet, wantStatus: http.StatusOK},
+		{name: "HEAD returns 200", method: http.MethodHead, wantStatus: http.StatusOK},
 		{name: "POST is not allowed", method: http.MethodPost, wantStatus: http.StatusMethodNotAllowed},
 	}
 	for _, tt := range tests {
@@ -65,7 +66,7 @@ func TestPuzzleHandler(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
-			if tt.wantStatus != http.StatusOK {
+			if tt.wantStatus != http.StatusOK || tt.method == http.MethodHead {
 				return
 			}
 
@@ -76,7 +77,6 @@ func TestPuzzleHandler(t *testing.T) {
 			var resp struct {
 				Puzzle      sudoku.Grid `json:"puzzle"`
 				Solution    sudoku.Grid `json:"solution"`
-				GeneratedMs int64       `json:"generated_ms"`
 				GeneratedUs int64       `json:"generated_us"`
 			}
 			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
@@ -90,9 +90,6 @@ func TestPuzzleHandler(t *testing.T) {
 			}
 			if resp.Puzzle.IsSolved() {
 				t.Error("puzzle has no empty cells — should be a partial grid")
-			}
-			if resp.GeneratedMs < 0 {
-				t.Errorf("generated_ms = %d, want >= 0", resp.GeneratedMs)
 			}
 			if resp.GeneratedUs < 0 {
 				t.Errorf("generated_us = %d, want >= 0", resp.GeneratedUs)

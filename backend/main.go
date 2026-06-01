@@ -6,12 +6,16 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
 )
 
-var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+var (
+	rng   = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rngMu sync.Mutex
+)
 
 func main() {
 	addr := os.Getenv("PORT")
@@ -30,30 +34,38 @@ func main() {
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if !requireGET(w, r) {
 		return
 	}
 	writeJSON(w, map[string]string{"status": "ok"})
 }
 
 func puzzleHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if !requireGET(w, r) {
 		return
 	}
+	rngMu.Lock()
 	puzzle, solution, dur := sudoku.Generate(rng)
+	rngMu.Unlock()
 	writeJSON(w, struct {
 		Puzzle      sudoku.Grid `json:"puzzle"`
 		Solution    sudoku.Grid `json:"solution"`
-		GeneratedMs int64       `json:"generated_ms"`
 		GeneratedUs int64       `json:"generated_us"`
 	}{
 		Puzzle:      puzzle,
 		Solution:    solution,
-		GeneratedMs: dur.Milliseconds(),
 		GeneratedUs: dur.Microseconds(),
 	})
+}
+
+// requireGET rejects any method other than GET or HEAD with 405.
+// Returns false if the request was rejected so the caller can return early.
+func requireGET(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return false
+	}
+	return true
 }
 
 // writeJSON marshals v to JSON and writes it to w.
