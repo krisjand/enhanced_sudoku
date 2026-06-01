@@ -28,3 +28,10 @@ This file documents Go-specific best practices learned during development.
 
 - Use `math/bits.OnesCount16` / `TrailingZeros16` instead of manual bit-counting loops — these compile to single hardware instructions (POPCNT, BSF/TZCNT) on x86/ARM.
 - In recursive algorithms, avoid recomputing derived state at every level. Pass pre-computed state as a parameter and update it incrementally. For backtracking specifically, Go value types (arrays, structs) copy on assignment — `next := state` gives a clean copy for the next level with zero heap allocation, making backtracking state management both safe and fast.
+
+## Deferred improvements (from Story #3 review)
+
+The following were identified in the PR #29 review and deliberately deferred:
+
+- **`shuffledDigits` allocates a `[]uint8` per recursive call.** Because the slice is returned across a function boundary it escapes to the heap. `solve`'s original in-place bitmask loop was allocation-free; `backtrackWith` introduced a small allocation per node for both paths. Fix: inline the digit extraction into `backtrackWith` using a `[9]uint8` stack buffer and a length counter, or pass a `*[9]uint8` scratch buffer from the caller. Revisit if profiling shows generation is a bottleneck.
+- **`removeClues` re-runs `Init` on every `HasUniqueSolution` call (up to 81 times).** `Init` scans all 81 cells against their 27 peers per call. An incremental alternative: compute `Init(puzzle)` once before the loop, then derive the updated `Candidates` for each tentative removal with a single `Set`/undo operation. Revisit if server-side batch puzzle generation becomes a hot path.
