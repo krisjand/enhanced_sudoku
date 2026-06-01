@@ -15,7 +15,6 @@ type CellAction struct {
 	Row, Col int
 	Digit    int
 	Type     ActionType
-	Duration time.Duration // time elapsed to find this specific action
 }
 
 // SolveStep records one pass of a solving technique and all the actions it produced.
