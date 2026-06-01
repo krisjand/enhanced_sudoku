@@ -3,13 +3,8 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
-	"sync"
-	"time"
-
-	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
 )
 
 func main() {
@@ -33,35 +28,6 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]string{"status": "ok"})
-}
-
-type puzzleHandler struct {
-	rng   *rand.Rand
-	rngMu sync.Mutex
-}
-
-func newPuzzleHandler() *puzzleHandler {
-	return &puzzleHandler{
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-}
-
-func (h *puzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !requireGET(w, r) {
-		return
-	}
-	h.rngMu.Lock()
-	puzzle, solution, dur := sudoku.Generate(h.rng)
-	h.rngMu.Unlock()
-	writeJSON(w, struct {
-		Puzzle      sudoku.Grid `json:"puzzle"`
-		Solution    sudoku.Grid `json:"solution"`
-		GeneratedUs int64       `json:"generated_us"`
-	}{
-		Puzzle:      puzzle,
-		Solution:    solution,
-		GeneratedUs: dur.Microseconds(),
-	})
 }
 
 // requireGET rejects any method other than GET or HEAD with 405.
