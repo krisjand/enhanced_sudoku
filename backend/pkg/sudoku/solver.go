@@ -6,7 +6,7 @@ import "time"
 func Solve(g Grid) (Grid, bool, time.Duration) {
 	start := time.Now()
 	cands := Init(g)
-	solution, found := solve(g, cands)
+	solution, found := backtrackWith(g, cands, ascendingDigits)
 	return solution, found, time.Since(start)
 }
 
@@ -18,11 +18,11 @@ func HasUniqueSolution(g Grid) bool {
 	return count == 1
 }
 
-// solve is the recursive backtracking solver. Candidates are computed once at
-// the top level and updated incrementally — each placement copies the 162-byte
-// Candidates struct and applies Set() (O(27) bit ops) rather than recomputing
-// from scratch (O(81×27)) at every node.
-func solve(g Grid, cands Candidates) (Grid, bool) {
+// backtrackWith is the shared recursive backtracking kernel used by Solve and Generate.
+// nextDigits returns the candidate digits for a given mask in the order they should be tried.
+// Candidates are updated incrementally — each placement copies the 162-byte Candidates struct
+// and applies Set() (O(27) bit ops) rather than recomputing from scratch (O(81×27)) per node.
+func backtrackWith(g Grid, cands Candidates, nextDigits func(uint16) []uint8) (Grid, bool) {
 	r, c, ok := mostConstrainedFrom(cands, g)
 	if !ok {
 		return g, g.IsValid()
@@ -31,21 +31,27 @@ func solve(g Grid, cands Candidates) (Grid, bool) {
 	if mask == 0 {
 		return g, false // contradiction — backtrack
 	}
-
-	for mask != 0 {
-		bit := mask & (-mask) // isolate lowest set bit
-		mask &^= bit
-		digit := uint8(trailingZeros(bit) + 1)
-
+	for _, digit := range nextDigits(mask) {
 		next := cands
 		next.Set(r, c, int(digit))
 		g[r][c] = digit
-		if solution, found := solve(g, next); found {
-			return solution, true
+		if result, found := backtrackWith(g, next, nextDigits); found {
+			return result, true
 		}
 		g[r][c] = 0
 	}
 	return g, false
+}
+
+// ascendingDigits extracts all candidate digits from mask in ascending order (digit 1 first).
+func ascendingDigits(mask uint16) []uint8 {
+	digits := make([]uint8, 0, 9)
+	for mask != 0 {
+		bit := mask & (-mask)
+		mask &^= bit
+		digits = append(digits, uint8(trailingZeros(bit)+1))
+	}
+	return digits
 }
 
 // countSolutions counts solutions, stopping once count reaches 2.
@@ -65,12 +71,7 @@ func countSolutions(g Grid, cands Candidates, count *int) {
 	if mask == 0 {
 		return // contradiction — backtrack
 	}
-
-	for mask != 0 {
-		bit := mask & (-mask)
-		mask &^= bit
-		digit := uint8(trailingZeros(bit) + 1)
-
+	for _, digit := range ascendingDigits(mask) {
 		next := cands
 		next.Set(r, c, int(digit))
 		g[r][c] = digit

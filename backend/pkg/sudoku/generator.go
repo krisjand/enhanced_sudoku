@@ -7,6 +7,7 @@ import (
 
 // Generate produces a Sudoku puzzle with a unique solution.
 // rng controls all randomness, making output deterministic for a given seed.
+// rng must not be nil; use rand.New(rand.NewSource(seed)) to construct one.
 // Returns the puzzle (partially filled), its solution (complete), and the time taken.
 func Generate(rng *rand.Rand) (Grid, Grid, time.Duration) {
 	start := time.Now()
@@ -22,29 +23,13 @@ func Generate(rng *rand.Rand) (Grid, Grid, time.Duration) {
 func generateSolution(rng *rand.Rand) Grid {
 	var g Grid
 	cands := Init(g)
-	g, _ = fillRandom(g, cands, rng)
-	return g
-}
-
-func fillRandom(g Grid, cands Candidates, rng *rand.Rand) (Grid, bool) {
-	r, c, ok := mostConstrainedFrom(cands, g)
+	result, ok := backtrackWith(g, cands, func(mask uint16) []uint8 {
+		return shuffledDigits(mask, rng)
+	})
 	if !ok {
-		return g, g.IsValid()
+		panic("sudoku: generateSolution failed on empty grid — this should never happen")
 	}
-	mask := cands[r][c]
-	if mask == 0 {
-		return g, false
-	}
-	for _, digit := range shuffledDigits(mask, rng) {
-		next := cands
-		next.Set(r, c, int(digit))
-		g[r][c] = digit
-		if result, found := fillRandom(g, next, rng); found {
-			return result, true
-		}
-		g[r][c] = 0
-	}
-	return g, false
+	return result
 }
 
 // removeClues tries removing each cell from solution in a random order,
