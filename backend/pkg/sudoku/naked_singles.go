@@ -14,11 +14,10 @@ func NakedSingles(g Grid, cands Candidates) []SolveStep {
 			}
 			if d := cands.Only(r, c); d != 0 {
 				actions = append(actions, CellAction{
-					Row:      r,
-					Col:      c,
-					Digit:    int(d),
-					Type:     ActionSet,
-					Duration: time.Since(start),
+					Row:   r,
+					Col:   c,
+					Digit: int(d),
+					Type:  ActionSet,
 				})
 			}
 		}
