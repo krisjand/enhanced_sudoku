@@ -2,24 +2,10 @@ package sudoku
 
 import "testing"
 
-// fixturePartialGrid returns a partially filled grid with known empty cells.
-// Optional modifiers are applied in order before returning.
+// fixturePartialGrid is an alias for fixtureStandardPuzzle kept for readability
+// in candidate-focused tests.
 func fixturePartialGrid(modifiers ...func(*Grid)) Grid {
-	g := Grid{
-		{5, 3, 0, 0, 7, 0, 0, 0, 0},
-		{6, 0, 0, 1, 9, 5, 0, 0, 0},
-		{0, 9, 8, 0, 0, 0, 0, 6, 0},
-		{8, 0, 0, 0, 6, 0, 0, 0, 3},
-		{4, 0, 0, 8, 0, 3, 0, 0, 1},
-		{7, 0, 0, 0, 2, 0, 0, 0, 6},
-		{0, 6, 0, 0, 0, 0, 2, 8, 0},
-		{0, 0, 0, 4, 1, 9, 0, 0, 5},
-		{0, 0, 0, 0, 8, 0, 0, 7, 9},
-	}
-	for _, m := range modifiers {
-		m(&g)
-	}
-	return g
+	return fixtureStandardPuzzle(modifiers...)
 }
 
 func TestInit(t *testing.T) {
@@ -157,6 +143,67 @@ func TestOnly(t *testing.T) {
 			c[0][0] = tt.mask
 			if got := c.Only(0, 0); got != tt.want {
 				t.Errorf("Only() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSet(t *testing.T) {
+	// Set digit 1 at cell (0,2) in the standard puzzle.
+	// Row 0 peers: cols 0-1, 3-8 in row 0
+	// Col 2 peers: rows 1-8 in col 2
+	// Box 0 peers: (0,0),(0,1),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)
+	const setRow, setCol, setDigit = 0, 2, 1
+	bit := uint16(1) << uint(setDigit-1)
+
+	tests := []struct {
+		name              string
+		checkRow, checkCol int
+		wantMaskZero      bool // true = cell should be solved (mask == 0)
+		wantBitCleared    bool // true = setDigit should be absent from candidates
+		wantBitPresent    bool // true = setDigit should remain in candidates (non-peer)
+	}{
+		{
+			name:          "cell itself is marked solved",
+			checkRow:      setRow, checkCol: setCol,
+			wantMaskZero:  true,
+		},
+		{
+			name:           "same-row peer loses the digit",
+			checkRow:       0, checkCol: 5,
+			wantBitCleared: true,
+		},
+		{
+			name:           "same-column peer loses the digit",
+			checkRow:       4, checkCol: 2,
+			wantBitCleared: true,
+		},
+		{
+			name:           "same-box peer loses the digit",
+			checkRow:       2, checkCol: 0,
+			wantBitCleared: true,
+		},
+		{
+			// (5,5) is not in row 0, col 2, or box 0 — digit 1 must remain
+			name:           "non-peer cell retains the digit",
+			checkRow:       5, checkCol: 5,
+			wantBitPresent: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := Init(fixturePartialGrid())
+			c.Set(setRow, setCol, setDigit)
+			mask := c[tt.checkRow][tt.checkCol]
+
+			if tt.wantMaskZero && mask != 0 {
+				t.Errorf("Set: cell (%d,%d) mask = %b, want 0", tt.checkRow, tt.checkCol, mask)
+			}
+			if tt.wantBitCleared && mask&bit != 0 {
+				t.Errorf("Set: digit %d still present at (%d,%d)", setDigit, tt.checkRow, tt.checkCol)
+			}
+			if tt.wantBitPresent && mask&bit == 0 {
+				t.Errorf("Set: digit %d missing from non-peer (%d,%d)", setDigit, tt.checkRow, tt.checkCol)
 			}
 		})
 	}

@@ -1,5 +1,7 @@
 package sudoku
 
+import "math/bits"
+
 // Candidates tracks possible digits for each cell using a 9-bit bitmask.
 // Bit d-1 represents digit d: digit 1 = bit 0 (value 1), digit 9 = bit 8 (value 256).
 // A value of 0 means the cell is already solved (no candidates needed).
@@ -84,23 +86,5 @@ func usedMask(g Grid, r, col int) uint16 {
 	return mask
 }
 
-func popcount(x uint16) int {
-	n := 0
-	for x != 0 {
-		n += int(x & 1)
-		x >>= 1
-	}
-	return n
-}
-
-func trailingZeros(x uint16) int {
-	if x == 0 {
-		return 16
-	}
-	n := 0
-	for x&1 == 0 {
-		n++
-		x >>= 1
-	}
-	return n
-}
+func popcount(x uint16) int      { return bits.OnesCount16(x) }
+func trailingZeros(x uint16) int { return bits.TrailingZeros16(x) }

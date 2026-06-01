@@ -5,27 +5,28 @@ import "time"
 // Solve returns the solution to g, whether one exists, and the time taken.
 func Solve(g Grid) (Grid, bool, time.Duration) {
 	start := time.Now()
-	solution, found := solve(g)
+	cands := Init(g)
+	solution, found := solve(g, cands)
 	return solution, found, time.Since(start)
 }
 
 // HasUniqueSolution reports whether g has exactly one solution.
 func HasUniqueSolution(g Grid) bool {
 	count := 0
-	countSolutions(g, &count)
+	cands := Init(g)
+	countSolutions(g, cands, &count)
 	return count == 1
 }
 
-// solve is the recursive backtracking solver. It selects the most constrained
-// empty cell (fewest candidates, MRV heuristic) at each step to minimise the
-// search space and detect contradictions as early as possible.
-func solve(g Grid) (Grid, bool) {
-	r, c, ok := mostConstrained(g)
+// solve is the recursive backtracking solver. Candidates are computed once at
+// the top level and updated incrementally — each placement copies the 162-byte
+// Candidates struct and applies Set() (O(27) bit ops) rather than recomputing
+// from scratch (O(81×27)) at every node.
+func solve(g Grid, cands Candidates) (Grid, bool) {
+	r, c, ok := mostConstrainedFrom(cands, g)
 	if !ok {
 		return g, g.IsValid()
 	}
-
-	cands := Init(g)
 	mask := cands[r][c]
 	if mask == 0 {
 		return g, false // contradiction — backtrack
@@ -36,8 +37,10 @@ func solve(g Grid) (Grid, bool) {
 		mask &^= bit
 		digit := uint8(trailingZeros(bit) + 1)
 
+		next := cands
+		next.Set(r, c, int(digit))
 		g[r][c] = digit
-		if solution, found := solve(g); found {
+		if solution, found := solve(g, next); found {
 			return solution, true
 		}
 		g[r][c] = 0
@@ -47,19 +50,17 @@ func solve(g Grid) (Grid, bool) {
 
 // countSolutions counts solutions, stopping once count reaches 2.
 // This is sufficient to determine uniqueness without exhaustive search.
-func countSolutions(g Grid, count *int) {
+func countSolutions(g Grid, cands Candidates, count *int) {
 	if *count >= 2 {
 		return
 	}
-	r, c, ok := mostConstrained(g)
+	r, c, ok := mostConstrainedFrom(cands, g)
 	if !ok {
 		if g.IsValid() {
 			*count++
 		}
 		return
 	}
-
-	cands := Init(g)
 	mask := cands[r][c]
 	if mask == 0 {
 		return // contradiction — backtrack
@@ -70,17 +71,19 @@ func countSolutions(g Grid, count *int) {
 		mask &^= bit
 		digit := uint8(trailingZeros(bit) + 1)
 
+		next := cands
+		next.Set(r, c, int(digit))
 		g[r][c] = digit
-		countSolutions(g, count)
+		countSolutions(g, next, count)
 		g[r][c] = 0
 	}
 }
 
-// mostConstrained returns the empty cell with the fewest candidates (MRV).
-// If a cell has zero candidates it is returned immediately as a contradiction.
-// Returns ok=false when no empty cells remain.
-func mostConstrained(g Grid) (row, col int, ok bool) {
-	cands := Init(g)
+// mostConstrainedFrom returns the empty cell with the fewest candidates (MRV)
+// using the pre-computed candidate set. If a cell has zero candidates it is
+// returned immediately as a contradiction. Returns ok=false when no empty
+// cells remain.
+func mostConstrainedFrom(cands Candidates, g Grid) (row, col int, ok bool) {
 	bestR, bestC := -1, -1
 	bestCount := 10
 
@@ -91,7 +94,7 @@ func mostConstrained(g Grid) (row, col int, ok bool) {
 			}
 			n := popcount(cands[r][c])
 			if n == 0 {
-				return r, c, true // contradiction — caller will see empty mask
+				return r, c, true // contradiction — caller sees empty mask
 			}
 			if n < bestCount {
 				bestCount = n
