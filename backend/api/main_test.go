@@ -34,3 +34,11 @@ func TestHealthHandlerMethodNotAllowed(t *testing.T) {
 		t.Errorf("expected status 405, got %d", w.Code)
 	}
 }
+
+func TestWriteJSONMarshalError(t *testing.T) {
+	w := httptest.NewRecorder()
+	writeJSON(w, make(chan int)) // channels cannot be marshalled
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
