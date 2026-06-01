@@ -56,12 +56,13 @@ func TestPuzzleHandler(t *testing.T) {
 		{name: "HEAD returns 200", method: http.MethodHead, wantStatus: http.StatusOK},
 		{name: "POST is not allowed", method: http.MethodPost, wantStatus: http.StatusMethodNotAllowed},
 	}
+	h := newPuzzleHandler()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, "/puzzle", nil)
 			w := httptest.NewRecorder()
 
-			puzzleHandler(w, req)
+			h.ServeHTTP(w, req)
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)

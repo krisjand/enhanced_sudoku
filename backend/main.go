@@ -12,11 +12,6 @@ import (
 	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
 )
 
-var (
-	rng   = rand.New(rand.NewSource(time.Now().UnixNano()))
-	rngMu sync.Mutex
-)
-
 func main() {
 	addr := os.Getenv("PORT")
 	if addr == "" {
@@ -25,7 +20,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
-	mux.HandleFunc("/puzzle", puzzleHandler)
+	mux.Handle("/puzzle", newPuzzleHandler())
 
 	log.Printf("Server listening on :%s", addr)
 	if err := http.ListenAndServe(":"+addr, mux); err != nil {
@@ -40,13 +35,24 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"status": "ok"})
 }
 
-func puzzleHandler(w http.ResponseWriter, r *http.Request) {
+type puzzleHandler struct {
+	rng   *rand.Rand
+	rngMu sync.Mutex
+}
+
+func newPuzzleHandler() *puzzleHandler {
+	return &puzzleHandler{
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+}
+
+func (h *puzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !requireGET(w, r) {
 		return
 	}
-	rngMu.Lock()
-	puzzle, solution, dur := sudoku.Generate(rng)
-	rngMu.Unlock()
+	h.rngMu.Lock()
+	puzzle, solution, dur := sudoku.Generate(h.rng)
+	h.rngMu.Unlock()
 	writeJSON(w, struct {
 		Puzzle      sudoku.Grid `json:"puzzle"`
 		Solution    sudoku.Grid `json:"solution"`
