@@ -20,6 +20,16 @@ Every feature follows this loop:
 
 Learnings from reviews and acceptance tests are documented in `docs/best-practices/`.
 
+## Time Tracking
+
+Time spent per task is logged as a comment on the GitHub issue for each story, not in the repository. Each entry records: PR, AI role (developer / reviewer / tester), task, start time, end time, and duration.
+
+| PR | Role | Task | Started | Completed | Duration |
+|----|------|------|---------|-----------|----------|
+| ... | Developer | Implementation | HH:MM | HH:MM | X min |
+| ... | Reviewer | Code review (pass N) | HH:MM | HH:MM | X min |
+| ... | Tester | Acceptance test | HH:MM | HH:MM | X min |
+
 ## Branching Strategy
 
 - `main` + feature branches
@@ -42,11 +52,10 @@ enhanced_sudoku/
 ├── backend/              # Go backend application
 ├── frontend/             # Flutter frontend application
 ├── docs/
-│   ├── best-practices/   # Language- and workflow-specific best practices
-│   │   ├── general.md
-│   │   ├── flutter.md
-│   │   └── go.md
-│   └── time-log.md       # Time tracking per story/task
+│   └── best-practices/   # Language- and workflow-specific best practices
+│       ├── general.md
+│       ├── flutter.md
+│       └── go.md
 └── .github/
     └── workflows/        # GitHub Actions CI pipelines
 ```
