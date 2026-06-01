@@ -38,6 +38,14 @@ func TestHealthHandlerMethodNotAllowed(t *testing.T) {
 	}
 }
 
+func TestWriteJSONMarshalError(t *testing.T) {
+	w := httptest.NewRecorder()
+	writeJSON(w, make(chan int)) // channels cannot be marshalled
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
 func TestPuzzleHandler(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -79,6 +87,9 @@ func TestPuzzleHandler(t *testing.T) {
 			}
 			if !resp.Puzzle.IsValid() {
 				t.Error("puzzle is not a valid grid")
+			}
+			if resp.Puzzle.IsSolved() {
+				t.Error("puzzle has no empty cells — should be a partial grid")
 			}
 			if resp.GeneratedMs < 0 {
 				t.Errorf("generated_ms = %d, want >= 0", resp.GeneratedMs)
