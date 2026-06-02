@@ -16,6 +16,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 	mux.Handle("/puzzle", newPuzzleHandler())
+	mux.Handle("/puzzle/solve", newSolveHandler())
 
 	log.Printf("Server listening on :%s", addr)
 	if err := http.ListenAndServe(":"+addr, mux); err != nil {
@@ -28,6 +29,13 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]string{"status": "ok"})
+}
+
+// decodeJSON decodes the JSON request body into v.
+// The body is limited to 4 KB — sufficient for any valid puzzle payload.
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	return json.NewDecoder(r.Body).Decode(v)
 }
 
 // requireGET rejects any method other than GET or HEAD with 405.
