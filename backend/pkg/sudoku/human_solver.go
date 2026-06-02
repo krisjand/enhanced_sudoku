@@ -2,11 +2,11 @@ package sudoku
 
 import "time"
 
-const TechniqueHiddenSingles = "Hidden Singles"
+const TechniqueHiddenSingles = "hiddenSingles"
 
-// namedTechnique pairs a display name with an analysis function.
-// The name appears in TechniqueAttempt regardless of whether the function
-// finds anything; step-level names (e.g. "Hidden Single (Row)") live inside
+// namedTechnique pairs a camelCase identifier with an analysis function.
+// The identifier appears in TechniqueAttempt regardless of whether the function
+// finds anything; step-level identifiers (e.g. "hiddenSingleRow") live inside
 // the returned SolveSteps.
 type namedTechnique struct {
 	name string
@@ -22,6 +22,25 @@ var techniques = []namedTechnique{
 	{TechniqueNakedPairs, NakedPairs},
 	{TechniqueHiddenPairs, HiddenPairs},
 	{TechniqueNakedTriples, NakedTriples},
+}
+
+// KnownTechniques returns the registered technique names in complexity order.
+func KnownTechniques() []string {
+	names := make([]string, len(techniques))
+	for i, t := range techniques {
+		names[i] = t.name
+	}
+	return names
+}
+
+// IsKnownTechnique reports whether name matches a registered technique.
+func IsKnownTechnique(name string) bool {
+	for _, t := range techniques {
+		if t.name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // HumanSolve solves puzzle using human techniques applied in complexity order.

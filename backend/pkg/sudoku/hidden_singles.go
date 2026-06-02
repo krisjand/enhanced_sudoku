@@ -3,9 +3,9 @@ package sudoku
 import "time"
 
 const (
-	TechniqueHiddenSingleRow    = "Hidden Single (Row)"
-	TechniqueHiddenSingleColumn = "Hidden Single (Column)"
-	TechniqueHiddenSingleBox    = "Hidden Single (Box)"
+	TechniqueHiddenSingleRow    = "hiddenSingleRow"
+	TechniqueHiddenSingleColumn = "hiddenSingleColumn"
+	TechniqueHiddenSingleBox    = "hiddenSingleBox"
 )
 
 // HiddenSingles identifies cells where a digit can appear in only one position

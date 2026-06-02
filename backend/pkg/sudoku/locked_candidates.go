@@ -3,11 +3,11 @@ package sudoku
 import "time"
 
 const (
-	TechniqueLockedCandidates                = "Locked Candidates"
-	TechniqueLockedCandidatesPointingRow     = "Locked Candidates (Pointing Row)"
-	TechniqueLockedCandidatesPointingColumn  = "Locked Candidates (Pointing Column)"
-	TechniqueLockedCandidatesReductionRow    = "Locked Candidates (Reduction Row)"
-	TechniqueLockedCandidatesReductionColumn = "Locked Candidates (Reduction Column)"
+	TechniqueLockedCandidates                = "lockedCandidates"
+	TechniqueLockedCandidatesPointingRow     = "lockedCandidatesPointingRow"
+	TechniqueLockedCandidatesPointingColumn  = "lockedCandidatesPointingColumn"
+	TechniqueLockedCandidatesReductionRow    = "lockedCandidatesReductionRow"
+	TechniqueLockedCandidatesReductionColumn = "lockedCandidatesReductionColumn"
 )
 
 // LockedCandidates identifies two elimination patterns:

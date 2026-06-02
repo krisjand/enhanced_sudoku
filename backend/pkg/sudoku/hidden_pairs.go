@@ -3,10 +3,10 @@ package sudoku
 import "time"
 
 const (
-	TechniqueHiddenPairs      = "Hidden Pairs"
-	TechniqueHiddenPairRow    = "Hidden Pair (Row)"
-	TechniqueHiddenPairColumn = "Hidden Pair (Column)"
-	TechniqueHiddenPairBox    = "Hidden Pair (Box)"
+	TechniqueHiddenPairs      = "hiddenPairs"
+	TechniqueHiddenPairRow    = "hiddenPairRow"
+	TechniqueHiddenPairColumn = "hiddenPairColumn"
+	TechniqueHiddenPairBox    = "hiddenPairBox"
 )
 
 // HiddenPairs identifies two digits that appear as candidates in exactly the

@@ -17,6 +17,7 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 	mux.Handle("/puzzle", newPuzzleHandler())
 	mux.Handle("/puzzle/solve", newSolveHandler())
+	mux.Handle("/puzzle/find", newFindPuzzleHandler())
 
 	log.Printf("Server listening on :%s", addr)
 	if err := http.ListenAndServe(":"+addr, mux); err != nil {
