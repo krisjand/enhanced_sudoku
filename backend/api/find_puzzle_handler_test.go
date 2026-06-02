@@ -20,7 +20,7 @@ func TestFindPuzzleHandler(t *testing.T) {
 		{
 			name:       "POST is not allowed",
 			method:     http.MethodPost,
-			url:        "/puzzle/find?technique=Naked+Singles",
+			url:        "/puzzle/find?technique=nakedSingles",
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
@@ -38,19 +38,19 @@ func TestFindPuzzleHandler(t *testing.T) {
 		{
 			name:       "bad max returns 400",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=Naked+Singles&max=0",
+			url:        "/puzzle/find?technique=nakedSingles&max=0",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:       "non-integer max returns 400",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=Naked+Singles&max=abc",
+			url:        "/puzzle/find?technique=nakedSingles&max=abc",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:       "max exceeding limit returns 400",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=Naked+Singles&max=10001",
+			url:        "/puzzle/find?technique=nakedSingles&max=10001",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
@@ -58,22 +58,22 @@ func TestFindPuzzleHandler(t *testing.T) {
 			// 1 attempt, so the handler exhausts max and returns 404.
 			name:       "technique not found within max attempts returns 404",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=Naked+Triples&max=1",
+			url:        "/puzzle/find?technique=nakedTriples&max=1",
 			wantStatus: http.StatusNotFound,
 		},
 		{
 			// Naked Singles wins on every puzzle; seed 1 confirms it wins in the first attempt.
 			name:       "known technique found returns 200 with puzzle and attempt count",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=Naked+Singles&max=1",
+			url:        "/puzzle/find?technique=nakedSingles&max=1",
 			wantStatus: http.StatusOK,
 			check: func(t *testing.T, body []byte) {
 				var resp findPuzzleResponse
 				if err := json.Unmarshal(body, &resp); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
-				if resp.Technique != "Naked Singles" {
-					t.Errorf("technique = %q, want %q", resp.Technique, "Naked Singles")
+				if resp.Technique != "nakedSingles" {
+					t.Errorf("technique = %q, want %q", resp.Technique, "nakedSingles")
 				}
 				if resp.Attempts <= 0 {
 					t.Errorf("attempts = %d, want > 0", resp.Attempts)

@@ -3,10 +3,10 @@ package sudoku
 import "time"
 
 const (
-	TechniqueNakedPairs       = "Naked Pairs"
-	TechniqueNakedPairRow     = "Naked Pair (Row)"
-	TechniqueNakedPairColumn  = "Naked Pair (Column)"
-	TechniqueNakedPairBox     = "Naked Pair (Box)"
+	TechniqueNakedPairs       = "nakedPairs"
+	TechniqueNakedPairRow     = "nakedPairRow"
+	TechniqueNakedPairColumn  = "nakedPairColumn"
+	TechniqueNakedPairBox     = "nakedPairBox"
 )
 
 // NakedPairs identifies cells in a unit that share exactly the same two

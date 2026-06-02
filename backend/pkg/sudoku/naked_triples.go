@@ -3,10 +3,10 @@ package sudoku
 import "time"
 
 const (
-	TechniqueNakedTriples      = "Naked Triples"
-	TechniqueNakedTripleRow    = "Naked Triple (Row)"
-	TechniqueNakedTripleColumn = "Naked Triple (Column)"
-	TechniqueNakedTripleBox    = "Naked Triple (Box)"
+	TechniqueNakedTriples      = "nakedTriples"
+	TechniqueNakedTripleRow    = "nakedTripleRow"
+	TechniqueNakedTripleColumn = "nakedTripleColumn"
+	TechniqueNakedTripleBox    = "nakedTripleBox"
 )
 
 // NakedTriples identifies cells in a unit whose combined candidates contain

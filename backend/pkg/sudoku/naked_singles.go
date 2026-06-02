@@ -2,7 +2,7 @@ package sudoku
 
 import "time"
 
-const TechniqueNakedSingles = "Naked Singles"
+const TechniqueNakedSingles = "nakedSingles"
 
 // NakedSingles identifies all cells where only one digit remains possible.
 // Returns a single SolveStep containing all found naked singles, or nil if none exist.

@@ -2,11 +2,11 @@ package sudoku
 
 import "time"
 
-const TechniqueHiddenSingles = "Hidden Singles"
+const TechniqueHiddenSingles = "hiddenSingles"
 
-// namedTechnique pairs a display name with an analysis function.
-// The name appears in TechniqueAttempt regardless of whether the function
-// finds anything; step-level names (e.g. "Hidden Single (Row)") live inside
+// namedTechnique pairs a camelCase identifier with an analysis function.
+// The identifier appears in TechniqueAttempt regardless of whether the function
+// finds anything; step-level identifiers (e.g. "hiddenSingleRow") live inside
 // the returned SolveSteps.
 type namedTechnique struct {
 	name string
