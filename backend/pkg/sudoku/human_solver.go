@@ -26,6 +26,7 @@ var techniques = []namedTechnique{
 // is stuck with the currently implemented techniques.
 // Returns a full trace of every attempt (successful or not) for each iteration.
 func HumanSolve(puzzle Grid) SolveResult {
+	start := time.Now()
 	g := puzzle
 	cands := Init(g)
 	var iterations [][]TechniqueAttempt
@@ -70,9 +71,9 @@ func HumanSolve(puzzle Grid) SolveResult {
 		iterations = append(iterations, attempts)
 
 		if !found {
-			return SolveResult{Solved: false, Grid: g, Iterations: iterations}
+			return SolveResult{Solved: false, Grid: g, Duration: time.Since(start), Iterations: iterations}
 		}
 	}
 
-	return SolveResult{Solved: true, Grid: g, Iterations: iterations}
+	return SolveResult{Solved: true, Grid: g, Duration: time.Since(start), Iterations: iterations}
 }

@@ -34,9 +34,10 @@ func (h *solveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // solveResponse is the JSON shape returned by POST /puzzle/solve.
 type solveResponse struct {
-	Solved     bool               `json:"solved"`
-	Grid       sudoku.Grid        `json:"grid"`
-	Iterations []iterationResponse `json:"iterations"`
+	Solved      bool                `json:"solved"`
+	Grid        sudoku.Grid         `json:"grid"`
+	DurationUs  int64               `json:"duration_us"`
+	Iterations  []iterationResponse `json:"iterations"`
 }
 
 type iterationResponse struct {
@@ -91,6 +92,7 @@ func toSolveResponse(r sudoku.SolveResult) solveResponse {
 	return solveResponse{
 		Solved:     r.Solved,
 		Grid:       r.Grid,
+		DurationUs: r.Duration.Microseconds(),
 		Iterations: iterations,
 	}
 }
