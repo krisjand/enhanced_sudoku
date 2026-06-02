@@ -45,16 +45,24 @@ func HumanSolve(puzzle Grid) SolveResult {
 			})
 
 			if len(steps) > 0 {
+				applied := false
 				for _, s := range steps {
 					for _, a := range s.Actions {
-						if a.Type == ActionSet {
+						switch a.Type {
+						case ActionSet:
 							g[a.Row][a.Col] = uint8(a.Digit)
 							cands.Set(a.Row, a.Col, a.Digit)
+							applied = true
+						case ActionEliminate:
+							cands.Eliminate(a.Row, a.Col, a.Digit)
+							applied = true
 						}
 					}
 				}
-				found = true
-				break
+				if applied {
+					found = true
+					break
+				}
 			}
 		}
 

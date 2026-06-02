@@ -32,7 +32,9 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // decodeJSON decodes the JSON request body into v.
-func decodeJSON(r *http.Request, v any) error {
+// The body is limited to 4 KB — sufficient for any valid puzzle payload.
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
 	return json.NewDecoder(r.Body).Decode(v)
 }
 

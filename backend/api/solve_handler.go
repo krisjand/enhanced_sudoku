@@ -19,8 +19,12 @@ func (h *solveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Puzzle sudoku.Grid `json:"puzzle"`
 	}
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(w, r, &req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if !req.Puzzle.IsValid() {
+		http.Error(w, "invalid puzzle", http.StatusUnprocessableEntity)
 		return
 	}
 
