@@ -64,8 +64,8 @@ func TestNakedSingles(t *testing.T) {
 				t.Fatalf("len(steps) = %d, want 1", len(steps))
 			}
 			step := steps[0]
-			if step.Technique != "Naked Singles" {
-				t.Errorf("Technique = %q, want \"Naked Singles\"", step.Technique)
+			if step.Technique != TechniqueNakedSingles {
+				t.Errorf("Technique = %q, want %q", step.Technique, TechniqueNakedSingles)
 			}
 			if len(step.Actions) != len(tt.wantActions) {
 				t.Fatalf("len(Actions) = %d, want %d", len(step.Actions), len(tt.wantActions))

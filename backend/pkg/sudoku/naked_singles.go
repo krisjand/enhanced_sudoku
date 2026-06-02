@@ -2,6 +2,8 @@ package sudoku
 
 import "time"
 
+const TechniqueNakedSingles = "Naked Singles"
+
 // NakedSingles identifies all cells where only one digit remains possible.
 // Returns a single SolveStep containing all found naked singles, or nil if none exist.
 func NakedSingles(g Grid, cands Candidates) []SolveStep {
@@ -26,7 +28,7 @@ func NakedSingles(g Grid, cands Candidates) []SolveStep {
 		return nil
 	}
 	return []SolveStep{{
-		Technique: "Naked Singles",
+		Technique: TechniqueNakedSingles,
 		Actions:   actions,
 		Duration:  time.Since(start),
 	}}

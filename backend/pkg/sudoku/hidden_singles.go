@@ -14,22 +14,29 @@ const (
 // Results are deduplicated: a (row, col, digit) found in a row scan is not
 // re-emitted in the column or box scan.
 func HiddenSingles(g Grid, cands Candidates) []SolveStep {
-	start := time.Now()
 	seen := make(map[[3]int]bool) // [row, col, digit]
 
+	rowStart := time.Now()
 	rowActions := hiddenSinglesInRows(cands, seen)
+	rowDur := time.Since(rowStart)
+
+	colStart := time.Now()
 	colActions := hiddenSinglesInCols(cands, seen)
+	colDur := time.Since(colStart)
+
+	boxStart := time.Now()
 	boxActions := hiddenSinglesInBoxes(cands, seen)
+	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleRow, Actions: rowActions, Duration: time.Since(start)})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleRow, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleColumn, Actions: colActions, Duration: time.Since(start)})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleColumn, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleBox, Actions: boxActions, Duration: time.Since(start)})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleBox, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
