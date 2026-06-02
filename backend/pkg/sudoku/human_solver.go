@@ -24,6 +24,25 @@ var techniques = []namedTechnique{
 	{TechniqueNakedTriples, NakedTriples},
 }
 
+// KnownTechniques returns the registered technique names in complexity order.
+func KnownTechniques() []string {
+	names := make([]string, len(techniques))
+	for i, t := range techniques {
+		names[i] = t.name
+	}
+	return names
+}
+
+// IsKnownTechnique reports whether name matches a registered technique.
+func IsKnownTechnique(name string) bool {
+	for _, t := range techniques {
+		if t.name == name {
+			return true
+		}
+	}
+	return false
+}
+
 // HumanSolve solves puzzle using human techniques applied in complexity order.
 // Each iteration tries techniques until one succeeds; if none succeed the puzzle
 // is stuck with the currently implemented techniques.
