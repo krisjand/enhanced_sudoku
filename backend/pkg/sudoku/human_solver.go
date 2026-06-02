@@ -18,6 +18,7 @@ type namedTechnique struct {
 var techniques = []namedTechnique{
 	{TechniqueNakedSingles, NakedSingles},
 	{TechniqueHiddenSingles, HiddenSingles},
+	{TechniqueLockedCandidates, LockedCandidates},
 	{TechniqueNakedPairs, NakedPairs},
 	{TechniqueHiddenPairs, HiddenPairs},
 }

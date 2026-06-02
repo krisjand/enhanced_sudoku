@@ -63,8 +63,21 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:   "locked candidates puzzle exercises LockedCandidates through HumanSolve",
+			puzzle: fixtureLockedCandidatesPuzzle(),
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueLockedCandidates {
+						return
+					}
+				}
+				t.Error("no iteration had LockedCandidates as the winning technique")
+			},
+		},
+		{
 			name:       "naked pairs puzzle exercises NakedPairs through HumanSolve",
-			puzzle:     fixtureNakedPairsPuzzle(),
+			puzzle:     fixtureNakedPairs2Puzzle(),
 			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {

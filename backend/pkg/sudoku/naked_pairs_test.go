@@ -25,6 +25,22 @@ func fixtureNakedPairsPuzzle(modifiers ...func(*Grid)) Grid {
 	return g
 }
 
+// fixtureNakedPairs2Puzzle returns a puzzle where NakedPairs must win as the
+// decisive technique even after LockedCandidates has already made progress.
+func fixtureNakedPairs2Puzzle() Grid {
+	return Grid{
+		{0, 8, 0, 0, 9, 0, 0, 3, 0},
+		{0, 3, 0, 0, 0, 0, 0, 6, 9},
+		{9, 0, 2, 0, 6, 3, 1, 5, 8},
+		{0, 2, 0, 8, 0, 4, 5, 9, 0},
+		{8, 5, 1, 9, 0, 7, 0, 4, 6},
+		{3, 9, 4, 6, 0, 5, 8, 7, 0},
+		{5, 6, 3, 0, 4, 0, 9, 8, 7},
+		{2, 0, 0, 0, 0, 0, 0, 1, 5},
+		{0, 1, 0, 0, 5, 0, 0, 2, 0},
+	}
+}
+
 func TestNakedPairs(t *testing.T) {
 	tests := []struct {
 		name    string
