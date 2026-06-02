@@ -7,6 +7,15 @@ This file documents workflow, branching, and PR conventions learned during devel
 - Always post review comments as inline PR comments on the specific line of code they refer to. Only post as a top-level review comment when the relevant code no longer exists in the PR (e.g. the file or line was removed or changed in a later commit).
 - Post SUGGESTION-level comments as **top-level PR comments** (not inline). Inline comments create review threads that must be resolved before merging — a SUGGESTION that is intentionally deferred would block the merge. Top-level comments are informational and do not gate the merge.
 - All open inline review threads (CRITICAL and WARNING) must be resolved before merging. SUGGESTION threads that are intentionally deferred must also be resolved (with a note explaining the deferral) before merging.
+- Match review effort to the type of change — high-effort reviews are expensive in context/time and should be reserved for PRs that introduce new patterns or architecture:
+
+  | PR type | Effort level |
+  |---|---|
+  | New technique function following an established pattern | `medium` |
+  | Human solver, API endpoints, new data types, new patterns | `high` |
+  | Refactors, infrastructure, docs | `low` or skip |
+
+  Use `/code-review medium --comment` for technique PRs (naked pairs, hidden pairs, etc.). Medium is correctness-focused with fewer angles — it catches real bugs without the full cleanup/altitude sweep.
 
 ## Branching & PRs
 
