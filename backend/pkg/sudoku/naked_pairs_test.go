@@ -2,22 +2,22 @@ package sudoku
 
 import "testing"
 
-// fixtureNakedPairRow returns a grid with a naked pair {1,2} at (0,0) and (0,1) in row 0.
-// Row 0 has 3-8 placed, leaving (0,0), (0,1), and (0,8) empty.
-// Columns 0 and 1 each have {3–9} placed so (0,0) and (0,1) are both constrained to {1,2}.
-// Column 8 has {1,3–8} placed and box 2 has 1 placed, so (0,8) = {2,9}.
-// The naked pair eliminates digit 2 from (0,8).
-func fixtureNakedPairRow(modifiers ...func(*Grid)) Grid {
+// fixtureNakedPairsPuzzle returns a puzzle known to contain multiple naked pairs.
+// Verified pairs after Init:
+//   - Row 0: (0,1) and (0,2) share {1,6}
+//   - Row 2: (2,5) and (2,8) share {6,7}
+//   - Box pairs in boxes 4 and 5
+func fixtureNakedPairsPuzzle(modifiers ...func(*Grid)) Grid {
 	g := Grid{
-		{0, 0, 3, 4, 5, 6, 7, 8, 0},
-		{4, 6, 0, 0, 0, 0, 0, 0, 1},
-		{5, 7, 0, 0, 0, 0, 0, 0, 3},
-		{6, 5, 0, 0, 0, 0, 0, 0, 4},
-		{7, 8, 0, 0, 0, 0, 0, 0, 5},
-		{9, 3, 0, 0, 0, 0, 0, 0, 6},
-		{8, 9, 0, 0, 0, 0, 0, 0, 7},
-		{3, 4, 0, 0, 0, 0, 0, 0, 8},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{4, 0, 0, 0, 0, 0, 9, 3, 8},
+		{0, 3, 2, 0, 9, 4, 1, 0, 0},
+		{0, 9, 5, 3, 0, 0, 2, 4, 0},
+		{3, 7, 0, 6, 0, 9, 0, 0, 4},
+		{5, 2, 9, 0, 0, 1, 6, 7, 3},
+		{6, 0, 4, 7, 0, 3, 0, 9, 0},
+		{9, 5, 7, 0, 0, 8, 3, 0, 0},
+		{0, 0, 3, 9, 0, 0, 4, 0, 0},
+		{2, 4, 0, 0, 3, 0, 7, 0, 9},
 	}
 	for _, m := range modifiers {
 		m(&g)
@@ -43,12 +43,16 @@ func TestNakedPairs(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:    "constructed naked pair produces eliminations",
-			grid:    fixtureNakedPairRow(),
+			name:    "real puzzle produces row and box naked pairs",
+			grid:    fixtureNakedPairsPuzzle(),
 			wantNil: false,
 			check: func(t *testing.T, steps []SolveStep, cands Candidates) {
 				t.Helper()
 				assertNakedPairsValid(t, steps, cands)
+
+				// Verify the known row pair {1,6} at (0,1)+(0,2) produced eliminations.
+				assertEliminationFound(t, steps, 1, 0, 3, TechniqueNakedPairRow)
+				assertEliminationFound(t, steps, 6, 0, 5, TechniqueNakedPairRow)
 			},
 		},
 	}
@@ -91,12 +95,10 @@ func assertNakedPairsValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			bit := uint16(1) << uint(a.Digit-1)
-			// The eliminated digit must have been a candidate in that cell.
 			if cands[a.Row][a.Col]&bit == 0 {
 				t.Errorf("(%d,%d) digit=%d: not a candidate before elimination",
 					a.Row, a.Col, a.Digit)
 			}
-			// There must exist a naked pair in the claimed unit that justifies it.
 			switch s.Technique {
 			case TechniqueNakedPairRow:
 				if !hasNakedPairInUnit(cands, rowUnit(a.Row), bit) {
@@ -116,8 +118,24 @@ func assertNakedPairsValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	}
 }
 
+// assertEliminationFound checks that a specific elimination appears in the given technique's step.
+func assertEliminationFound(t *testing.T, steps []SolveStep, digit, row, col int, technique string) {
+	t.Helper()
+	for _, s := range steps {
+		if s.Technique != technique {
+			continue
+		}
+		for _, a := range s.Actions {
+			if a.Digit == digit && a.Row == row && a.Col == col {
+				return
+			}
+		}
+	}
+	t.Errorf("expected elimination of digit=%d at (%d,%d) in %q, not found", digit, row, col, technique)
+}
+
 // hasNakedPairInUnit reports whether the unit contains two cells with identical
-// 2-candidate masks, and that mask includes the given bit.
+// 2-candidate masks that include the given bit.
 func hasNakedPairInUnit(cands Candidates, unit []cell, bit uint16) bool {
 	for i := 0; i < len(unit)-1; i++ {
 		a := unit[i]
