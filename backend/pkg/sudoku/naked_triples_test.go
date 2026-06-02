@@ -82,20 +82,67 @@ func TestNakedTriples(t *testing.T) {
 }
 
 // assertNakedTriplesValid checks structural correctness of NakedTriples output:
-// every eliminated digit must actually be a candidate in the cell before
-// elimination, and must not belong to the naked triple itself.
+// every eliminated digit must be a candidate in the target cell, and the target
+// cell must not be one of the three naked-triple members (i.e. a real triple in
+// the unit must justify the elimination without including the target cell).
 func assertNakedTriplesValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
-	for _, step := range steps {
-		for _, a := range step.Actions {
+	for _, s := range steps {
+		for _, a := range s.Actions {
 			if a.Type != ActionEliminate {
 				t.Errorf("expected ActionEliminate, got %v at (%d,%d)", a.Type, a.Row, a.Col)
 				continue
 			}
-			bit := uint16(1) << (a.Digit - 1)
+			bit := uint16(1) << uint(a.Digit-1)
 			if cands[a.Row][a.Col]&bit == 0 {
 				t.Errorf("digit %d is not a candidate at (%d,%d)", a.Digit, a.Row, a.Col)
 			}
+			switch s.Technique {
+			case TechniqueNakedTripleRow:
+				if !hasNakedTripleInUnit(cands, rowUnit(a.Row), a.Row, a.Col, bit) {
+					t.Errorf("no naked triple for digit=%d in row %d excluding (%d,%d)", a.Digit, a.Row, a.Row, a.Col)
+				}
+			case TechniqueNakedTripleColumn:
+				if !hasNakedTripleInUnit(cands, colUnit(a.Col), a.Row, a.Col, bit) {
+					t.Errorf("no naked triple for digit=%d in col %d excluding (%d,%d)", a.Digit, a.Col, a.Row, a.Col)
+				}
+			case TechniqueNakedTripleBox:
+				b := (a.Row/3)*3 + a.Col/3
+				if !hasNakedTripleInUnit(cands, boxUnit(b), a.Row, a.Col, bit) {
+					t.Errorf("no naked triple for digit=%d in box %d excluding (%d,%d)", a.Digit, b, a.Row, a.Col)
+				}
+			}
 		}
 	}
+}
+
+// hasNakedTripleInUnit reports whether the unit contains a naked triple whose
+// combined candidates include bit, where none of the triple members is (targetRow, targetCol).
+// This confirms both that the elimination is justified and that the target cell
+// is not a triple member being incorrectly eliminated.
+func hasNakedTripleInUnit(cands Candidates, unit []cell, targetRow, targetCol int, bit uint16) bool {
+	var members []cell
+	for _, pos := range unit {
+		n := popcount(cands[pos.r][pos.c])
+		if n == 2 || n == 3 {
+			members = append(members, pos)
+		}
+	}
+	for i := 0; i < len(members)-2; i++ {
+		for j := i + 1; j < len(members)-1; j++ {
+			for k := j + 1; k < len(members); k++ {
+				a, b, c := members[i], members[j], members[k]
+				if (a.r == targetRow && a.c == targetCol) ||
+					(b.r == targetRow && b.c == targetCol) ||
+					(c.r == targetRow && c.c == targetCol) {
+					continue
+				}
+				union := cands[a.r][a.c] | cands[b.r][b.c] | cands[c.r][c.c]
+				if popcount(union) == 3 && union&bit != 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

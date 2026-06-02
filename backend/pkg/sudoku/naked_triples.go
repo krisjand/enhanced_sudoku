@@ -67,7 +67,11 @@ func nakedTriplesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
 
 // eliminateFromTriples finds naked triples in a unit and appends eliminations.
 func eliminateFromTriples(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
-	// Collect cells with 2 or 3 candidates (a naked triple member has at most 3).
+	// Collect cells with 2 or 3 candidates.
+	// Cells with 1 candidate are excluded: in the HumanSolve pipeline NakedSingles
+	// always runs before NakedTriples and resolves every 1-candidate cell, so n == 1
+	// is never reachable here. When called in isolation the caller must ensure naked
+	// singles have already been applied.
 	var candidates []cell
 	for _, pos := range unit {
 		n := popcount(cands[pos.r][pos.c])
