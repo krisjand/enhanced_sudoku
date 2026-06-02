@@ -4,27 +4,29 @@ This file documents the collaboration workflow, conventions, and rules for this 
 
 ## Development Workflow
 
-Every feature follows this loop:
+Every feature follows this loop **in strict order**. Do not skip or reorder steps.
 
 1. **User story** — define a story with acceptance criteria (ACs)
-2. **Task breakdown** — identify files to change and the type of changes required; post the breakdown as a comment on the GitHub issue before starting implementation
-3. **Implement** — write code and unit tests, then open a PR
-4. **Code review** — comments are tagged with one of three levels:
+2. **Task breakdown** — identify files to change and the type of changes required; post the breakdown as a comment on the GitHub issue **before writing any code**
+3. **Implement** — write production code and unit tests
+4. **Create PR** — open a pull request; reference the issue in the body (`Closes #<issue-number>`)
+5. **Code review** — perform a review and tag every comment with one of three levels:
    - `CRITICAL` — must be resolved before merge
    - `WARNING` — must be resolved before merge
    - `SUGGESTION` — optional improvement, does not block merge
    - **CRITICAL and WARNING** → post as inline PR comments on the relevant line. Fall back to a top-level comment only when the code no longer exists in the PR.
    - **SUGGESTION** → post as a top-level PR comment (reference file + line in the body). This avoids unresolved threads that would block merging. Log deferred suggestions in GitHub issue #42. When addressing a PR review, evaluate each suggestion on impact vs. effort — act on it if worthwhile, otherwise leave it deferred.
-5. **Review loop** — address all CRITICAL and WARNING comments, resolve the comment threads via the GitHub GraphQL API, then re-request review; repeat until clean
-6. **Merge**
-7. **Acceptance test** — verify all ACs are met after merge
-8. **Bug fix loop** — if the acceptance test finds failures, open a new PR and re-enter the review loop
+6. **Address comments** — resolve all CRITICAL and WARNING comments; resolve each thread via the GitHub GraphQL API, then re-request review
+7. **Re-review if production code changed** — if step 6 touched production code (not test-only changes), perform another full review and repeat from step 6 until clean; test-only fixes do not require a new review pass
+8. **Ask before merging** — always confirm with the user before merging the PR
+9. **Acceptance test** — after merging, verify all ACs are met
+10. **Bug fix loop** — if the acceptance test finds failures, open a new PR and re-enter the loop from step 4
 
 Learnings from reviews and acceptance tests are documented in `docs/best-practices/`.
 
 ## Time Tracking
 
-Time spent per task is logged as a comment on the GitHub issue for each story, not in the repository. Each entry records: PR, AI role (developer / reviewer / tester), task, start time, end time, and duration.
+Time spent per task is logged as a comment on the GitHub issue for each story, not in the repository. Log time **without being asked** after each task (implementation, review, acceptance test). Each entry records: PR, AI role (developer / reviewer / tester), task, start time, end time, and duration.
 
 | PR | Role | Task | Started | Completed | Duration |
 |----|------|------|---------|-----------|----------|

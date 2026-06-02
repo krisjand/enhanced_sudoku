@@ -103,6 +103,19 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:   "hidden triples puzzle exercises HiddenTriples through HumanSolve",
+			puzzle: fixtureHiddenTriplesPuzzle2(),
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueHiddenTriples {
+						return
+					}
+				}
+				t.Error("no iteration had HiddenTriples as the winning technique")
+			},
+		},
+		{
 			name:       "empty grid is stuck with current techniques",
 			puzzle:     Grid{},
 			wantSolved: false,
