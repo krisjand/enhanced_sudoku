@@ -23,3 +23,22 @@ type SolveStep struct {
 	Actions   []CellAction
 	Duration  time.Duration // total time for this technique pass
 }
+
+// TechniqueFn is the common signature all analysis functions implement.
+type TechniqueFn func(Grid, Candidates) []SolveStep
+
+// TechniqueAttempt records one attempt to apply a technique,
+// whether or not it produced any findings. Duration is always populated
+// so timing is preserved even when Steps is nil.
+type TechniqueAttempt struct {
+	Technique string
+	Duration  time.Duration
+	Steps     []SolveStep // nil if the technique found nothing
+}
+
+// SolveResult is the output of HumanSolve.
+type SolveResult struct {
+	Solved     bool
+	Grid       Grid
+	Iterations [][]TechniqueAttempt // one []TechniqueAttempt per iteration until solved or stuck
+}
