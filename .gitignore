@@ -15,6 +15,9 @@ frontend/build/
 # Test binary, built with `go test -c`
 *.test
 
+# test images
+test_grids/*.png
+
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
