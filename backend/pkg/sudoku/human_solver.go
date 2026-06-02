@@ -21,6 +21,7 @@ var techniques = []namedTechnique{
 	{TechniqueLockedCandidates, LockedCandidates},
 	{TechniqueNakedPairs, NakedPairs},
 	{TechniqueHiddenPairs, HiddenPairs},
+	{TechniqueNakedTriples, NakedTriples},
 }
 
 // HumanSolve solves puzzle using human techniques applied in complexity order.
