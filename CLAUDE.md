@@ -9,10 +9,12 @@ Every feature follows this loop:
 1. **User story** — define a story with acceptance criteria (ACs)
 2. **Task breakdown** — identify files to change and the type of changes required; post the breakdown as a comment on the GitHub issue before starting implementation
 3. **Implement** — write code and unit tests, then open a PR
-4. **Code review** — post findings as inline PR comments on the relevant line of code; fall back to a top-level review comment only when the code no longer exists in the PR. Comments are tagged with one of three levels:
+4. **Code review** — comments are tagged with one of three levels:
    - `CRITICAL` — must be resolved before merge
    - `WARNING` — must be resolved before merge
-   - `SUGGESTION` — optional improvement, can be deferred
+   - `SUGGESTION` — optional improvement, does not block merge
+   - **CRITICAL and WARNING** → post as inline PR comments on the relevant line. Fall back to a top-level comment only when the code no longer exists in the PR.
+   - **SUGGESTION** → post as a top-level PR comment (reference file + line in the body). This avoids unresolved threads that would block merging. Log deferred suggestions in GitHub issue #42.
 5. **Review loop** — address all CRITICAL and WARNING comments, resolve the comment threads via the GitHub GraphQL API, then re-request review; repeat until clean
 6. **Merge**
 7. **Acceptance test** — verify all ACs are met after merge
