@@ -14,7 +14,7 @@ Every feature follows this loop:
    - `WARNING` — must be resolved before merge
    - `SUGGESTION` — optional improvement, does not block merge
    - **CRITICAL and WARNING** → post as inline PR comments on the relevant line. Fall back to a top-level comment only when the code no longer exists in the PR.
-   - **SUGGESTION** → post as a top-level PR comment (reference file + line in the body). This avoids unresolved threads that would block merging. Log deferred suggestions in GitHub issue #42.
+   - **SUGGESTION** → post as a top-level PR comment (reference file + line in the body). This avoids unresolved threads that would block merging. Log deferred suggestions in GitHub issue #42. When addressing a PR review, evaluate each suggestion on impact vs. effort — act on it if worthwhile, otherwise leave it deferred.
 5. **Review loop** — address all CRITICAL and WARNING comments, resolve the comment threads via the GitHub GraphQL API, then re-request review; repeat until clean
 6. **Merge**
 7. **Acceptance test** — verify all ACs are met after merge
