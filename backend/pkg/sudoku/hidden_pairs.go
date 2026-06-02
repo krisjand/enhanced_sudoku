@@ -14,16 +14,18 @@ const (
 // from those two cells. Returns up to three SolveSteps — one per unit type
 // that found eliminations — or nil if none exist. All actions are ActionEliminate.
 func HiddenPairs(g Grid, cands Candidates) []SolveStep {
+	seen := make(map[[3]int]bool)
+
 	rowStart := time.Now()
-	rowActions := hiddenPairsInRows(cands)
+	rowActions := hiddenPairsInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := hiddenPairsInCols(cands)
+	colActions := hiddenPairsInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := hiddenPairsInBoxes(cands)
+	boxActions := hiddenPairsInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
@@ -39,8 +41,7 @@ func HiddenPairs(g Grid, cands Candidates) []SolveStep {
 	return steps
 }
 
-func hiddenPairsInRows(cands Candidates) []CellAction {
-	seen := make(map[[3]int]bool)
+func hiddenPairsInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 	var actions []CellAction
 	for r := 0; r < 9; r++ {
 		actions = eliminateFromHiddenPairs(actions, cands, seen, rowUnit(r))
@@ -48,8 +49,7 @@ func hiddenPairsInRows(cands Candidates) []CellAction {
 	return actions
 }
 
-func hiddenPairsInCols(cands Candidates) []CellAction {
-	seen := make(map[[3]int]bool)
+func hiddenPairsInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 	var actions []CellAction
 	for c := 0; c < 9; c++ {
 		actions = eliminateFromHiddenPairs(actions, cands, seen, colUnit(c))
@@ -57,8 +57,7 @@ func hiddenPairsInCols(cands Candidates) []CellAction {
 	return actions
 }
 
-func hiddenPairsInBoxes(cands Candidates) []CellAction {
-	seen := make(map[[3]int]bool)
+func hiddenPairsInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
 	var actions []CellAction
 	for b := 0; b < 9; b++ {
 		actions = eliminateFromHiddenPairs(actions, cands, seen, boxUnit(b))
