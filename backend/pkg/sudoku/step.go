@@ -40,5 +40,6 @@ type TechniqueAttempt struct {
 type SolveResult struct {
 	Solved     bool
 	Grid       Grid
+	Duration   time.Duration        // total wall time spent solving
 	Iterations [][]TechniqueAttempt // one []TechniqueAttempt per iteration until solved or stuck
 }
