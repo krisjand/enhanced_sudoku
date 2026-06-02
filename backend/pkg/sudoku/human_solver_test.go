@@ -63,6 +63,20 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:       "naked pairs puzzle exercises NakedPairs through HumanSolve",
+			puzzle:     fixtureNakedPairsPuzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueNakedPairs {
+						return
+					}
+				}
+				t.Error("no iteration had NakedPairs as the winning technique")
+			},
+		},
+		{
 			name:       "empty grid is stuck with current techniques",
 			puzzle:     Grid{},
 			wantSolved: false,
