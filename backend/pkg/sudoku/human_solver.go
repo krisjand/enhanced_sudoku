@@ -18,6 +18,7 @@ type namedTechnique struct {
 var techniques = []namedTechnique{
 	{TechniqueNakedSingles, NakedSingles},
 	{TechniqueHiddenSingles, HiddenSingles},
+	{TechniqueNakedPairs, NakedPairs},
 }
 
 // HumanSolve solves puzzle using human techniques applied in complexity order.
