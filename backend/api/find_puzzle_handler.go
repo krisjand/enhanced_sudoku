@@ -12,7 +12,8 @@ import (
 	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
 )
 
-const defaultMaxAttempts = 10_000
+const defaultMaxAttempts = 100
+const maxAllowedAttempts = 10_000
 
 type findPuzzleHandler struct {
 	rng   *rand.Rand
@@ -31,6 +32,13 @@ type findPuzzleResponse struct {
 	Puzzle    sudoku.Grid `json:"puzzle"`
 	Technique string      `json:"technique"`
 	Attempts  int         `json:"attempts"`
+}
+
+func (h *findPuzzleHandler) generate() sudoku.Grid {
+	h.rngMu.Lock()
+	defer h.rngMu.Unlock()
+	p, _, _ := sudoku.Generate(h.rng)
+	return p
 }
 
 func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -56,13 +64,18 @@ func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "max must be a positive integer", http.StatusBadRequest)
 			return
 		}
+		if n > maxAllowedAttempts {
+			http.Error(w, fmt.Sprintf("max must not exceed %d", maxAllowedAttempts), http.StatusBadRequest)
+			return
+		}
 		maxAttempts = n
 	}
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		h.rngMu.Lock()
-		puzzle, _, _ := sudoku.Generate(h.rng)
-		h.rngMu.Unlock()
+		if r.Context().Err() != nil {
+			return
+		}
+		puzzle := h.generate()
 
 		result := sudoku.HumanSolve(puzzle)
 		for _, iter := range result.Iterations {

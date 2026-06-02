@@ -48,6 +48,12 @@ func TestFindPuzzleHandler(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
+			name:       "max exceeding limit returns 400",
+			method:     http.MethodGet,
+			url:        "/puzzle/find?technique=Naked+Singles&max=10001",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
 			// Seed 1 produces only Naked/Hidden Singles wins; Naked Triples never wins in
 			// 1 attempt, so the handler exhausts max and returns 404.
 			name:       "technique not found within max attempts returns 404",

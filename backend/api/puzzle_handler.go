@@ -30,9 +30,11 @@ func (h *puzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !requireGET(w, r) {
 		return
 	}
-	h.rngMu.Lock()
-	defer h.rngMu.Unlock()
-	puzzle, solution, dur := sudoku.Generate(h.rng)
+	puzzle, solution, dur := func() (sudoku.Grid, sudoku.Grid, time.Duration) {
+		h.rngMu.Lock()
+		defer h.rngMu.Unlock()
+		return sudoku.Generate(h.rng)
+	}()
 	writeJSON(w, puzzleResponse{
 		Puzzle:      puzzle,
 		Solution:    solution,
