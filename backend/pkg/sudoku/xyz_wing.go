@@ -66,10 +66,9 @@ func xyzWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 						continue // A and B together must cover all of P's candidates
 					}
 
-					zBit := amask & bmask // the single candidate shared by A and B
-					if popcount(zBit) != 1 {
-						continue
-					}
+					// zBit always has exactly 1 bit by pigeonhole:
+					// |A|=|B|=2, A⊆P, B⊆P, |P|=3, |A∪B|=3 → |A∩B|=1.
+					zBit := amask & bmask
 					z := int(trailingZeros(zBit) + 1)
 
 					// Eliminate z from cells seeing P, A, and B.
