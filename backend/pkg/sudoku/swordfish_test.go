@@ -250,3 +250,35 @@ func hasSwordfishInCols(cands Candidates, elimRow, elimCol, d int) bool {
 	}
 	return false
 }
+
+func TestSwordfishExhausted(t *testing.T) {
+	tests := []struct {
+		name string
+		grid Grid
+	}{
+		{name: "swordfish_1", grid: fixtureSwordfishPuzzle()},
+		{name: "swordfish_2", grid: fixtureSwordfish2Puzzle()},
+		{name: "swordfish_3", grid: fixtureSwordfish3Puzzle()},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cands := Init(tt.grid)
+
+			steps := Swordfish(tt.grid, cands)
+			if len(steps) == 0 {
+				t.Fatal("first pass: expected swordfish eliminations, got none")
+			}
+
+			for _, s := range steps {
+				for _, a := range s.Actions {
+					cands.Eliminate(a.Row, a.Col, a.Digit)
+				}
+			}
+
+			steps2 := Swordfish(tt.grid, cands)
+			if steps2 != nil {
+				t.Errorf("second pass: expected nil after eliminations applied, got %d step(s)", len(steps2))
+			}
+		})
+	}
+}
