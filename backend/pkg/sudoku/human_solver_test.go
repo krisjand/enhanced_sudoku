@@ -50,8 +50,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "hidden pairs puzzle exercises HiddenPairs through HumanSolve",
-			puzzle: fixtureHiddenPairsPuzzle(),
+			name:       "hidden pairs puzzle exercises HiddenPairs through HumanSolve",
+			puzzle:     fixtureHiddenPairsPuzzle(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -63,8 +64,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "locked candidates puzzle exercises LockedCandidates through HumanSolve",
-			puzzle: fixtureLockedCandidatesPuzzle(),
+			name:       "locked candidates puzzle exercises LockedCandidates through HumanSolve",
+			puzzle:     fixtureLockedCandidatesPuzzle(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -90,8 +92,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "naked triples puzzle exercises NakedTriples through HumanSolve",
-			puzzle: fixtureNakedTriplesHumanSolvePuzzle(),
+			name:       "naked triples puzzle exercises NakedTriples through HumanSolve",
+			puzzle:     fixtureNakedTriplesHumanSolvePuzzle(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -103,8 +106,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "hidden triples puzzle exercises HiddenTriples through HumanSolve",
-			puzzle: fixtureHiddenTriplesPuzzle2(),
+			name:       "hidden triples puzzle exercises HiddenTriples through HumanSolve",
+			puzzle:     fixtureHiddenTriplesPuzzle2(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -116,8 +120,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "hidden quadruples puzzle exercises HiddenQuadruples through HumanSolve",
-			puzzle: fixtureHiddenQuadruplesHumanSolvePuzzle(),
+			name:       "hidden quadruples puzzle exercises HiddenQuadruples through HumanSolve",
+			puzzle:     fixtureHiddenQuadruplesHumanSolvePuzzle(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -129,8 +134,9 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
-			name:   "naked quadruples puzzle exercises NakedQuadruples through HumanSolve",
-			puzzle: fixtureNakedQuadruplesHumanSolvePuzzle(),
+			name:       "naked quadruples puzzle exercises NakedQuadruples through HumanSolve",
+			puzzle:     fixtureNakedQuadruplesHumanSolvePuzzle(),
+			wantSolved: true,
 			check: func(t *testing.T, r SolveResult) {
 				for _, iter := range r.Iterations {
 					winner := winningAttempt(iter)
@@ -139,6 +145,61 @@ func TestHumanSolve(t *testing.T) {
 					}
 				}
 				t.Error("no iteration had NakedQuadruples as the winning technique")
+			},
+		},
+		{
+			name:       "forced chain dual-cell puzzle exercises ForcedChains through HumanSolve",
+			puzzle:     fixtureForcedChainDualCellPuzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueForcedChains {
+						return
+					}
+				}
+				t.Error("no iteration had ForcedChains as the winning technique")
+			},
+		},
+		{
+			name:       "forced chain dual-cell puzzle 2 exercises ForcedChains through HumanSolve",
+			puzzle:     fixtureForcedChainDualCell2Puzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueForcedChains {
+						return
+					}
+				}
+				t.Error("no iteration had ForcedChains as the winning technique")
+			},
+		},
+		{
+			name:   "forcing chain triple-cell puzzle 2 exercises ForcedChains (intersection) through HumanSolve",
+			puzzle: fixtureForcingChainTripleCell2Puzzle(),
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueForcedChains {
+						return
+					}
+				}
+				t.Error("no iteration had ForcedChains as the winning technique")
+			},
+		},
+		{
+			name:       "forcing chain triple-cell puzzle exercises ForcedChains through HumanSolve",
+			puzzle:     fixtureForcingChainTripleCellPuzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueForcedChains {
+						return
+					}
+				}
+				t.Error("no iteration had ForcedChains as the winning technique")
 			},
 		},
 		{
