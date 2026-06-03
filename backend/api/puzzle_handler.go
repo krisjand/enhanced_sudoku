@@ -10,9 +10,11 @@ import (
 )
 
 type puzzleResponse struct {
-	Puzzle      sudoku.Grid `json:"puzzle"`
-	Solution    sudoku.Grid `json:"solution"`
-	GeneratedUs int64       `json:"generated_us"`
+	Puzzle         sudoku.Grid `json:"puzzle"`
+	Solution       sudoku.Grid `json:"solution"`
+	GeneratedUs    int64       `json:"generated_us"`
+	Difficulty     string      `json:"difficulty"`
+	TechniquesUsed []string    `json:"techniques_used"`
 }
 
 type puzzleHandler struct {
@@ -35,9 +37,12 @@ func (h *puzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer h.rngMu.Unlock()
 		return sudoku.Generate(h.rng)
 	}()
+	rating := sudoku.Rate(puzzle)
 	writeJSON(w, puzzleResponse{
-		Puzzle:      puzzle,
-		Solution:    solution,
-		GeneratedUs: dur.Microseconds(),
+		Puzzle:         puzzle,
+		Solution:       solution,
+		GeneratedUs:    dur.Microseconds(),
+		Difficulty:     rating.Level,
+		TechniquesUsed: rating.Techniques,
 	})
 }

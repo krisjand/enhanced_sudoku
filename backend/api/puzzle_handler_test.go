@@ -53,6 +53,12 @@ func TestPuzzleHandler(t *testing.T) {
 			if resp.GeneratedUs < 0 {
 				t.Errorf("generated_us = %d, want >= 0", resp.GeneratedUs)
 			}
+			if resp.Difficulty == "" {
+				t.Error("difficulty is empty")
+			}
+			if resp.TechniquesUsed == nil {
+				t.Error("techniques_used is nil")
+			}
 		})
 	}
 }
