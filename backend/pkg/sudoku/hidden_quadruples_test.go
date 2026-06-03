@@ -34,6 +34,23 @@ func fixtureHiddenQuadruplesPuzzle2() Grid {
 	}
 }
 
+// fixtureHiddenQuadruplesHumanSolvePuzzle returns a puzzle where HiddenQuadruples
+// must win as the decisive technique even after simpler techniques are exhausted.
+// Generated via GET /puzzle/find?technique=hiddenQuadruples&max=10000 (2810 attempts).
+func fixtureHiddenQuadruplesHumanSolvePuzzle() Grid {
+	return Grid{
+		{0, 0, 0, 0, 8, 4, 0, 0, 0},
+		{9, 0, 4, 0, 0, 0, 0, 0, 0},
+		{0, 8, 5, 2, 0, 6, 0, 0, 0},
+		{8, 1, 0, 6, 0, 5, 0, 2, 0},
+		{0, 7, 0, 0, 0, 0, 4, 0, 1},
+		{0, 9, 0, 0, 0, 1, 0, 0, 3},
+		{0, 0, 0, 7, 5, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 6, 9, 0},
+		{0, 4, 0, 0, 0, 0, 1, 0, 0},
+	}
+}
+
 func TestHiddenQuadruples(t *testing.T) {
 	tests := []struct {
 		name    string
