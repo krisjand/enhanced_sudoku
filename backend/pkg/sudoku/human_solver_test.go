@@ -203,6 +203,20 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:       "x-wing puzzle exercises XWing through HumanSolve",
+			puzzle:     fixtureXWingPuzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueXWing {
+						return
+					}
+				}
+				t.Error("no iteration had XWing as the winning technique")
+			},
+		},
+		{
 			name:       "empty grid is stuck with current techniques",
 			puzzle:     Grid{},
 			wantSolved: false,
