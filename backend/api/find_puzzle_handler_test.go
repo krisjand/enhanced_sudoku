@@ -54,6 +54,18 @@ func TestFindPuzzleHandler(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
+			name:       "unknown maxPropagation returns 400",
+			method:     http.MethodGet,
+			url:        "/puzzle/find?technique=forcedChains&maxPropagation=Telepathy",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "maxPropagation=forcedChains is rejected with 400",
+			method:     http.MethodGet,
+			url:        "/puzzle/find?technique=forcedChains&maxPropagation=forcedChains",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
 			// Seed 1 produces only Naked/Hidden Singles wins; Naked Triples never wins in
 			// 1 attempt, so the handler exhausts max and returns 404.
 			name:       "technique not found within max attempts returns 404",

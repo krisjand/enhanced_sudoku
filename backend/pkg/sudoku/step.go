@@ -17,11 +17,19 @@ type CellAction struct {
 	Type     ActionType
 }
 
+// ForcedChainBranch records the propagation steps taken when one candidate
+// of a seed cell is assumed to be true.
+type ForcedChainBranch struct {
+	Candidate int
+	Steps     []SolveStep
+}
+
 // SolveStep records one pass of a solving technique and all the actions it produced.
 type SolveStep struct {
 	Technique string
 	Actions   []CellAction
-	Duration  time.Duration // total time for this technique pass
+	Duration  time.Duration       // total time for this technique pass
+	Chains    []ForcedChainBranch `json:"chains,omitempty"` // only set for forced chain conclusions
 }
 
 // TechniqueFn is the common signature all analysis functions implement.

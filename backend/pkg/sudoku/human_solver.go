@@ -25,6 +25,7 @@ var techniques = []namedTechnique{
 	{TechniqueHiddenTriples, HiddenTriples},
 	{TechniqueNakedQuadruples, NakedQuadruples},
 	{TechniqueHiddenQuadruples, HiddenQuadruples},
+	{TechniqueForcedChains, NewForcedChains(defaultForcedChainsOptions())},
 }
 
 // KnownTechniques returns the registered technique names in complexity order.
@@ -46,11 +47,55 @@ func IsKnownTechnique(name string) bool {
 	return false
 }
 
+// HumanSolveOpts holds optional overrides for HumanSolve.
+type HumanSolveOpts struct {
+	// FCMaxPropagation, if non-empty, limits forced chain branch propagation to
+	// techniques up to and including the named technique. Must be a known technique
+	// name simpler than forcedChains. Ignored when empty.
+	FCMaxPropagation string
+}
+
 // HumanSolve solves puzzle using human techniques applied in complexity order.
-// Each iteration tries techniques until one succeeds; if none succeed the puzzle
-// is stuck with the currently implemented techniques.
-// Returns a full trace of every attempt (successful or not) for each iteration.
 func HumanSolve(puzzle Grid) SolveResult {
+	return HumanSolveWith(puzzle, HumanSolveOpts{})
+}
+
+// HumanSolveWith is like HumanSolve but accepts optional overrides.
+func HumanSolveWith(puzzle Grid, opts HumanSolveOpts) SolveResult {
+	techs := techniques
+	if opts.FCMaxPropagation != "" {
+		propTechs := techniquesUpTo(opts.FCMaxPropagation)
+		customFC := NewForcedChains(forcedChainsOptions{
+			maxDepth:   defaultForcedChainsOptions().maxDepth,
+			techniques: propTechs,
+		})
+		techs = make([]namedTechnique, len(techniques))
+		copy(techs, techniques)
+		for i, t := range techs {
+			if t.name == TechniqueForcedChains {
+				techs[i] = namedTechnique{TechniqueForcedChains, customFC}
+				break
+			}
+		}
+	}
+	return humanSolveWith(puzzle, techs)
+}
+
+// techniquesUpTo returns a copy of the techniques slice including entries up to
+// and including the entry named by maxTech. Returns nil if maxTech is not found
+// (caller should have validated beforehand).
+func techniquesUpTo(maxTech string) []namedTechnique {
+	for i, t := range techniques {
+		if t.name == maxTech {
+			result := make([]namedTechnique, i+1)
+			copy(result, techniques[:i+1])
+			return result
+		}
+	}
+	return nil
+}
+
+func humanSolveWith(puzzle Grid, techs []namedTechnique) SolveResult {
 	start := time.Now()
 	g := puzzle
 	cands := Init(g)
@@ -60,10 +105,10 @@ func HumanSolve(puzzle Grid) SolveResult {
 		var attempts []TechniqueAttempt
 		found := false
 
-		for _, tech := range techniques {
-			start := time.Now()
+		for _, tech := range techs {
+			techStart := time.Now()
 			steps := tech.fn(g, cands)
-			dur := time.Since(start)
+			dur := time.Since(techStart)
 
 			attempts = append(attempts, TechniqueAttempt{
 				Technique: tech.name,
