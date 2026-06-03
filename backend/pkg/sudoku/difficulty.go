@@ -44,9 +44,6 @@ var rankToLevel = []string{
 // inspecting which techniques were required.
 func Rate(puzzle Grid) DifficultyResult {
 	result := HumanSolve(puzzle)
-	if !result.Solved {
-		return DifficultyResult{Level: DifficultyLegendary, Techniques: []string{}}
-	}
 
 	seen := make(map[string]bool)
 	var techniques []string
@@ -67,6 +64,10 @@ func Rate(puzzle Grid) DifficultyResult {
 				maxRank = r
 			}
 		}
+	}
+
+	if !result.Solved {
+		return DifficultyResult{Level: DifficultyLegendary, Techniques: techniques}
 	}
 
 	level := DifficultyEasy
