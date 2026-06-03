@@ -62,9 +62,15 @@ func TestRate(t *testing.T) {
 			wantTechnique: TechniqueHiddenTriples,
 		},
 		{
-			name:          "master: forced chains puzzle",
-			puzzle:        fixtureForcedChainDualCellPuzzle(),
+			name:          "master: swordfish puzzle",
+			puzzle:        fixtureSwordfishPuzzle(),
 			wantLevel:     DifficultyMaster,
+			wantTechnique: TechniqueSwordfish,
+		},
+		{
+			name:          "grandmaster: forced chains puzzle",
+			puzzle:        fixtureForcedChainDualCellPuzzle(),
+			wantLevel:     DifficultyGrandmaster,
 			wantTechnique: TechniqueForcedChains,
 		},
 		{
