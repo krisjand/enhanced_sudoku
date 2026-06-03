@@ -1,5 +1,7 @@
 package sudoku
 
+import "fmt"
+
 const (
 	DifficultyEasy      = "easy"
 	DifficultyMedium    = "medium"
@@ -43,7 +45,7 @@ var rankToLevel = []string{
 func Rate(puzzle Grid) DifficultyResult {
 	result := HumanSolve(puzzle)
 	if !result.Solved {
-		return DifficultyResult{Level: DifficultyLegendary}
+		return DifficultyResult{Level: DifficultyLegendary, Techniques: []string{}}
 	}
 
 	seen := make(map[string]bool)
@@ -57,7 +59,11 @@ func Rate(puzzle Grid) DifficultyResult {
 			}
 			seen[attempt.Technique] = true
 			techniques = append(techniques, attempt.Technique)
-			if r := techniqueRank[attempt.Technique]; r > maxRank {
+			r, ok := techniqueRank[attempt.Technique]
+			if !ok {
+				panic(fmt.Sprintf("techniqueRank missing entry for %q — add it to difficulty.go", attempt.Technique))
+			}
+			if r > maxRank {
 				maxRank = r
 			}
 		}
@@ -65,6 +71,9 @@ func Rate(puzzle Grid) DifficultyResult {
 
 	level := DifficultyEasy
 	if maxRank >= 0 {
+		if maxRank >= len(rankToLevel) {
+			panic(fmt.Sprintf("rank %d out of range — extend rankToLevel in difficulty.go", maxRank))
+		}
 		level = rankToLevel[maxRank]
 	}
 
