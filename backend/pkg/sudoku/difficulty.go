@@ -6,9 +6,10 @@ const (
 	DifficultyEasy      = "easy"
 	DifficultyMedium    = "medium"
 	DifficultyHard      = "hard"
-	DifficultyExpert    = "expert"
-	DifficultyMaster    = "master"
-	DifficultyLegendary = "legendary"
+	DifficultyExpert       = "expert"
+	DifficultyMaster       = "master"
+	DifficultyGrandmaster  = "grandmaster"
+	DifficultyLegendary    = "legendary"
 )
 
 // DifficultyResult is the output of Rate.
@@ -30,10 +31,10 @@ var techniqueRank = map[string]int{
 	TechniqueNakedQuadruples:  3,
 	TechniqueHiddenQuadruples: 3,
 	TechniqueXWing:            3,
-	TechniqueSwordfish:        3,
-	TechniqueXYWing:           3,
-	TechniqueXYZWing:          3,
-	TechniqueForcedChains:     4,
+	TechniqueSwordfish:        4,
+	TechniqueXYWing:           4,
+	TechniqueXYZWing:          4,
+	TechniqueForcedChains:     5,
 }
 
 var rankToLevel = []string{
@@ -42,6 +43,7 @@ var rankToLevel = []string{
 	DifficultyHard,
 	DifficultyExpert,
 	DifficultyMaster,
+	DifficultyGrandmaster,
 }
 
 // Rate determines the difficulty of puzzle by running HumanSolve and
