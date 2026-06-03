@@ -2,9 +2,9 @@
 // each technique is used, the difficulty spread, forced-chain depth, and the
 // average scan time per technique.
 //
-// Usage:
+// Usage (from the backend/ directory):
 //
-//	go run ./cmd/solver_stats [-n 1000] [-seed 42]
+//	go run ./scripts/solver_stats.go [-n 1000] [-seed 42]
 package main
 
 import (
@@ -37,12 +37,12 @@ func main() {
 
 	// Timing: total duration and attempt count per technique (all attempts,
 	// success and failure alike, because that's the raw scan cost).
-	techTotalDur   := map[string]time.Duration{}
-	techAttempts   := map[string]int{}
+	techTotalDur := map[string]time.Duration{}
+	techAttempts := map[string]int{}
 
 	// Forced-chain depth: per FC win, collect branch depths.
-	var fcChainCounts []int   // number of branches per FC step
-	var fcBranchDepths []int  // depth of each branch across all FC steps
+	var fcChainCounts []int  // number of branches per FC step
+	var fcBranchDepths []int // depth of each branch across all FC steps
 
 	solvable := 0
 
@@ -129,7 +129,6 @@ func main() {
 	fmt.Printf("Technique usage  (base: %d solvable puzzles)\n", solvable)
 	fmt.Printf("%s\n", strings.Repeat("─", 72))
 	fmt.Printf("  %-22s  %8s  %10s\n", "technique", "used", "decisive")
-
 	for _, tech := range techs {
 		u := pct(techUsed[tech], solvable)
 		d := pct(techDecisive[tech], solvable)
@@ -147,12 +146,10 @@ func main() {
 		cum += techDecisive[tech]
 		fmt.Printf("  up to %-22s  %6d  %s\n", tech, cum, pct(cum, *n))
 	}
-	// legendary (unsolvable) adds the rest
-	cum += diffCount[sudoku.DifficultyLegendary]
 	fmt.Printf("  %-29s  %6d  %s\n", "(legendary / unsolvable)", diffCount[sudoku.DifficultyLegendary], pct(diffCount[sudoku.DifficultyLegendary], *n))
 
 	// ------------------------------------------------------------------ //
-	// 4. Forced-chain depth
+	// 4. Forced-chain statistics
 	// ------------------------------------------------------------------ //
 	fmt.Printf("\n%s\n", strings.Repeat("─", 56))
 	fmt.Printf("Forced-chain statistics\n")
@@ -161,13 +158,10 @@ func main() {
 	if fcWins == 0 {
 		fmt.Println("  No forced-chain wins in this sample.")
 	} else {
-		avgChains := mean(fcChainCounts)
-		avgDepth := mean(fcBranchDepths)
-		maxDepth := maxInt(fcBranchDepths)
 		fmt.Printf("  Forced-chain wins (steps)   : %d\n", fcWins)
-		fmt.Printf("  Avg branches per step       : %.2f\n", avgChains)
-		fmt.Printf("  Avg branch depth            : %.2f\n", avgDepth)
-		fmt.Printf("  Max branch depth            : %d\n", maxDepth)
+		fmt.Printf("  Avg branches per step       : %.2f\n", mean(fcChainCounts))
+		fmt.Printf("  Avg branch depth            : %.2f\n", mean(fcBranchDepths))
+		fmt.Printf("  Max branch depth            : %d\n", maxInt(fcBranchDepths))
 		depthDist := map[int]int{}
 		for _, d := range fcBranchDepths {
 			depthDist[d]++
@@ -179,7 +173,7 @@ func main() {
 	}
 
 	// ------------------------------------------------------------------ //
-	// 5. Per-technique timing
+	// 5. Per-technique scan timing
 	// ------------------------------------------------------------------ //
 	fmt.Printf("\n%s\n", strings.Repeat("─", 56))
 	fmt.Printf("Per-technique scan timing (avg per attempt)\n")
