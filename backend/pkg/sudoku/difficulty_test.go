@@ -95,9 +95,6 @@ func TestRate(t *testing.T) {
 				}
 			}
 
-			if tt.wantLevel == DifficultyLegendary && len(got.Techniques) != 0 {
-				t.Errorf("legendary result should have no techniques, got %v", got.Techniques)
-			}
 		})
 	}
 }

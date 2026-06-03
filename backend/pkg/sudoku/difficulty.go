@@ -46,7 +46,7 @@ func Rate(puzzle Grid) DifficultyResult {
 	result := HumanSolve(puzzle)
 
 	seen := make(map[string]bool)
-	var techniques []string
+	techniques := []string{}
 	maxRank := -1
 
 	for _, iteration := range result.Iterations {
