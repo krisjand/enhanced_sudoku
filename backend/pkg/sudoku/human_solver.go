@@ -28,6 +28,7 @@ var techniques = []namedTechnique{
 	{TechniqueXWing, XWing},
 	{TechniqueSwordfish, Swordfish},
 	{TechniqueXYWing, XYWing},
+	{TechniqueXYZWing, XYZWing},
 	{TechniqueForcedChains, NewForcedChains(defaultForcedChainsOptions())},
 }
 
