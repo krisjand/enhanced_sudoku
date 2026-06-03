@@ -116,6 +116,32 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:   "hidden quadruples puzzle exercises HiddenQuadruples through HumanSolve",
+			puzzle: fixtureHiddenQuadruplesHumanSolvePuzzle(),
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueHiddenQuadruples {
+						return
+					}
+				}
+				t.Error("no iteration had HiddenQuadruples as the winning technique")
+			},
+		},
+		{
+			name:   "naked quadruples puzzle exercises NakedQuadruples through HumanSolve",
+			puzzle: fixtureNakedQuadruplesHumanSolvePuzzle(),
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueNakedQuadruples {
+						return
+					}
+				}
+				t.Error("no iteration had NakedQuadruples as the winning technique")
+			},
+		},
+		{
 			name:       "empty grid is stuck with current techniques",
 			puzzle:     Grid{},
 			wantSolved: false,

@@ -26,10 +26,19 @@ Learnings from reviews and acceptance tests are documented in `docs/best-practic
 
 ## Time Tracking
 
-Time spent per task is logged as a comment on the GitHub issue for each story, not in the repository. Log time **without being asked** after each task (implementation, review, acceptance test). Each entry records: PR, AI role (developer / reviewer / tester), task, start time, end time, and duration.
+Time spent per task is logged as a comment on the GitHub issue for each story, not in the repository. Log time **without being asked** after each task completes. Each entry records: PR, AI role (developer / reviewer / tester), task, start time, end time, and duration.
+
+**Capturing timestamps:** Use `date +"%H:%M:%S"` in bash to get the current time. Run it at **both the start and the end** of each task phase — never invent or estimate timestamps. The user may take breaks between phases, so timestamps must reflect actual wall-clock moments, not inferred times.
+
+Tracked phases and capture points:
+- **Task breakdown** — capture start when beginning the breakdown; capture end and post after the breakdown comment is posted on the issue
+- **Implementation** — capture start immediately after posting the breakdown comment; capture end and post when the PR is opened
+- **Code review** — capture start when beginning the review; capture end and post after posting the review comment on the PR
+- **Acceptance test** — capture start when beginning the acceptance test; capture end and post after posting the acceptance result on the issue
 
 | PR | Role | Task | Started | Completed | Duration |
 |----|------|------|---------|-----------|----------|
+| — | Developer | Task breakdown | HH:MM | HH:MM | X min |
 | ... | Developer | Implementation | HH:MM | HH:MM | X min |
 | ... | Reviewer | Code review (pass N) | HH:MM | HH:MM | X min |
 | ... | Tester | Acceptance test | HH:MM | HH:MM | X min |
