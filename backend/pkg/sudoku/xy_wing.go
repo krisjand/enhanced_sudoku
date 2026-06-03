@@ -54,6 +54,7 @@ func xyWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 				continue // A must contain x
 			}
 			zBit := amask ^ xBit // z is A's other candidate
+			z := int(trailingZeros(zBit) + 1)
 
 			bwant := yBit | zBit
 			for _, b := range bivalue {
@@ -65,7 +66,6 @@ func xyWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 				}
 
 				// Valid XY-wing (P,A,B): eliminate z from cells seeing both A and B.
-				z := int(trailingZeros(zBit) + 1)
 				for r := 0; r < 9; r++ {
 					for c := 0; c < 9; c++ {
 						e := cell{r, c}
