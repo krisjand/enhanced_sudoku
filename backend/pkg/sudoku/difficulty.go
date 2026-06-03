@@ -32,6 +32,7 @@ var techniqueRank = map[string]int{
 	TechniqueXWing:            3,
 	TechniqueSwordfish:        3,
 	TechniqueXYWing:           3,
+	TechniqueXYZWing:          3,
 	TechniqueForcedChains:     4,
 }
 
