@@ -187,3 +187,19 @@ func hasXWingInCols(cands Candidates, elimRow, elimCol, d int) bool {
 	}
 	return false
 }
+
+func TestXWingExhausted(t *testing.T) {
+	cands := Init(fixtureXWingPuzzle())
+	steps := XWing(fixtureXWingPuzzle(), cands)
+	if len(steps) == 0 {
+		t.Fatal("first pass: expected x-wing eliminations, got none")
+	}
+	for _, s := range steps {
+		for _, a := range s.Actions {
+			cands.Eliminate(a.Row, a.Col, a.Digit)
+		}
+	}
+	if steps2 := XWing(fixtureXWingPuzzle(), cands); steps2 != nil {
+		t.Errorf("second pass: expected nil after eliminations applied, got %d step(s)", len(steps2))
+	}
+}
