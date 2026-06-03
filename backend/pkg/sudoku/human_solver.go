@@ -23,6 +23,8 @@ var techniques = []namedTechnique{
 	{TechniqueHiddenPairs, HiddenPairs},
 	{TechniqueNakedTriples, NakedTriples},
 	{TechniqueHiddenTriples, HiddenTriples},
+	{TechniqueNakedQuadruples, NakedQuadruples},
+	{TechniqueHiddenQuadruples, HiddenQuadruples},
 }
 
 // KnownTechniques returns the registered technique names in complexity order.
