@@ -203,3 +203,31 @@ func hasHiddenQuadrupleCoveringCell(cands Candidates, unit []cell, target cell, 
 	}
 	return false
 }
+
+func TestHiddenQuadruplesExhausted(t *testing.T) {
+	tests := []struct {
+		name string
+		grid Grid
+	}{
+		{name: "hidden_quad_1", grid: fixtureHiddenQuadruplesPuzzle()},
+		{name: "hidden_quad_2", grid: fixtureHiddenQuadruplesPuzzle2()},
+		{name: "humansolve fixture", grid: fixtureHiddenQuadruplesHumanSolvePuzzle()},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cands := Init(tt.grid)
+			steps := HiddenQuadruples(tt.grid, cands)
+			if len(steps) == 0 {
+				t.Fatal("first pass: expected hidden quadruple eliminations, got none")
+			}
+			for _, s := range steps {
+				for _, a := range s.Actions {
+					cands.Eliminate(a.Row, a.Col, a.Digit)
+				}
+			}
+			if steps2 := HiddenQuadruples(tt.grid, cands); steps2 != nil {
+				t.Errorf("second pass: expected nil after eliminations applied, got %d step(s)", len(steps2))
+			}
+		})
+	}
+}
