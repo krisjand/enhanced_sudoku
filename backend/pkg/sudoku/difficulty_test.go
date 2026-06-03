@@ -2,6 +2,20 @@ package sudoku
 
 import "testing"
 
+func fixtureExpertHiddenTriplePuzzle() Grid {
+	return Grid{
+		{0, 1, 0, 2, 0, 0, 8, 0, 0},
+		{0, 0, 0, 5, 0, 6, 0, 0, 0},
+		{3, 0, 0, 0, 0, 9, 0, 0, 2},
+		{1, 4, 7, 0, 0, 0, 5, 3, 0},
+		{8, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 2, 7},
+		{7, 0, 0, 0, 0, 3, 0, 0, 0},
+		{0, 0, 3, 0, 0, 0, 4, 0, 0},
+		{0, 0, 0, 0, 4, 0, 0, 5, 0},
+	}
+}
+
 func TestRate(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -40,6 +54,12 @@ func TestRate(t *testing.T) {
 			puzzle:        fixtureNakedQuadruplesPuzzle(),
 			wantLevel:     DifficultyHard,
 			wantTechnique: TechniqueHiddenPairs,
+		},
+		{
+			name:          "expert: hidden triple puzzle (seed 42, offset 253)",
+			puzzle:        fixtureExpertHiddenTriplePuzzle(),
+			wantLevel:     DifficultyExpert,
+			wantTechnique: TechniqueHiddenTriples,
 		},
 		{
 			name:          "master: forced chains puzzle",
