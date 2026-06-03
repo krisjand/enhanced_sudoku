@@ -203,6 +203,20 @@ func TestHumanSolve(t *testing.T) {
 			},
 		},
 		{
+			name:       "bi-location puzzle is solved by forced chains",
+			puzzle:     fixtureBilocationPuzzle(),
+			wantSolved: true,
+			check: func(t *testing.T, r SolveResult) {
+				for _, iter := range r.Iterations {
+					winner := winningAttempt(iter)
+					if winner != nil && winner.Technique == TechniqueForcedChains {
+						return
+					}
+				}
+				t.Error("no iteration had ForcedChains as the winning technique")
+			},
+		},
+		{
 			name:       "xyz-wing puzzle exercises XYZWing through HumanSolve",
 			puzzle:     fixtureXYZWing2Puzzle(),
 			wantSolved: true,
