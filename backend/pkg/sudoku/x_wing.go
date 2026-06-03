@@ -48,9 +48,10 @@ func xWingInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 			count := 0
 			for c := 0; c < 9; c++ {
 				if cands[r][c]&bit != 0 {
-					if count == 0 {
+					switch count {
+					case 0:
 						c1 = c
-					} else if count == 1 {
+					case 1:
 						c2 = c
 					}
 					count++
@@ -107,9 +108,10 @@ func xWingInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 			count := 0
 			for r := 0; r < 9; r++ {
 				if cands[r][c]&bit != 0 {
-					if count == 0 {
+					switch count {
+					case 0:
 						r1 = r
-					} else if count == 1 {
+					case 1:
 						r2 = r
 					}
 					count++
