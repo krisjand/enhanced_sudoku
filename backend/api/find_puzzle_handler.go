@@ -72,10 +72,16 @@ func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fcMaxPropagation := r.URL.Query().Get("maxPropagation")
-	if fcMaxPropagation != "" && !sudoku.IsKnownTechnique(fcMaxPropagation) {
-		known := strings.Join(sudoku.KnownTechniques(), ", ")
-		http.Error(w, fmt.Sprintf("unknown maxPropagation technique %q; known: %s", fcMaxPropagation, known), http.StatusBadRequest)
-		return
+	if fcMaxPropagation != "" {
+		if !sudoku.IsKnownTechnique(fcMaxPropagation) {
+			known := strings.Join(sudoku.KnownTechniques(), ", ")
+			http.Error(w, fmt.Sprintf("unknown maxPropagation technique %q; known: %s", fcMaxPropagation, known), http.StatusBadRequest)
+			return
+		}
+		if fcMaxPropagation == sudoku.TechniqueForcedChains {
+			http.Error(w, "maxPropagation must be simpler than forcedChains", http.StatusBadRequest)
+			return
+		}
 	}
 
 	solveOpts := sudoku.HumanSolveOpts{FCMaxPropagation: fcMaxPropagation}

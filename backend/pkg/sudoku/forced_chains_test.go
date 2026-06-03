@@ -102,17 +102,25 @@ func TestForcedChains(t *testing.T) {
 			check: func(t *testing.T, steps []SolveStep, grid Grid, cands Candidates) {
 				t.Helper()
 				assertForcedChainsValid(t, steps, grid, cands)
-				// Intersection: the common action is a downstream cell, not the seed
-				// itself. Verify by checking that no action places a digit that matches
-				// a branch candidate (a contradiction would place the seed candidate).
+				// Intersection: the common action must target a cell other than the
+				// seed cell. Identify the seed by finding the empty cell whose
+				// candidates match exactly the branch candidates.
 				for _, s := range steps {
-					seedCands := make(map[int]bool)
+					var branchMask uint16
 					for _, ch := range s.Chains {
-						seedCands[ch.Candidate] = true
+						branchMask |= 1 << uint(ch.Candidate-1)
+					}
+					seedRow, seedCol := -1, -1
+					for r := 0; r < 9 && seedRow < 0; r++ {
+						for c := 0; c < 9 && seedRow < 0; c++ {
+							if grid[r][c] == 0 && cands[r][c] == branchMask {
+								seedRow, seedCol = r, c
+							}
+						}
 					}
 					for _, a := range s.Actions {
-						if a.Type == ActionSet && seedCands[a.Digit] {
-							t.Errorf("Set(%d) at (%d,%d) matches a seed candidate — expected intersection, not contradiction", a.Digit, a.Row, a.Col)
+						if a.Row == seedRow && a.Col == seedCol {
+							t.Errorf("intersection action targets seed cell (%d,%d) — expected downstream cell", seedRow, seedCol)
 						}
 					}
 				}

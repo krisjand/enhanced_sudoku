@@ -82,8 +82,8 @@ func HumanSolveWith(puzzle Grid, opts HumanSolveOpts) SolveResult {
 }
 
 // techniquesUpTo returns a copy of the techniques slice including entries up to
-// and including the entry named by maxTech. Returns all techniques if maxTech
-// is not found.
+// and including the entry named by maxTech. Returns nil if maxTech is not found
+// (caller should have validated beforehand).
 func techniquesUpTo(maxTech string) []namedTechnique {
 	for i, t := range techniques {
 		if t.name == maxTech {
@@ -92,7 +92,7 @@ func techniquesUpTo(maxTech string) []namedTechnique {
 			return result
 		}
 	}
-	return techniques
+	return nil
 }
 
 func humanSolveWith(puzzle Grid, techs []namedTechnique) SolveResult {
