@@ -9,7 +9,7 @@
 //
 // Flags:
 //
-//	-out      Output directory (default: ../../puzzle_corpus)
+//	-out      Output directory (default: ../puzzle_corpus)
 //	-seed     Random seed (default: current time)
 //	-easy     Target count for easy puzzles (default: 2000)
 //	-medium   Target count for medium puzzles (default: 2000)
@@ -172,7 +172,7 @@ func saveFile(path string, records []puzzleRecord) error {
 }
 
 func main() {
-	outDir := flag.String("out", "../../puzzle_corpus", "output directory")
+	outDir := flag.String("out", "../puzzle_corpus", "output directory")
 	seed   := flag.Int64("seed", time.Now().UnixNano(), "random seed")
 	easy   := flag.Int("easy",   2000, "target easy puzzles")
 	medium := flag.Int("medium", 2000, "target medium puzzles")
@@ -213,16 +213,21 @@ func main() {
 	}
 
 	// Load existing records and build global seen set.
+	fmt.Fprintf(os.Stderr, "Loading existing corpus from %s…\n", *outDir)
 	records := map[string][]puzzleRecord{}
 	seen    := map[string]bool{}
-	for level, fname := range fileNames {
+	for _, lvl := range levelOrder {
+		fname := fileNames[lvl]
 		path := filepath.Join(*outDir, fname)
+		fmt.Fprintf(os.Stderr, "  loading %s… ", fname)
 		recs, ids := loadExisting(path)
-		records[level] = recs
+		records[lvl] = recs
 		for id := range ids {
 			seen[id] = true
 		}
+		fmt.Fprintf(os.Stderr, "%d records\n", len(recs))
 	}
+	fmt.Fprintf(os.Stderr, "Loaded %d total records.\n\n", len(seen))
 
 	// Print starting counts.
 	fmt.Printf("Corpus generator  seed=%d\n\n", *seed)
@@ -248,6 +253,7 @@ func main() {
 		return
 	}
 
+	fmt.Fprintf(os.Stderr, "Starting generation loop…\n")
 	rng          := rand.New(rand.NewSource(*seed))
 	total        := 0
 	start        := time.Now()
@@ -258,6 +264,9 @@ func main() {
 		// Check if all targets are met.
 		allMet = true
 		for lvl, target := range targets {
+			if lvl == sudoku.DifficultyLegendary {
+				continue // legendary is a cap, not a required target
+			}
 			if len(records[lvl]) < target {
 				allMet = false
 				break
@@ -272,27 +281,16 @@ func main() {
 
 		rec, lvl, ok := buildRecord(puzzle, solution)
 		if !ok || seen[rec.ID] {
-			continue
-		}
-		if len(records[lvl]) >= targets[lvl] {
-			continue
-		}
-
-		seen[rec.ID] = true
-		records[lvl] = append(records[lvl], rec)
-		dirty[lvl] = true
-
-		// Save immediately for rare difficulties so no finds are lost if the
-		// job is interrupted between periodic saves.
-		if lvl == sudoku.DifficultyHard || lvl == sudoku.DifficultyExpert || lvl == sudoku.DifficultyMaster || lvl == sudoku.DifficultyLegendary {
-			path := filepath.Join(*outDir, fileNames[lvl])
-			if err := saveFile(path, records[lvl]); err != nil {
-				fmt.Fprintf(os.Stderr, "save error (%s): %v\n", lvl, err)
-			}
-			delete(dirty, lvl)
+			// fall through to progress check
+		} else if len(records[lvl]) >= targets[lvl] {
+			// fall through to progress check
+		} else {
+			seen[rec.ID] = true
+			records[lvl] = append(records[lvl], rec)
+			dirty[lvl] = true
 		}
 
-		// Save periodically and print progress to stderr so redirection works.
+		// Every 500 generated puzzles: save any new finds and print progress.
 		if total%saveInterval == 0 {
 			for lvl := range dirty {
 				path := filepath.Join(*outDir, fileNames[lvl])
