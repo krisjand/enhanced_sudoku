@@ -264,6 +264,9 @@ func main() {
 		// Check if all targets are met.
 		allMet = true
 		for lvl, target := range targets {
+			if lvl == sudoku.DifficultyLegendary {
+				continue // legendary is a cap, not a required target
+			}
 			if len(records[lvl]) < target {
 				allMet = false
 				break
