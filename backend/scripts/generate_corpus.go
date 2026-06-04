@@ -254,12 +254,11 @@ func main() {
 	}
 
 	fmt.Fprintf(os.Stderr, "Starting generation loop…\n")
-	rng           := rand.New(rand.NewSource(*seed))
-	total         := 0
-	start         := time.Now()
-	dirty         := map[string]bool{}
-	saveInterval  := 500
-	printInterval := 50
+	rng          := rand.New(rand.NewSource(*seed))
+	total        := 0
+	start        := time.Now()
+	dirty        := map[string]bool{}
+	saveInterval := 500
 
 	for {
 		// Check if all targets are met.
@@ -277,30 +276,18 @@ func main() {
 		puzzle, solution, _ := sudoku.Generate(rng)
 		total++
 
-		// Print progress on every Nth generated puzzle, regardless of whether
-		// it was kept — so the display updates even when most puzzles are discarded.
-		if total%printInterval == 0 {
-			elapsed := time.Since(start).Seconds()
-			rate    := float64(total) / elapsed
-			fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  ", total, rate)
-			for _, lvl := range levelOrder {
-				fmt.Fprintf(os.Stderr, "%s:%d/%d  ", lvl[:3], len(records[lvl]), targets[lvl])
-			}
-		}
-
 		rec, lvl, ok := buildRecord(puzzle, solution)
 		if !ok || seen[rec.ID] {
-			continue
-		}
-		if len(records[lvl]) >= targets[lvl] {
-			continue
+			// fall through to progress check
+		} else if len(records[lvl]) >= targets[lvl] {
+			// fall through to progress check
+		} else {
+			seen[rec.ID] = true
+			records[lvl] = append(records[lvl], rec)
+			dirty[lvl] = true
 		}
 
-		seen[rec.ID] = true
-		records[lvl] = append(records[lvl], rec)
-		dirty[lvl] = true
-
-		// Save periodically — only levels that received new puzzles.
+		// Every 500 generated puzzles: save any new finds and print progress.
 		if total%saveInterval == 0 {
 			for lvl := range dirty {
 				path := filepath.Join(*outDir, fileNames[lvl])
@@ -309,6 +296,13 @@ func main() {
 				}
 			}
 			dirty = map[string]bool{}
+
+			elapsed := time.Since(start).Seconds()
+			rate    := float64(total) / elapsed
+			fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  ", total, rate)
+			for _, lvl := range levelOrder {
+				fmt.Fprintf(os.Stderr, "%s:%d/%d  ", lvl[:3], len(records[lvl]), targets[lvl])
+			}
 		}
 	}
 
