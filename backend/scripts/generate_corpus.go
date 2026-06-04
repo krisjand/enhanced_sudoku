@@ -172,7 +172,7 @@ func saveFile(path string, records []puzzleRecord) error {
 }
 
 func main() {
-	outDir := flag.String("out", "../../puzzle_corpus", "output directory")
+	outDir := flag.String("out", "../puzzle_corpus", "output directory")
 	seed   := flag.Int64("seed", time.Now().UnixNano(), "random seed")
 	easy   := flag.Int("easy",   2000, "target easy puzzles")
 	medium := flag.Int("medium", 2000, "target medium puzzles")

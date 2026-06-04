@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/home/kristian-joten-andersen/git/enhanced_sudoku/.claude/settings.json)",
+      "Write(/home/kristian-joten-andersen/git/enhanced_sudoku/.claude/settings.json)"
+    ],
+    "allow": [
+      "Bash(gh api repos/krisjand/enhanced_sudoku/pulls/30/comments --method POST --field commit_id=4ec133001fa7f8593d556bf205ccbb0c319af689 --field path=backend/main_test.go --field line=80 --field side=RIGHT --field 'body=WARNING: The test checks `resp.Puzzle.IsValid\\(\\)` but not that the puzzle has any empty cells. `IsValid\\(\\)` skips zeros, so a fully solved grid passes it. A wiring bug that sets both `Puzzle` and `Solution` to the solution grid would pass all current assertions — `IsSolved\\(\\)` on the solution passes, `IsValid\\(\\)` on the solution-used-as-puzzle passes. *)",
+      "Bash(gh api repos/krisjand/enhanced_sudoku/pulls/30/comments --method POST --field commit_id=4ec133001fa7f8593d556bf205ccbb0c319af689 --field path=backend/main.go --field line=33 --field side=RIGHT --field 'body=SUGGESTION: The method-check guard is duplicated verbatim in both `healthHandler` and `puzzleHandler`. If a future handler omits it, or the policy changes \\(e.g. adding an `Allow` header per RFC 9110\\), every copy must be updated independently. *)",
+      "Bash(gh api repos/krisjand/enhanced_sudoku/pulls/30/comments --method POST --field commit_id=4ec133001fa7f8593d556bf205ccbb0c319af689 --field path=backend/main.go --field line=44 --field side=RIGHT --field 'body=SUGGESTION: The method-check guard is now duplicated in both `healthHandler` and `puzzleHandler`. Each new handler will need a third copy. A small helper eliminates the repetition and would also naturally fix the HEAD issue above: *)",
+      "Bash(gh api repos/krisjand/enhanced_sudoku/pulls/30/comments --method POST --field commit_id=4ec133001fa7f8593d556bf205ccbb0c319af689 --field path=backend/main.go --field line=61 --field side=RIGHT --field 'body=SUGGESTION: The `json.NewEncoder\\(w\\).Encode` + `log.Printf` on error pattern is duplicated in both handlers. A helper would centralise it and make future changes \\(e.g. structured logging, a standard error envelope\\) apply everywhere: *)",
+      "Bash(go test *)",
+      "Bash(gh pr create --repo krisjand/enhanced_sudoku --title '#40: Locked candidates \\(pointing + box/line reduction\\)' --body ' *)"
+    ],
+    "additionalDirectories": [
+      "/home/kristian-joten-andersen/.claude/projects/-home-kristian-joten-andersen-git-enhanced-sudoku/memory/"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "allowWrite": [
+        "/home/kristian-joten-andersen/.claude/projects/-home-kristian-joten-andersen-git-enhanced-sudoku/memory/"
+      ],
+      "denyRead": [
+        "/home/kristian-joten-andersen/"
+      ],
+      "allowRead": [
+        "/home/kristian-joten-andersen/git/enhanced_sudoku/",
+        "/home/kristian-joten-andersen/.claude/projects/-home-kristian-joten-andersen-git-enhanced-sudoku/memory/"
+      ]
+    }
+  }
+}
