@@ -39,11 +39,13 @@ import (
 
 // puzzleRecord is one entry in the output JSON files.
 type puzzleRecord struct {
-	ID         string      `json:"id"`
-	Grid       [9][9]int   `json:"grid"`
-	Solution   [9][9]int   `json:"solution"`
-	Techniques []string    `json:"techniques"`
-	Decisive   string      `json:"decisive"`
+	ID                  string    `json:"id"`
+	Grid                [9][9]int `json:"grid"`
+	Solution            [9][9]int `json:"solution"`
+	Techniques          []string  `json:"techniques"`
+	Decisive            string    `json:"decisive"`
+	ForcedChainSteps    int       `json:"forcedChainSteps,omitempty"`
+	ForcedChainMaxDepth int       `json:"forcedChainMaxDepth,omitempty"`
 }
 
 func puzzleID(g sudoku.Grid) string {
@@ -97,12 +99,32 @@ func buildRecord(puzzle sudoku.Grid) (puzzleRecord, bool) {
 		return rankOf[techniques[i]] < rankOf[techniques[j]]
 	})
 
+	// Collect forced-chain metadata for puzzles that use it.
+	var fcSteps, fcMaxDepth int
+	for _, iter := range result.Iterations {
+		for _, attempt := range iter {
+			if attempt.Technique != sudoku.TechniqueForcedChains || len(attempt.Steps) == 0 {
+				continue
+			}
+			fcSteps++
+			for _, step := range attempt.Steps {
+				for _, branch := range step.Chains {
+					if d := len(branch.Steps); d > fcMaxDepth {
+						fcMaxDepth = d
+					}
+				}
+			}
+		}
+	}
+
 	return puzzleRecord{
-		ID:         puzzleID(puzzle),
-		Grid:       toInts(puzzle),
-		Solution:   toInts(result.Grid),
-		Techniques: techniques,
-		Decisive:   techniques[len(techniques)-1],
+		ID:                  puzzleID(puzzle),
+		Grid:                toInts(puzzle),
+		Solution:            toInts(result.Grid),
+		Techniques:          techniques,
+		Decisive:            techniques[len(techniques)-1],
+		ForcedChainSteps:    fcSteps,
+		ForcedChainMaxDepth: fcMaxDepth,
 	}, true
 }
 
