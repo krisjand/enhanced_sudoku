@@ -9,12 +9,12 @@ func assertStepsHaveSources(t *testing.T, steps []SolveStep) {
 	for i, s := range steps {
 		if len(s.Sources) == 0 {
 			t.Errorf("step[%d] technique=%q: Sources is empty", i, s.Technique)
-			continue
-		}
-		for j, src := range s.Sources {
-			if len(src.Digits) == 0 {
-				t.Errorf("step[%d] technique=%q source[%d] at (%d,%d): Digits is empty",
-					i, s.Technique, j, src.Row, src.Col)
+		} else {
+			for j, src := range s.Sources {
+				if len(src.Digits) == 0 {
+					t.Errorf("step[%d] technique=%q source[%d] at (%d,%d): Digits is empty",
+						i, s.Technique, j, src.Row, src.Col)
+				}
 			}
 		}
 		for _, branch := range s.Chains {
