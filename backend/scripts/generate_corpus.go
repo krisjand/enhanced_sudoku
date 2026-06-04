@@ -277,6 +277,17 @@ func main() {
 		puzzle, solution, _ := sudoku.Generate(rng)
 		total++
 
+		// Print progress on every Nth generated puzzle, regardless of whether
+		// it was kept — so the display updates even when most puzzles are discarded.
+		if total%printInterval == 0 {
+			elapsed := time.Since(start).Seconds()
+			rate    := float64(total) / elapsed
+			fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  ", total, rate)
+			for _, lvl := range levelOrder {
+				fmt.Fprintf(os.Stderr, "%s:%d/%d  ", lvl[:3], len(records[lvl]), targets[lvl])
+			}
+		}
+
 		rec, lvl, ok := buildRecord(puzzle, solution)
 		if !ok || seen[rec.ID] {
 			continue
@@ -298,16 +309,6 @@ func main() {
 				}
 			}
 			dirty = map[string]bool{}
-		}
-
-		// Print progress more frequently than saves.
-		if total%printInterval == 0 {
-			elapsed := time.Since(start).Seconds()
-			rate    := float64(total) / elapsed
-			fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  ", total, rate)
-			for _, lvl := range levelOrder {
-				fmt.Fprintf(os.Stderr, "%s:%d/%d  ", lvl[:3], len(records[lvl]), targets[lvl])
-			}
 		}
 	}
 
