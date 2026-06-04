@@ -213,16 +213,21 @@ func main() {
 	}
 
 	// Load existing records and build global seen set.
+	fmt.Fprintf(os.Stderr, "Loading existing corpus from %s…\n", *outDir)
 	records := map[string][]puzzleRecord{}
 	seen    := map[string]bool{}
-	for level, fname := range fileNames {
+	for _, lvl := range levelOrder {
+		fname := fileNames[lvl]
 		path := filepath.Join(*outDir, fname)
+		fmt.Fprintf(os.Stderr, "  loading %s… ", fname)
 		recs, ids := loadExisting(path)
-		records[level] = recs
+		records[lvl] = recs
 		for id := range ids {
 			seen[id] = true
 		}
+		fmt.Fprintf(os.Stderr, "%d records\n", len(recs))
 	}
+	fmt.Fprintf(os.Stderr, "Loaded %d total records.\n\n", len(seen))
 
 	// Print starting counts.
 	fmt.Printf("Corpus generator  seed=%d\n\n", *seed)
@@ -248,11 +253,13 @@ func main() {
 		return
 	}
 
-	rng          := rand.New(rand.NewSource(*seed))
-	total        := 0
-	start        := time.Now()
-	dirty        := map[string]bool{}
-	saveInterval := 500
+	fmt.Fprintf(os.Stderr, "Starting generation loop…\n")
+	rng           := rand.New(rand.NewSource(*seed))
+	total         := 0
+	start         := time.Now()
+	dirty         := map[string]bool{}
+	saveInterval  := 500
+	printInterval := 50
 
 	for {
 		// Check if all targets are met.
@@ -282,17 +289,7 @@ func main() {
 		records[lvl] = append(records[lvl], rec)
 		dirty[lvl] = true
 
-		// Save immediately for rare difficulties so no finds are lost if the
-		// job is interrupted between periodic saves.
-		if lvl == sudoku.DifficultyHard || lvl == sudoku.DifficultyExpert || lvl == sudoku.DifficultyMaster || lvl == sudoku.DifficultyLegendary {
-			path := filepath.Join(*outDir, fileNames[lvl])
-			if err := saveFile(path, records[lvl]); err != nil {
-				fmt.Fprintf(os.Stderr, "save error (%s): %v\n", lvl, err)
-			}
-			delete(dirty, lvl)
-		}
-
-		// Save periodically and print progress to stderr so redirection works.
+		// Save periodically — only levels that received new puzzles.
 		if total%saveInterval == 0 {
 			for lvl := range dirty {
 				path := filepath.Join(*outDir, fileNames[lvl])
@@ -301,7 +298,10 @@ func main() {
 				}
 			}
 			dirty = map[string]bool{}
+		}
 
+		// Print progress more frequently than saves.
+		if total%printInterval == 0 {
 			elapsed := time.Since(start).Seconds()
 			rate    := float64(total) / elapsed
 			fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  ", total, rate)
