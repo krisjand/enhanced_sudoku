@@ -85,6 +85,22 @@ func HumanSolveWith(puzzle Grid, opts HumanSolveOpts) SolveResult {
 	return humanSolveWith(puzzle, techs)
 }
 
+// HumanSolveStep tries each technique once against g and cands and returns the
+// first SolveStep found. solved=true if g has no empty cells. stuck=true if no
+// technique makes progress.
+func HumanSolveStep(g Grid, cands Candidates) (step *SolveStep, solved bool, stuck bool) {
+	if g.IsSolved() {
+		return nil, true, false
+	}
+	for _, tech := range techniques {
+		steps := tech.fn(g, cands)
+		if len(steps) > 0 {
+			return &steps[0], false, false
+		}
+	}
+	return nil, false, true
+}
+
 // techniquesUpTo returns a copy of the techniques slice including entries up to
 // and including the entry named by maxTech. Returns nil if maxTech is not found
 // (caller should have validated beforehand).

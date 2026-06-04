@@ -52,15 +52,41 @@ type attemptResponse struct {
 }
 
 type stepResponse struct {
-	Technique string           `json:"technique"`
-	Actions   []actionResponse `json:"actions"`
+	Technique string               `json:"technique"`
+	Actions   []actionResponse     `json:"actions"`
+	Chains    []chainBranchResponse `json:"chains,omitempty"`
 }
 
 type actionResponse struct {
-	Row    int    `json:"row"`
-	Col    int    `json:"col"`
-	Digit  int    `json:"digit"`
-	Type   string `json:"type"`
+	Row   int    `json:"row"`
+	Col   int    `json:"col"`
+	Digit int    `json:"digit"`
+	Type  string `json:"type"`
+}
+
+type chainBranchResponse struct {
+	Candidate int            `json:"candidate"`
+	Steps     []stepResponse `json:"steps"`
+}
+
+func toStepResponse(s sudoku.SolveStep) stepResponse {
+	sr := stepResponse{Technique: s.Technique}
+	for _, act := range s.Actions {
+		sr.Actions = append(sr.Actions, actionResponse{
+			Row:   act.Row,
+			Col:   act.Col,
+			Digit: act.Digit,
+			Type:  actionTypeName(act.Type),
+		})
+	}
+	for _, branch := range s.Chains {
+		br := chainBranchResponse{Candidate: branch.Candidate}
+		for _, bs := range branch.Steps {
+			br.Steps = append(br.Steps, toStepResponse(bs))
+		}
+		sr.Chains = append(sr.Chains, br)
+	}
+	return sr
 }
 
 func toSolveResponse(r sudoku.SolveResult) solveResponse {
@@ -74,16 +100,7 @@ func toSolveResponse(r sudoku.SolveResult) solveResponse {
 				Found:      len(attempt.Steps) > 0,
 			}
 			for _, s := range attempt.Steps {
-				sr := stepResponse{Technique: s.Technique}
-				for _, act := range s.Actions {
-					sr.Actions = append(sr.Actions, actionResponse{
-						Row:   act.Row,
-						Col:   act.Col,
-						Digit: act.Digit,
-						Type:  actionTypeName(act.Type),
-					})
-				}
-				a.Steps = append(a.Steps, sr)
+				a.Steps = append(a.Steps, toStepResponse(s))
 			}
 			attempts[j] = a
 		}
