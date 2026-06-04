@@ -108,6 +108,7 @@ func TestNakedPairs(t *testing.T) {
 // assertNakedPairsValid checks that every elimination is backed by a real naked pair.
 func assertNakedPairsValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			bit := uint16(1) << uint(a.Digit-1)

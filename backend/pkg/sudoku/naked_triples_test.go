@@ -113,6 +113,7 @@ func TestNakedTriples(t *testing.T) {
 // the unit must justify the elimination without including the target cell).
 func assertNakedTriplesValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			if a.Type != ActionEliminate {

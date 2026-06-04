@@ -167,6 +167,7 @@ func TestForcedChains(t *testing.T) {
 // each chain branch records the candidate it assumed.
 func assertForcedChainsValid(t *testing.T, steps []SolveStep, g Grid, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			if g[a.Row][a.Col] != 0 {

@@ -16,19 +16,19 @@ func XWing(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := xWingInRows(cands, seen)
+	rowActions, rowSources := xWingInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := xWingInCols(cands, seen)
+	colActions, colSources := xWingInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueXWingRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueXWingRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueXWingColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueXWingColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	return steps
 }
@@ -36,9 +36,10 @@ func XWing(g Grid, cands Candidates) []SolveStep {
 // xWingInRows finds X-wing patterns where the base is a pair of rows sharing
 // the same two candidate columns for a digit, then eliminates that digit from
 // all other cells in those two columns.
-func xWingInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func xWingInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	type rowEntry struct{ r, c1, c2 int }
 	var actions []CellAction
+	var sources []SourceCell
 
 	for d := 1; d <= 9; d++ {
 		bit := uint16(1) << uint(d-1)
@@ -68,6 +69,7 @@ func xWingInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 				}
 				r1, r2 := rows[i].r, rows[j].r
 				c1, c2 := rows[i].c1, rows[i].c2
+				prevLen := len(actions)
 				for r := 0; r < 9; r++ {
 					if r == r1 || r == r2 {
 						continue
@@ -87,18 +89,28 @@ func xWingInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 						}
 					}
 				}
+				if len(actions) > prevLen {
+					digs := []int{d}
+					sources = append(sources,
+						SourceCell{Row: r1, Col: c1, Digits: digs},
+						SourceCell{Row: r1, Col: c2, Digits: digs},
+						SourceCell{Row: r2, Col: c1, Digits: digs},
+						SourceCell{Row: r2, Col: c2, Digits: digs},
+					)
+				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }
 
 // xWingInCols finds X-wing patterns where the base is a pair of columns
 // sharing the same two candidate rows for a digit, then eliminates that digit
 // from all other cells in those two rows.
-func xWingInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func xWingInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	type colEntry struct{ c, r1, r2 int }
 	var actions []CellAction
+	var sources []SourceCell
 
 	for d := 1; d <= 9; d++ {
 		bit := uint16(1) << uint(d-1)
@@ -128,6 +140,7 @@ func xWingInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 				}
 				c1, c2 := cols[i].c, cols[j].c
 				r1, r2 := cols[i].r1, cols[i].r2
+				prevLen := len(actions)
 				for c := 0; c < 9; c++ {
 					if c == c1 || c == c2 {
 						continue
@@ -147,8 +160,17 @@ func xWingInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 						}
 					}
 				}
+				if len(actions) > prevLen {
+					digs := []int{d}
+					sources = append(sources,
+						SourceCell{Row: r1, Col: c1, Digits: digs},
+						SourceCell{Row: r1, Col: c2, Digits: digs},
+						SourceCell{Row: r2, Col: c1, Digits: digs},
+						SourceCell{Row: r2, Col: c2, Digits: digs},
+					)
+				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }

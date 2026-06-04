@@ -83,6 +83,7 @@ func TestLockedCandidates(t *testing.T) {
 // locked candidates pattern in the given candidate state.
 func assertLockedCandidatesValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			bit := uint16(1) << uint(a.Digit-1)

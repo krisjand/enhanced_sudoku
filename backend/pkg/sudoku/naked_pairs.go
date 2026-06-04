@@ -17,59 +17,62 @@ func NakedPairs(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := nakedPairsInRows(cands, seen)
+	rowActions, rowSources := nakedPairsInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := nakedPairsInCols(cands, seen)
+	colActions, colSources := nakedPairsInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := nakedPairsInBoxes(cands, seen)
+	boxActions, boxSources := nakedPairsInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedPairRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedPairRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedPairColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedPairColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedPairBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedPairBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func nakedPairsInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedPairsInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
-		actions = eliminateFromPairs(actions, cands, seen, rowUnit(r))
+		actions = eliminateFromPairs(actions, &sources, cands, seen, rowUnit(r))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedPairsInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedPairsInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
-		actions = eliminateFromPairs(actions, cands, seen, colUnit(c))
+		actions = eliminateFromPairs(actions, &sources, cands, seen, colUnit(c))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedPairsInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedPairsInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
-		actions = eliminateFromPairs(actions, cands, seen, boxUnit(b))
+		actions = eliminateFromPairs(actions, &sources, cands, seen, boxUnit(b))
 	}
-	return actions
+	return actions, sources
 }
 
 // cell holds a row/col coordinate.
 type cell struct{ r, c int }
 
 // eliminateFromPairs finds naked pairs in a unit and appends eliminations.
-func eliminateFromPairs(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
+func eliminateFromPairs(actions []CellAction, sources *[]SourceCell, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
 	// Collect cells with exactly 2 candidates.
 	var pairs []cell
 	for _, pos := range unit {
@@ -86,6 +89,7 @@ func eliminateFromPairs(actions []CellAction, cands Candidates, seen map[[3]int]
 			}
 			// Found a naked pair — eliminate both digits from all other cells in the unit.
 			mask := cands[a.r][a.c]
+			prevLen := len(actions)
 			for _, pos := range unit {
 				if pos == a || pos == b {
 					continue
@@ -103,6 +107,13 @@ func eliminateFromPairs(actions []CellAction, cands Candidates, seen map[[3]int]
 						}
 					}
 				}
+			}
+			if len(actions) > prevLen {
+				digits := maskToDigits(mask)
+				*sources = append(*sources,
+					SourceCell{Row: a.r, Col: a.c, Digits: digits},
+					SourceCell{Row: b.r, Col: b.c, Digits: digits},
+				)
 			}
 		}
 	}

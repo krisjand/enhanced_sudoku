@@ -17,56 +17,59 @@ func NakedTriples(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := nakedTriplesInRows(cands, seen)
+	rowActions, rowSources := nakedTriplesInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := nakedTriplesInCols(cands, seen)
+	colActions, colSources := nakedTriplesInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := nakedTriplesInBoxes(cands, seen)
+	boxActions, boxSources := nakedTriplesInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedTripleBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func nakedTriplesInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedTriplesInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
-		actions = eliminateFromTriples(actions, cands, seen, rowUnit(r))
+		actions = eliminateFromTriples(actions, &sources, cands, seen, rowUnit(r))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedTriplesInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedTriplesInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
-		actions = eliminateFromTriples(actions, cands, seen, colUnit(c))
+		actions = eliminateFromTriples(actions, &sources, cands, seen, colUnit(c))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedTriplesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedTriplesInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
-		actions = eliminateFromTriples(actions, cands, seen, boxUnit(b))
+		actions = eliminateFromTriples(actions, &sources, cands, seen, boxUnit(b))
 	}
-	return actions
+	return actions, sources
 }
 
 // eliminateFromTriples finds naked triples in a unit and appends eliminations.
-func eliminateFromTriples(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
+func eliminateFromTriples(actions []CellAction, sources *[]SourceCell, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
 	// Collect cells with 2 or 3 candidates.
 	// Cells with 1 candidate are excluded: in the HumanSolve pipeline NakedSingles
 	// always runs before NakedTriples and resolves every 1-candidate cell, so n == 1
@@ -89,6 +92,7 @@ func eliminateFromTriples(actions []CellAction, cands Candidates, seen map[[3]in
 					continue
 				}
 				// Found a naked triple — eliminate all three digits from other cells.
+				prevLen := len(actions)
 				for _, pos := range unit {
 					if pos == a || pos == b || pos == c {
 						continue
@@ -106,6 +110,13 @@ func eliminateFromTriples(actions []CellAction, cands Candidates, seen map[[3]in
 							}
 						}
 					}
+				}
+				if len(actions) > prevLen {
+					*sources = append(*sources,
+						SourceCell{Row: a.r, Col: a.c, Digits: maskToDigits(cands[a.r][a.c])},
+						SourceCell{Row: b.r, Col: b.c, Digits: maskToDigits(cands[b.r][b.c])},
+						SourceCell{Row: c.r, Col: c.c, Digits: maskToDigits(cands[c.r][c.c])},
+					)
 				}
 			}
 		}

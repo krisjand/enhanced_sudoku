@@ -17,32 +17,33 @@ func HiddenSingles(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool) // [row, col, digit]
 
 	rowStart := time.Now()
-	rowActions := hiddenSinglesInRows(cands, seen)
+	rowActions, rowSources := hiddenSinglesInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := hiddenSinglesInCols(cands, seen)
+	colActions, colSources := hiddenSinglesInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := hiddenSinglesInBoxes(cands, seen)
+	boxActions, boxSources := hiddenSinglesInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenSingleBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func hiddenSinglesInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenSinglesInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
 		for digit := 1; digit <= 9; digit++ {
 			bit := uint16(1) << uint(digit-1)
@@ -58,15 +59,17 @@ func hiddenSinglesInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 				if !seen[key] {
 					seen[key] = true
 					actions = append(actions, CellAction{Row: r, Col: lastC, Digit: digit, Type: ActionSet})
+					sources = append(sources, SourceCell{Row: r, Col: lastC, Digits: []int{digit}})
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenSinglesInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenSinglesInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
 		for digit := 1; digit <= 9; digit++ {
 			bit := uint16(1) << uint(digit-1)
@@ -82,15 +85,17 @@ func hiddenSinglesInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 				if !seen[key] {
 					seen[key] = true
 					actions = append(actions, CellAction{Row: lastR, Col: c, Digit: digit, Type: ActionSet})
+					sources = append(sources, SourceCell{Row: lastR, Col: c, Digits: []int{digit}})
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenSinglesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenSinglesInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
 		br, bc := (b/3)*3, (b%3)*3
 		for digit := 1; digit <= 9; digit++ {
@@ -110,9 +115,10 @@ func hiddenSinglesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
 				if !seen[key] {
 					seen[key] = true
 					actions = append(actions, CellAction{Row: lastR, Col: lastC, Digit: digit, Type: ActionSet})
+					sources = append(sources, SourceCell{Row: lastR, Col: lastC, Digits: []int{digit}})
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }

@@ -87,6 +87,7 @@ func TestNakedQuadruples(t *testing.T) {
 // cell must not be one of the four naked-quadruple members.
 func assertNakedQuadruplesValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			if a.Type != ActionEliminate {

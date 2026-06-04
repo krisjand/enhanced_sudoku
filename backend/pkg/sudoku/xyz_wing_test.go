@@ -95,6 +95,7 @@ func TestXYZWingExhausted(t *testing.T) {
 // assertXYZWingValid checks that every elimination is backed by a valid XYZ-wing triple.
 func assertXYZWingValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			zBit := uint16(1) << uint(a.Digit-1)
