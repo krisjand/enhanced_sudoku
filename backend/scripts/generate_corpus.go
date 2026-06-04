@@ -156,7 +156,7 @@ func main() {
 	easy    := flag.Int("easy",   2000, "target easy puzzles")
 	medium  := flag.Int("medium", 2000, "target medium puzzles")
 	hard    := flag.Int("hard",   1000, "target hard puzzles")
-	expert  := flag.Int("expert",  300, "target expert puzzles")
+	expert  := flag.Int("expert",  500, "target expert puzzles")
 	master  := flag.Int("master", 1000, "target master puzzles")
 	grand   := flag.Int("grand",  2000, "target grandmaster puzzles")
 	flag.Parse()
