@@ -1,6 +1,9 @@
 package sudoku
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func fixtureForcedChainDualCellPuzzle() Grid {
 	return Grid{
@@ -182,6 +185,114 @@ func assertForcedChainsValid(t *testing.T, steps []SolveStep, g Grid, cands Cand
 			}
 		}
 	}
+}
+
+// fixtureBilocationPuzzle returns a puzzle that contains a bi-location forced
+// chain. Source: user-provided screenshot.
+func fixtureBilocationPuzzle() Grid {
+	return Grid{
+		{0, 8, 0, 5, 0, 0, 0, 7, 1},
+		{0, 3, 0, 0, 0, 0, 6, 0, 0},
+		{0, 0, 5, 0, 0, 4, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 4, 0, 0},
+		{0, 0, 0, 3, 8, 0, 1, 0, 0},
+		{8, 0, 0, 0, 0, 6, 0, 0, 0},
+		{0, 0, 0, 0, 0, 2, 5, 6, 0},
+		{5, 0, 0, 6, 4, 3, 7, 0, 0},
+		{3, 0, 0, 0, 0, 8, 0, 0, 9},
+	}
+}
+
+// fixtureBilocationDecisivePuzzle returns a puzzle where bi-location seeds are
+// decisive: bi-value seeds find no conclusion but bi-location seeds do.
+// Found by TestFindBilocationPuzzle (seed 42, puzzle 477).
+// Source: test_grids/forced_chain_bilocation.json
+func fixtureBilocationDecisivePuzzle() Grid {
+	return Grid{
+		{1, 0, 0, 7, 0, 0, 0, 0, 0},
+		{0, 0, 3, 0, 0, 0, 0, 4, 0},
+		{7, 0, 0, 0, 0, 3, 0, 0, 8},
+		{0, 6, 0, 0, 7, 0, 4, 0, 0},
+		{0, 0, 8, 4, 0, 0, 3, 0, 0},
+		{0, 0, 0, 0, 2, 0, 0, 7, 9},
+		{4, 0, 0, 0, 0, 2, 8, 0, 0},
+		{0, 0, 0, 0, 0, 5, 6, 0, 0},
+		{0, 0, 1, 0, 0, 0, 0, 3, 0},
+	}
+}
+
+func TestBilocationSeeds(t *testing.T) {
+	t.Run("seeds have valid structure", func(t *testing.T) {
+		g := fixtureBilocationDecisivePuzzle()
+		cands := Init(g)
+		seeds := collectBilocationSeeds(g, cands)
+		if len(seeds) == 0 {
+			t.Fatal("collectBilocationSeeds: expected at least one seed, got none")
+		}
+		for i, s := range seeds {
+			if len(s.branches) != 2 {
+				t.Errorf("seed %d: expected 2 branches, got %d", i, len(s.branches))
+				continue
+			}
+			for j, b := range s.branches {
+				if b.candidate < 1 || b.candidate > 9 {
+					t.Errorf("seed %d branch %d: invalid candidate %d", i, j, b.candidate)
+				}
+				if b.g[b.seedRow][b.seedCol] != uint8(b.candidate) {
+					t.Errorf("seed %d branch %d: digit not placed at seed cell (%d,%d)",
+						i, j, b.seedRow, b.seedCol)
+				}
+			}
+		}
+	})
+
+	t.Run("bi-location finds conclusion when bi-value fails", func(t *testing.T) {
+		g := fixtureBilocationDecisivePuzzle()
+		cands := Init(g)
+
+		// Apply all non-FC techniques until stuck — mirrors HumanSolve state
+		// just before invoking forced chains.
+		preTechs := techniques[:len(techniques)-1]
+		for {
+			advanced := false
+			for _, tech := range preTechs {
+				steps := tech.fn(g, cands)
+				if len(steps) == 0 {
+					continue
+				}
+				for _, s := range steps {
+					for _, a := range s.Actions {
+						switch a.Type {
+						case ActionSet:
+							g[a.Row][a.Col] = uint8(a.Digit)
+							cands.Set(a.Row, a.Col, a.Digit)
+						case ActionEliminate:
+							cands.Eliminate(a.Row, a.Col, a.Digit)
+						}
+					}
+				}
+				advanced = true
+				break
+			}
+			if !advanced {
+				break
+			}
+		}
+
+		opts := defaultForcedChainsOptions()
+
+		// Bi-value seeds must find nothing.
+		if steps := runForcedChainPass(collectBivalueSeeds(g, cands), opts, time.Now()); steps != nil {
+			t.Fatal("bi-value seeds found a conclusion — fixture is no longer bi-location decisive")
+		}
+
+		// Bi-location seeds must find a conclusion.
+		steps := runForcedChainPass(collectBilocationSeeds(g, cands), opts, time.Now())
+		if steps == nil {
+			t.Fatal("bi-location seeds found no conclusion — expected a forced chain conclusion")
+		}
+		assertForcedChainsValid(t, steps, fixtureBilocationDecisivePuzzle(), Init(fixtureBilocationDecisivePuzzle()))
+	})
 }
 
 func TestFcHasContradiction(t *testing.T) {

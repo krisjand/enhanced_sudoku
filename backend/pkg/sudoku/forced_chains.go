@@ -21,16 +21,27 @@ func defaultForcedChainsOptions() forcedChainsOptions {
 }
 
 // NewForcedChains returns a TechniqueFn that searches for forced chains.
-// It tries bi-value seed cells first; if none yield a conclusion it falls back to tri-value seeds.
-// Within each seed cell, branches for each candidate are advanced one depth step at a time
-// (BFS across all seeds) so the shortest chain is found first.
+// Seeds are tried in three passes, stopping at the first that yields a conclusion:
+//  1. Bi-value cell seeds (cell with exactly 2 candidates)
+//  2. Bi-location unit seeds (digit with exactly 2 candidate cells in a unit)
+//  3. Tri-value cell seeds (cell with exactly 3 candidates)
+//
+// Within each pass all seeds are advanced one depth step at a time (BFS) so
+// the shortest chain is found first.
 func NewForcedChains(opts forcedChainsOptions) TechniqueFn {
 	return func(g Grid, cands Candidates) []SolveStep {
 		start := time.Now()
-		for _, valence := range []int{2, 3} {
-			if steps := searchForcedChains(g, cands, valence, opts, start); steps != nil {
-				return steps
-			}
+		// Pass 1: bi-value cells
+		if steps := runForcedChainPass(collectBivalueSeeds(g, cands), opts, start); steps != nil {
+			return steps
+		}
+		// Pass 2: bi-location units
+		if steps := runForcedChainPass(collectBilocationSeeds(g, cands), opts, start); steps != nil {
+			return steps
+		}
+		// Pass 3: tri-value cells
+		if steps := runForcedChainPass(collectCellSeeds(g, cands, 3), opts, start); steps != nil {
+			return steps
 		}
 		return nil
 	}
@@ -39,6 +50,8 @@ func NewForcedChains(opts forcedChainsOptions) TechniqueFn {
 // fcBranch holds the state of one candidate assumption within a forced chain search.
 type fcBranch struct {
 	candidate    int
+	seedRow      int // row of the cell where this branch places its digit
+	seedCol      int // col of the cell where this branch places its digit
 	g            Grid
 	cands        Candidates
 	steps        []SolveStep  // technique steps taken inside this branch
@@ -48,24 +61,29 @@ type fcBranch struct {
 }
 
 type fcSeed struct {
-	row, col int
 	branches []*fcBranch
 }
 
-func searchForcedChains(g Grid, cands Candidates, valence int, opts forcedChainsOptions, start time.Time) []SolveStep {
+// collectBivalueSeeds returns one seed per cell with exactly 2 candidates.
+func collectBivalueSeeds(g Grid, cands Candidates) []fcSeed {
+	return collectCellSeeds(g, cands, 2)
+}
+
+// collectCellSeeds returns one seed per cell whose candidate count equals valence.
+func collectCellSeeds(g Grid, cands Candidates, valence int) []fcSeed {
 	var seeds []fcSeed
 	for r := 0; r < 9; r++ {
 		for c := 0; c < 9; c++ {
 			if g[r][c] != 0 || cands.Count(r, c) != valence {
 				continue
 			}
-			s := fcSeed{row: r, col: c}
+			s := fcSeed{}
 			mask := cands[r][c]
 			for d := 1; d <= 9; d++ {
 				if mask&(1<<uint(d-1)) == 0 {
 					continue
 				}
-				b := &fcBranch{candidate: d, g: g, cands: cands}
+				b := &fcBranch{candidate: d, seedRow: r, seedCol: c, g: g, cands: cands}
 				b.g[r][c] = uint8(d)
 				b.cands.Set(r, c, d)
 				b.contradicted = fcHasContradiction(b.g, b.cands)
@@ -74,21 +92,99 @@ func searchForcedChains(g Grid, cands Candidates, valence int, opts forcedChains
 			seeds = append(seeds, s)
 		}
 	}
+	return seeds
+}
+
+// collectBilocationSeeds returns one seed per (unit, digit) pair where the digit
+// appears in exactly 2 candidate cells in that unit. Duplicate pairs (same two
+// cells for the same digit arising from multiple units) are deduplicated.
+func collectBilocationSeeds(g Grid, cands Candidates) []fcSeed {
+	type pairKey [3]int // [digit, linearA, linearB] with linearA < linearB
+
+	seen := map[pairKey]bool{}
+	var seeds []fcSeed
+
+	addSeed := func(d int, a, b cell) {
+		idxA, idxB := a.r*9+a.c, b.r*9+b.c
+		if idxA > idxB {
+			idxA, idxB = idxB, idxA
+			a, b = b, a
+		}
+		k := pairKey{d, idxA, idxB}
+		if seen[k] {
+			return
+		}
+		seen[k] = true
+
+		bA := &fcBranch{candidate: d, seedRow: a.r, seedCol: a.c, g: g, cands: cands}
+		bA.g[a.r][a.c] = uint8(d)
+		bA.cands.Set(a.r, a.c, d)
+		bA.contradicted = fcHasContradiction(bA.g, bA.cands)
+
+		bB := &fcBranch{candidate: d, seedRow: b.r, seedCol: b.c, g: g, cands: cands}
+		bB.g[b.r][b.c] = uint8(d)
+		bB.cands.Set(b.r, b.c, d)
+		bB.contradicted = fcHasContradiction(bB.g, bB.cands)
+
+		seeds = append(seeds, fcSeed{branches: []*fcBranch{bA, bB}})
+	}
+
+	for d := 1; d <= 9; d++ {
+		bit := uint16(1) << uint(d-1)
+
+		for r := 0; r < 9; r++ {
+			var cells []cell
+			for c := 0; c < 9; c++ {
+				if g[r][c] == 0 && cands[r][c]&bit != 0 {
+					cells = append(cells, cell{r, c})
+				}
+			}
+			if len(cells) == 2 {
+				addSeed(d, cells[0], cells[1])
+			}
+		}
+
+		for c := 0; c < 9; c++ {
+			var cells []cell
+			for r := 0; r < 9; r++ {
+				if g[r][c] == 0 && cands[r][c]&bit != 0 {
+					cells = append(cells, cell{r, c})
+				}
+			}
+			if len(cells) == 2 {
+				addSeed(d, cells[0], cells[1])
+			}
+		}
+
+		for b := 0; b < 9; b++ {
+			br, bc := (b/3)*3, (b%3)*3
+			var cells []cell
+			for dr := 0; dr < 3; dr++ {
+				for dc := 0; dc < 3; dc++ {
+					r, c := br+dr, bc+dc
+					if g[r][c] == 0 && cands[r][c]&bit != 0 {
+						cells = append(cells, cell{r, c})
+					}
+				}
+			}
+			if len(cells) == 2 {
+				addSeed(d, cells[0], cells[1])
+			}
+		}
+	}
+	return seeds
+}
+
+func runForcedChainPass(seeds []fcSeed, opts forcedChainsOptions, start time.Time) []SolveStep {
 	if len(seeds) == 0 {
 		return nil
 	}
-
 	for depth := 0; depth <= opts.maxDepth; depth++ {
-		// Check all seeds for a conclusion at the current depth before advancing further.
 		for _, s := range seeds {
-			if steps := fcExtractConclusion(s.row, s.col, s.branches, start); steps != nil {
+			if steps := fcExtractConclusion(s.branches, start); steps != nil {
 				return steps
 			}
 		}
-		if depth == opts.maxDepth {
-			break
-		}
-		// Advance every active branch by one technique application (BFS across all seeds).
 		allDone := true
 		for i := range seeds {
 			for _, b := range seeds[i].branches {
@@ -144,7 +240,7 @@ func fcHasContradiction(g Grid, cands Candidates) bool {
 	return false
 }
 
-func fcExtractConclusion(row, col int, branches []*fcBranch, start time.Time) []SolveStep {
+func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 	var valid, contradicted []*fcBranch
 	for _, b := range branches {
 		if b.contradicted {
@@ -166,7 +262,7 @@ func fcExtractConclusion(row, col int, branches []*fcBranch, start time.Time) []
 		// Only one candidate survives: place it and include all consequences.
 		b := valid[0]
 		actions := make([]CellAction, 0, 1+len(b.allActions))
-		actions = append(actions, CellAction{Row: row, Col: col, Digit: b.candidate, Type: ActionSet})
+		actions = append(actions, CellAction{Row: b.seedRow, Col: b.seedCol, Digit: b.candidate, Type: ActionSet})
 		actions = append(actions, b.allActions...)
 		return []SolveStep{{
 			Technique: TechniqueForcedChains,
