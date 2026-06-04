@@ -258,6 +258,16 @@ func main() {
 		records[lvl] = append(records[lvl], rec)
 		dirty[lvl] = true
 
+		// Save immediately for rare difficulties so no finds are lost if the
+		// job is interrupted between periodic saves.
+		if lvl == sudoku.DifficultyHard || lvl == sudoku.DifficultyExpert || lvl == sudoku.DifficultyMaster {
+			path := filepath.Join(*outDir, fileNames[lvl])
+			if err := saveFile(path, records[lvl]); err != nil {
+				fmt.Fprintf(os.Stderr, "save error (%s): %v\n", lvl, err)
+			}
+			delete(dirty, lvl)
+		}
+
 		// Save periodically and print progress.
 		if total%saveInterval == 0 {
 			for lvl := range dirty {
