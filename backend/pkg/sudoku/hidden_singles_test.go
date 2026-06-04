@@ -105,6 +105,7 @@ func TestHiddenSingles(t *testing.T) {
 // hidden single in the claimed unit type.
 func assertHiddenSinglesValid(t *testing.T, steps []SolveStep, cands Candidates) {
 	t.Helper()
+	assertStepsHaveSources(t, steps)
 	for _, s := range steps {
 		for _, a := range s.Actions {
 			bit := uint16(1) << uint(a.Digit-1)

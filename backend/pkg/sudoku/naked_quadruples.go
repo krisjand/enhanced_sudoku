@@ -17,56 +17,59 @@ func NakedQuadruples(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := nakedQuadruplesInRows(cands, seen)
+	rowActions, rowSources := nakedQuadruplesInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := nakedQuadruplesInCols(cands, seen)
+	colActions, colSources := nakedQuadruplesInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := nakedQuadruplesInBoxes(cands, seen)
+	boxActions, boxSources := nakedQuadruplesInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueNakedQuadruplesBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func nakedQuadruplesInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedQuadruplesInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
-		actions = eliminateFromQuadruples(actions, cands, seen, rowUnit(r))
+		actions = eliminateFromQuadruples(actions, &sources, cands, seen, rowUnit(r))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedQuadruplesInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedQuadruplesInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
-		actions = eliminateFromQuadruples(actions, cands, seen, colUnit(c))
+		actions = eliminateFromQuadruples(actions, &sources, cands, seen, colUnit(c))
 	}
-	return actions
+	return actions, sources
 }
 
-func nakedQuadruplesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func nakedQuadruplesInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
-		actions = eliminateFromQuadruples(actions, cands, seen, boxUnit(b))
+		actions = eliminateFromQuadruples(actions, &sources, cands, seen, boxUnit(b))
 	}
-	return actions
+	return actions, sources
 }
 
 // eliminateFromQuadruples finds naked quadruples in a unit and appends eliminations.
-func eliminateFromQuadruples(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
+func eliminateFromQuadruples(actions []CellAction, sources *[]SourceCell, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
 	var candidates []cell
 	for _, pos := range unit {
 		n := popcount(cands[pos.r][pos.c])
@@ -92,6 +95,7 @@ func eliminateFromQuadruples(actions []CellAction, cands Candidates, seen map[[3
 						continue
 					}
 					// Found a naked quadruple — eliminate all four digits from other cells.
+					prevLen := len(actions)
 					for _, pos := range unit {
 						if pos == a || pos == b || pos == c || pos == d {
 							continue
@@ -109,6 +113,14 @@ func eliminateFromQuadruples(actions []CellAction, cands Candidates, seen map[[3
 								}
 							}
 						}
+					}
+					if len(actions) > prevLen {
+						*sources = append(*sources,
+							SourceCell{Row: a.r, Col: a.c, Digits: maskToDigits(cands[a.r][a.c])},
+							SourceCell{Row: b.r, Col: b.c, Digits: maskToDigits(cands[b.r][b.c])},
+							SourceCell{Row: c.r, Col: c.c, Digits: maskToDigits(cands[c.r][c.c])},
+							SourceCell{Row: d.r, Col: d.c, Digits: maskToDigits(cands[d.r][d.c])},
+						)
 					}
 				}
 			}

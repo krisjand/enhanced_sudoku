@@ -258,6 +258,22 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		chains[i] = ForcedChainBranch{Candidate: b.candidate, Steps: b.steps}
 	}
 
+	// Collect seed cells as sources. Group branches by cell so each seed cell
+	// appears once with all its branching candidates listed.
+	seedDigits := make(map[[2]int][]int)
+	var seedOrder [][2]int
+	for _, b := range branches {
+		key := [2]int{b.seedRow, b.seedCol}
+		if _, ok := seedDigits[key]; !ok {
+			seedOrder = append(seedOrder, key)
+		}
+		seedDigits[key] = append(seedDigits[key], b.candidate)
+	}
+	sources := make([]SourceCell, 0, len(seedOrder))
+	for _, key := range seedOrder {
+		sources = append(sources, SourceCell{Row: key[0], Col: key[1], Digits: seedDigits[key]})
+	}
+
 	if len(contradicted) > 0 && len(valid) == 1 {
 		// Only one candidate survives: place it and include all consequences.
 		b := valid[0]
@@ -266,6 +282,7 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		actions = append(actions, b.allActions...)
 		return []SolveStep{{
 			Technique: TechniqueForcedChains,
+			Sources:   sources,
 			Actions:   actions,
 			Duration:  time.Since(start),
 			Chains:    chains,
@@ -279,6 +296,7 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 	}
 	return []SolveStep{{
 		Technique: TechniqueForcedChains,
+		Sources:   sources,
 		Actions:   common,
 		Duration:  time.Since(start),
 		Chains:    chains,

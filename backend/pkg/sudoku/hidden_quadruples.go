@@ -18,52 +18,55 @@ func HiddenQuadruples(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := hiddenQuadruplesInRows(cands, seen)
+	rowActions, rowSources := hiddenQuadruplesInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := hiddenQuadruplesInCols(cands, seen)
+	colActions, colSources := hiddenQuadruplesInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := hiddenQuadruplesInBoxes(cands, seen)
+	boxActions, boxSources := hiddenQuadruplesInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenQuadruplesBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func hiddenQuadruplesInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenQuadruplesInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
-		actions = eliminateFromHiddenQuadruples(actions, cands, seen, rowUnit(r))
+		actions = eliminateFromHiddenQuadruples(actions, &sources, cands, seen, rowUnit(r))
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenQuadruplesInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenQuadruplesInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
-		actions = eliminateFromHiddenQuadruples(actions, cands, seen, colUnit(c))
+		actions = eliminateFromHiddenQuadruples(actions, &sources, cands, seen, colUnit(c))
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenQuadruplesInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenQuadruplesInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
-		actions = eliminateFromHiddenQuadruples(actions, cands, seen, boxUnit(b))
+		actions = eliminateFromHiddenQuadruples(actions, &sources, cands, seen, boxUnit(b))
 	}
-	return actions
+	return actions, sources
 }
 
 // eliminateFromHiddenQuadruples finds hidden quadruples in a unit and appends
@@ -73,7 +76,7 @@ func hiddenQuadruplesInBoxes(cands Candidates, seen map[[3]int]bool) []CellActio
 //
 // Uses a position bitmask per digit (bit i set ↔ unit[i] contains that digit)
 // so the cell-union for any quadruple is a cheap bitwise OR + popcount.
-func eliminateFromHiddenQuadruples(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
+func eliminateFromHiddenQuadruples(actions []CellAction, sources *[]SourceCell, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
 	var posMask [10]uint16 // posMask[d]: bit i set if unit[i] has digit d as candidate
 	for i, pos := range unit {
 		c := cands[pos.r][pos.c]
@@ -114,6 +117,7 @@ func eliminateFromHiddenQuadruples(actions []CellAction, cands Candidates, seen 
 					}
 					// Hidden quadruple found — eliminate all other candidates from the four cells.
 					quadMask := uint16(1<<uint(d1-1)) | uint16(1<<uint(d2-1)) | uint16(1<<uint(d3-1)) | uint16(1<<uint(d4-1))
+					prevLen := len(actions)
 					m := union
 					for m != 0 {
 						lsb := m & (-m)
@@ -130,6 +134,16 @@ func eliminateFromHiddenQuadruples(actions []CellAction, cands Candidates, seen 
 								seen[key] = true
 								actions = append(actions, CellAction{Row: pos.r, Col: pos.c, Digit: digit, Type: ActionEliminate})
 							}
+						}
+					}
+					if len(actions) > prevLen {
+						digits := []int{d1, d2, d3, d4}
+						mu := union
+						for mu != 0 {
+							lsb := mu & (-mu)
+							mu &^= lsb
+							pos := unit[int(trailingZeros(lsb))]
+							*sources = append(*sources, SourceCell{Row: pos.r, Col: pos.c, Digits: digits})
 						}
 					}
 				}

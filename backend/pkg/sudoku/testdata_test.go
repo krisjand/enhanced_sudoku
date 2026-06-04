@@ -1,5 +1,28 @@
 package sudoku
 
+import "testing"
+
+// assertStepsHaveSources verifies that every step has at least one source cell
+// and every source cell has at least one digit.
+func assertStepsHaveSources(t *testing.T, steps []SolveStep) {
+	t.Helper()
+	for i, s := range steps {
+		if len(s.Sources) == 0 {
+			t.Errorf("step[%d] technique=%q: Sources is empty", i, s.Technique)
+		} else {
+			for j, src := range s.Sources {
+				if len(src.Digits) == 0 {
+					t.Errorf("step[%d] technique=%q source[%d] at (%d,%d): Digits is empty",
+						i, s.Technique, j, src.Row, src.Col)
+				}
+			}
+		}
+		for _, branch := range s.Chains {
+			assertStepsHaveSources(t, branch.Steps)
+		}
+	}
+}
+
 // fixtureStandardPuzzle returns the well-known "newspaper" puzzle used across
 // multiple test files. Optional modifiers are applied before returning.
 func fixtureStandardPuzzle(modifiers ...func(*Grid)) Grid {

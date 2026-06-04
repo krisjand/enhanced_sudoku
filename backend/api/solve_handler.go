@@ -53,8 +53,15 @@ type attemptResponse struct {
 
 type stepResponse struct {
 	Technique string               `json:"technique"`
+	Sources   []sourceCellResponse `json:"sources,omitempty"`
 	Actions   []actionResponse     `json:"actions"`
 	Chains    []chainBranchResponse `json:"chains,omitempty"`
+}
+
+type sourceCellResponse struct {
+	Row    int   `json:"row"`
+	Col    int   `json:"col"`
+	Digits []int `json:"digits"`
 }
 
 type actionResponse struct {
@@ -71,6 +78,17 @@ type chainBranchResponse struct {
 
 func toStepResponse(s sudoku.SolveStep) stepResponse {
 	sr := stepResponse{Technique: s.Technique}
+	for _, src := range s.Sources {
+		digits := src.Digits
+		if digits == nil {
+			digits = []int{}
+		}
+		sr.Sources = append(sr.Sources, sourceCellResponse{
+			Row:    src.Row,
+			Col:    src.Col,
+			Digits: digits,
+		})
+	}
 	for _, act := range s.Actions {
 		sr.Actions = append(sr.Actions, actionResponse{
 			Row:   act.Row,

@@ -17,58 +17,61 @@ func HiddenPairs(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := hiddenPairsInRows(cands, seen)
+	rowActions, rowSources := hiddenPairsInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := hiddenPairsInCols(cands, seen)
+	colActions, colSources := hiddenPairsInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	boxStart := time.Now()
-	boxActions := hiddenPairsInBoxes(cands, seen)
+	boxActions, boxSources := hiddenPairsInBoxes(cands, seen)
 	boxDur := time.Since(boxStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	if len(boxActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairBox, Actions: boxActions, Duration: boxDur})
+		steps = append(steps, SolveStep{Technique: TechniqueHiddenPairBox, Sources: boxSources, Actions: boxActions, Duration: boxDur})
 	}
 	return steps
 }
 
-func hiddenPairsInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenPairsInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
-		actions = eliminateFromHiddenPairs(actions, cands, seen, rowUnit(r))
+		actions = eliminateFromHiddenPairs(actions, &sources, cands, seen, rowUnit(r))
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenPairsInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenPairsInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for c := 0; c < 9; c++ {
-		actions = eliminateFromHiddenPairs(actions, cands, seen, colUnit(c))
+		actions = eliminateFromHiddenPairs(actions, &sources, cands, seen, colUnit(c))
 	}
-	return actions
+	return actions, sources
 }
 
-func hiddenPairsInBoxes(cands Candidates, seen map[[3]int]bool) []CellAction {
+func hiddenPairsInBoxes(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 	for b := 0; b < 9; b++ {
-		actions = eliminateFromHiddenPairs(actions, cands, seen, boxUnit(b))
+		actions = eliminateFromHiddenPairs(actions, &sources, cands, seen, boxUnit(b))
 	}
-	return actions
+	return actions, sources
 }
 
 // eliminateFromHiddenPairs finds hidden pairs in a unit and appends eliminations.
 // For each pair of digits (d1, d2) that appear in exactly the same two cells
 // and nowhere else in the unit, all other candidates are removed from those cells.
-func eliminateFromHiddenPairs(actions []CellAction, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
+func eliminateFromHiddenPairs(actions []CellAction, sources *[]SourceCell, cands Candidates, seen map[[3]int]bool, unit []cell) []CellAction {
 	for d1 := 1; d1 <= 8; d1++ {
 		bit1 := uint16(1) << uint(d1-1)
 		// Collect cells containing d1.
@@ -111,6 +114,7 @@ func eliminateFromHiddenPairs(actions []CellAction, cands Candidates, seen map[[
 			}
 			// Hidden pair found — eliminate all other candidates from both cells.
 			pairMask := bit1 | bit2
+			prevLen := len(actions)
 			for _, pos := range cells1 {
 				extras := cands[pos.r][pos.c] &^ pairMask
 				for extras != 0 {
@@ -123,6 +127,13 @@ func eliminateFromHiddenPairs(actions []CellAction, cands Candidates, seen map[[
 						actions = append(actions, CellAction{Row: pos.r, Col: pos.c, Digit: digit, Type: ActionEliminate})
 					}
 				}
+			}
+			if len(actions) > prevLen {
+				digits := []int{d1, d2}
+				*sources = append(*sources,
+					SourceCell{Row: cells1[0].r, Col: cells1[0].c, Digits: digits},
+					SourceCell{Row: cells1[1].r, Col: cells1[1].c, Digits: digits},
+				)
 			}
 		}
 	}

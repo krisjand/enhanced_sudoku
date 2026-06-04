@@ -16,19 +16,19 @@ func Swordfish(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	rowStart := time.Now()
-	rowActions := swordfishInRows(cands, seen)
+	rowActions, rowSources := swordfishInRows(cands, seen)
 	rowDur := time.Since(rowStart)
 
 	colStart := time.Now()
-	colActions := swordfishInCols(cands, seen)
+	colActions, colSources := swordfishInCols(cands, seen)
 	colDur := time.Since(colStart)
 
 	var steps []SolveStep
 	if len(rowActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueSwordfishRow, Actions: rowActions, Duration: rowDur})
+		steps = append(steps, SolveStep{Technique: TechniqueSwordfishRow, Sources: rowSources, Actions: rowActions, Duration: rowDur})
 	}
 	if len(colActions) > 0 {
-		steps = append(steps, SolveStep{Technique: TechniqueSwordfishColumn, Actions: colActions, Duration: colDur})
+		steps = append(steps, SolveStep{Technique: TechniqueSwordfishColumn, Sources: colSources, Actions: colActions, Duration: colDur})
 	}
 	return steps
 }
@@ -37,14 +37,13 @@ func Swordfish(g Grid, cands Candidates) []SolveStep {
 // each having a digit as a candidate in 2 or 3 columns, and the union of those
 // columns spans exactly 3 columns. Eliminates the digit from all other cells in
 // those 3 columns.
-func swordfishInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
+func swordfishInRows(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 
 	for d := 1; d <= 9; d++ {
 		bit := uint16(1) << uint(d-1)
 
-		// Collect rows where digit d appears in exactly 2 or 3 columns.
-		// colMask[i] encodes which columns have digit d in that row.
 		type rowEntry struct {
 			r       int
 			colMask uint16
@@ -74,6 +73,7 @@ func swordfishInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 						continue
 					}
 					r1, r2, r3 := rows[i].r, rows[j].r, rows[k].r
+					prevLen := len(actions)
 					for c := 0; c < 9; c++ {
 						if union&(1<<uint(c)) == 0 {
 							continue
@@ -91,19 +91,35 @@ func swordfishInRows(cands Candidates, seen map[[3]int]bool) []CellAction {
 							}
 						}
 					}
+					if len(actions) > prevLen {
+						digs := []int{d}
+						for _, re := range []struct {
+							r    int
+							mask uint16
+						}{{r1, rows[i].colMask}, {r2, rows[j].colMask}, {r3, rows[k].colMask}} {
+							m := re.mask
+							for m != 0 {
+								lsb := m & (-m)
+								m &^= lsb
+								c := int(trailingZeros(lsb))
+								sources = append(sources, SourceCell{Row: re.r, Col: c, Digits: digs})
+							}
+						}
+					}
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }
 
 // swordfishInCols finds Swordfish patterns where the base is a triple of
 // columns each having a digit as a candidate in 2 or 3 rows, and the union of
 // those rows spans exactly 3 rows. Eliminates the digit from all other cells in
 // those 3 rows.
-func swordfishInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
+func swordfishInCols(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	var actions []CellAction
+	var sources []SourceCell
 
 	for d := 1; d <= 9; d++ {
 		bit := uint16(1) << uint(d-1)
@@ -137,6 +153,7 @@ func swordfishInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 						continue
 					}
 					c1, c2, c3 := cols[i].c, cols[j].c, cols[k].c
+					prevLen := len(actions)
 					for r := 0; r < 9; r++ {
 						if union&(1<<uint(r)) == 0 {
 							continue
@@ -154,9 +171,24 @@ func swordfishInCols(cands Candidates, seen map[[3]int]bool) []CellAction {
 							}
 						}
 					}
+					if len(actions) > prevLen {
+						digs := []int{d}
+						for _, ce := range []struct {
+							c    int
+							mask uint16
+						}{{c1, cols[i].rowMask}, {c2, cols[j].rowMask}, {c3, cols[k].rowMask}} {
+							m := ce.mask
+							for m != 0 {
+								lsb := m & (-m)
+								m &^= lsb
+								r := int(trailingZeros(lsb))
+								sources = append(sources, SourceCell{Row: r, Col: ce.c, Digits: digs})
+							}
+						}
+					}
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }

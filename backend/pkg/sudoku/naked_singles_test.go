@@ -63,6 +63,7 @@ func TestNakedSingles(t *testing.T) {
 			if len(steps) != 1 {
 				t.Fatalf("len(steps) = %d, want 1", len(steps))
 			}
+			assertStepsHaveSources(t, steps)
 			step := steps[0]
 			if step.Technique != TechniqueNakedSingles {
 				t.Errorf("Technique = %q, want %q", step.Technique, TechniqueNakedSingles)

@@ -15,16 +15,16 @@ func XYZWing(g Grid, cands Candidates) []SolveStep {
 	seen := make(map[[3]int]bool)
 
 	start := time.Now()
-	actions := xyzWingScan(cands, seen)
+	actions, sources := xyzWingScan(cands, seen)
 	dur := time.Since(start)
 
 	if len(actions) == 0 {
 		return nil
 	}
-	return []SolveStep{{Technique: TechniqueXYZWing, Actions: actions, Duration: dur}}
+	return []SolveStep{{Technique: TechniqueXYZWing, Sources: sources, Actions: actions, Duration: dur}}
 }
 
-func xyzWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
+func xyzWingScan(cands Candidates, seen map[[3]int]bool) ([]CellAction, []SourceCell) {
 	// Collect bi-value cells once — pincers must be bi-value.
 	var bivalue []cell
 	for r := 0; r < 9; r++ {
@@ -36,6 +36,7 @@ func xyzWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 	}
 
 	var actions []CellAction
+	var sources []SourceCell
 
 	for r := 0; r < 9; r++ {
 		for c := 0; c < 9; c++ {
@@ -72,6 +73,7 @@ func xyzWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 					z := int(trailingZeros(zBit) + 1)
 
 					// Eliminate z from cells seeing P, A, and B.
+					prevLen := len(actions)
 					for er := 0; er < 9; er++ {
 						for ec := 0; ec < 9; ec++ {
 							e := cell{er, ec}
@@ -91,9 +93,16 @@ func xyzWingScan(cands Candidates, seen map[[3]int]bool) []CellAction {
 							}
 						}
 					}
+					if len(actions) > prevLen {
+						sources = append(sources,
+							SourceCell{Row: p.r, Col: p.c, Digits: maskToDigits(pmask)},
+							SourceCell{Row: a.r, Col: a.c, Digits: maskToDigits(amask)},
+							SourceCell{Row: b.r, Col: b.c, Digits: maskToDigits(bmask)},
+						)
+					}
 				}
 			}
 		}
 	}
-	return actions
+	return actions, sources
 }

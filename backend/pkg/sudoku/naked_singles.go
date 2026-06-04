@@ -9,18 +9,15 @@ const TechniqueNakedSingles = "nakedSingles"
 func NakedSingles(g Grid, cands Candidates) []SolveStep {
 	start := time.Now()
 	var actions []CellAction
+	var sources []SourceCell
 	for r := 0; r < 9; r++ {
 		for c := 0; c < 9; c++ {
 			if g[r][c] != 0 {
 				continue
 			}
 			if d := cands.Only(r, c); d != 0 {
-				actions = append(actions, CellAction{
-					Row:   r,
-					Col:   c,
-					Digit: int(d),
-					Type:  ActionSet,
-				})
+				actions = append(actions, CellAction{Row: r, Col: c, Digit: int(d), Type: ActionSet})
+				sources = append(sources, SourceCell{Row: r, Col: c, Digits: []int{int(d)}})
 			}
 		}
 	}
@@ -29,6 +26,7 @@ func NakedSingles(g Grid, cands Candidates) []SolveStep {
 	}
 	return []SolveStep{{
 		Technique: TechniqueNakedSingles,
+		Sources:   sources,
 		Actions:   actions,
 		Duration:  time.Since(start),
 	}}

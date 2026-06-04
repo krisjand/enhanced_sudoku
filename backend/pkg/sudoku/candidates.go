@@ -108,5 +108,16 @@ func CandidatesFromDigits(g Grid, d [9][9][]int) Candidates {
 	return c
 }
 
+// maskToDigits converts a candidate bitmask to a sorted slice of digits (1–9).
+func maskToDigits(mask uint16) []int {
+	var digits []int
+	for d := 1; d <= 9; d++ {
+		if mask&(1<<uint(d-1)) != 0 {
+			digits = append(digits, d)
+		}
+	}
+	return digits
+}
+
 func popcount(x uint16) int      { return bits.OnesCount16(x) }
 func trailingZeros(x uint16) int { return bits.TrailingZeros16(x) }

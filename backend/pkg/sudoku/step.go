@@ -24,9 +24,18 @@ type ForcedChainBranch struct {
 	Steps     []SolveStep
 }
 
+// SourceCell identifies a cell that is part of the pattern triggering a technique.
+// Digits lists the candidate digits in this cell that are relevant to the pattern.
+type SourceCell struct {
+	Row    int
+	Col    int
+	Digits []int
+}
+
 // SolveStep records one pass of a solving technique and all the actions it produced.
 type SolveStep struct {
 	Technique string
+	Sources   []SourceCell        // cells forming the pattern that triggered the technique
 	Actions   []CellAction
 	Duration  time.Duration       // total time for this technique pass
 	Chains    []ForcedChainBranch `json:"chains,omitempty"` // only set for forced chain conclusions
