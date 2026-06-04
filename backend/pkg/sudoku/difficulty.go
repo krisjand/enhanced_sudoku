@@ -46,11 +46,10 @@ var rankToLevel = []string{
 	DifficultyGrandmaster,
 }
 
-// Rate determines the difficulty of puzzle by running HumanSolve and
-// inspecting which techniques were required.
-func Rate(puzzle Grid) DifficultyResult {
-	result := HumanSolve(puzzle)
-
+// RateResult determines the difficulty of a puzzle from a pre-computed
+// SolveResult. Use this when HumanSolve has already been called to avoid a
+// second solve.
+func RateResult(result SolveResult) DifficultyResult {
 	seen := make(map[string]bool)
 	techniques := []string{}
 	maxRank := -1
@@ -85,4 +84,10 @@ func Rate(puzzle Grid) DifficultyResult {
 	}
 
 	return DifficultyResult{Level: level, Techniques: techniques}
+}
+
+// Rate determines the difficulty of puzzle by running HumanSolve and
+// inspecting which techniques were required.
+func Rate(puzzle Grid) DifficultyResult {
+	return RateResult(HumanSolve(puzzle))
 }

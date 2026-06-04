@@ -1,3 +1,5 @@
+//go:build ignore
+
 // solver_stats generates Sudoku puzzles and prints statistics about how often
 // each technique is used, the difficulty spread, forced-chain depth, and the
 // average scan time per technique.
