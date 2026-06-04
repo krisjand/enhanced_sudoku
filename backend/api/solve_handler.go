@@ -79,10 +79,14 @@ type chainBranchResponse struct {
 func toStepResponse(s sudoku.SolveStep) stepResponse {
 	sr := stepResponse{Technique: s.Technique}
 	for _, src := range s.Sources {
+		digits := src.Digits
+		if digits == nil {
+			digits = []int{}
+		}
 		sr.Sources = append(sr.Sources, sourceCellResponse{
 			Row:    src.Row,
 			Col:    src.Col,
-			Digits: src.Digits,
+			Digits: digits,
 		})
 	}
 	for _, act := range s.Actions {

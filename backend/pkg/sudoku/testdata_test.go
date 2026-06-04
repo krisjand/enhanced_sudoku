@@ -17,6 +17,9 @@ func assertStepsHaveSources(t *testing.T, steps []SolveStep) {
 					i, s.Technique, j, src.Row, src.Col)
 			}
 		}
+		for _, branch := range s.Chains {
+			assertStepsHaveSources(t, branch.Steps)
+		}
 	}
 }
 
