@@ -308,6 +308,47 @@ func TestHumanSolve(t *testing.T) {
 	}
 }
 
+func TestHumanSolveStep(t *testing.T) {
+	t.Run("solved grid returns solved=true", func(t *testing.T) {
+		g := fixtureUniqueSolution()
+		step, solved, stuck := HumanSolveStep(g, Init(g))
+		if !solved {
+			t.Error("expected solved=true for a completed grid")
+		}
+		if stuck || step != nil {
+			t.Error("expected stuck=false and step=nil for a completed grid")
+		}
+	})
+
+	t.Run("empty candidates returns stuck=true", func(t *testing.T) {
+		g := fixtureNearCompletePuzzle()
+		step, solved, stuck := HumanSolveStep(g, Candidates{})
+		if !stuck {
+			t.Error("expected stuck=true when candidates are all empty")
+		}
+		if solved || step != nil {
+			t.Error("expected solved=false and step=nil when stuck")
+		}
+	})
+
+	t.Run("near-complete puzzle returns a naked-singles step", func(t *testing.T) {
+		g := fixtureNearCompletePuzzle()
+		step, solved, stuck := HumanSolveStep(g, Init(g))
+		if solved || stuck {
+			t.Fatalf("expected a step, got solved=%v stuck=%v", solved, stuck)
+		}
+		if step == nil {
+			t.Fatal("expected a non-nil step")
+		}
+		if step.Technique != TechniqueNakedSingles {
+			t.Errorf("technique = %q, want %q", step.Technique, TechniqueNakedSingles)
+		}
+		if len(step.Actions) == 0 {
+			t.Error("expected at least one action in the step")
+		}
+	})
+}
+
 // fixtureNearCompletePuzzle returns the near-complete puzzle from naked_singles_test.go.
 func fixtureNearCompletePuzzle() Grid {
 	g, _ := fixtureNearComplete()
