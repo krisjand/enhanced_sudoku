@@ -31,7 +31,7 @@ func (h *hintHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var cands sudoku.Candidates
 	if req.Candidates != nil {
-		cands = sudoku.CandidatesFromDigits(*req.Candidates)
+		cands = sudoku.CandidatesFromDigits(req.Grid, *req.Candidates)
 	} else {
 		cands = sudoku.Init(req.Grid)
 	}
@@ -53,14 +53,6 @@ func toHintResponse(step *sudoku.SolveStep, solved, stuck bool) hintResponse {
 	if stuck {
 		return hintResponse{Stuck: true}
 	}
-	sr := stepResponse{Technique: step.Technique}
-	for _, act := range step.Actions {
-		sr.Actions = append(sr.Actions, actionResponse{
-			Row:   act.Row,
-			Col:   act.Col,
-			Digit: act.Digit,
-			Type:  actionTypeName(act.Type),
-		})
-	}
+	sr := toStepResponse(*step)
 	return hintResponse{Step: &sr}
 }

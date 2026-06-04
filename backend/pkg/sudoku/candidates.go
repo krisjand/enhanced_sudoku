@@ -88,11 +88,16 @@ func usedMask(g Grid, r, col int) uint16 {
 
 // CandidatesFromDigits converts a [9][9][]int wire-format representation to a
 // Candidates bitmask. Each inner slice lists the remaining candidate digits for
-// that cell (1–9). Values outside that range are ignored.
-func CandidatesFromDigits(d [9][9][]int) Candidates {
+// that cell (1–9). Values outside that range are ignored. Cells that are
+// already solved in g (non-zero) are always zeroed regardless of the supplied
+// digit list, keeping the result consistent with Init's contract.
+func CandidatesFromDigits(g Grid, d [9][9][]int) Candidates {
 	var c Candidates
 	for r := 0; r < 9; r++ {
 		for col := 0; col < 9; col++ {
+			if g[r][col] != 0 {
+				continue
+			}
 			for _, digit := range d[r][col] {
 				if digit >= 1 && digit <= 9 {
 					c[r][col] |= 1 << uint(digit-1)
