@@ -9,7 +9,7 @@
 //
 // Flags:
 //
-//	-out      Output directory (default: ../../puzzle_corpus)
+//	-out      Output directory (default: ../puzzle_corpus)
 //	-seed     Random seed (default: current time)
 //	-easy     Target count for easy puzzles (default: 2000)
 //	-medium   Target count for medium puzzles (default: 2000)
