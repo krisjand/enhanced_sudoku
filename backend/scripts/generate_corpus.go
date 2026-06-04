@@ -1,3 +1,5 @@
+//go:build ignore
+
 // generate_corpus produces pre-rated Sudoku puzzles and writes them to one
 // compact JSON file per difficulty, for bundling with the Flutter app.
 //
