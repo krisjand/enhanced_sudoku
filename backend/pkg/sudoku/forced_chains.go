@@ -185,9 +185,6 @@ func runForcedChainPass(seeds []fcSeed, opts forcedChainsOptions, start time.Tim
 				return steps
 			}
 		}
-		if depth == opts.maxDepth {
-			break
-		}
 		allDone := true
 		for i := range seeds {
 			for _, b := range seeds[i].branches {
