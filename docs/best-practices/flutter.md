@@ -2,6 +2,12 @@
 
 This file documents Flutter/Dart-specific best practices learned during development.
 
+## Formatting
+
+- Always run `dart format lib/` before committing. The CI job runs `dart format --output=none --set-exit-if-changed .` and will fail on any unformatted file.
+- `dart format` is opinionated and has no configuration — do not add a `.dartfmt.yaml` or similar. Accept the canonical style.
+- Line length defaults to 80 characters. Do not override it.
+
 ## CI
 
 - Run `dart format --output=none --set-exit-if-changed .` in CI to enforce formatting without modifying files in the runner. Use `--output=none` to make the check-only intent explicit.
