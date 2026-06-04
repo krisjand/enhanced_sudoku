@@ -43,6 +43,39 @@ Tracked phases and capture points:
 | ... | Reviewer | Code review (pass N) | HH:MM | HH:MM | X min |
 | ... | Tester | Acceptance test | HH:MM | HH:MM | X min |
 
+## Frontend Development
+
+Frontend stories differ from backend stories in three ways: story creation, merge ownership, and acceptance testing.
+
+### Story creation
+
+For frontend epics (Foundation, Game Board, Game Management, Scores & Stats, Tutorial, Settings, Forced Chains Helper), the AI creates the stories autonomously — no user input is needed to define them. Stories are created as GitHub issues referencing their parent epic, with acceptance criteria written by the AI.
+
+### Autonomy
+
+Once a frontend story is started, proceed through every phase without asking the user to continue:
+
+1. **Task breakdown** — post on the issue before writing any code
+2. **Implement** — write production code; Flutter UI stories do not require unit tests unless logic is non-trivial
+3. **Create PR** — open a pull request referencing the issue
+4. **Code review** — same three-level system (CRITICAL / WARNING / SUGGESTION) and inline comment rules as the backend
+5. **Address comments** — resolve all CRITICAL and WARNING, resolve threads via GraphQL, re-request review
+6. **Re-review if production code changed** — same rule as backend
+7. **Pause: owner PR approval** — post a summary comment on the PR and wait for the owner to approve and merge. Do not merge the PR yourself.
+8. **Acceptance test** — see below
+9. **Pause: story close** — post the final time log and wait for the owner to close the issue
+
+The only two points where execution pauses are **owner PR approval** (step 7) and **story close** (step 9).
+
+### Acceptance testing
+
+- **Before a playable game board exists:** perform code-level acceptance testing (run the app, verify routes compile, check API calls).
+- **Once the game board is playable:** the owner performs manual acceptance testing in the app. Post the ACs as a checklist in the acceptance comment and wait for the owner to confirm.
+
+### Time tracking (frontend)
+
+Same format as backend — all phases for a story in one table on the story's GitHub issue. Update the same comment (or append a new comment with the full updated table) after each phase. Do not log in the repository.
+
 ## Branching Strategy
 
 - `main` + feature branches
