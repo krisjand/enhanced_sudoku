@@ -77,12 +77,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final timer = ref.read(timerProvider.notifier);
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.hidden) {
       timer.pause();
     } else if (state == AppLifecycleState.resumed) {
       timer.resume();
     }
+  }
+
+  Future<void> _onPuzzleComplete() async {
+    _completionHandled = true;
+    final capturedElapsed = ref.read(timerProvider);
+    ref.read(timerProvider.notifier).stop();
+    await ref.read(gameStateProvider.notifier).clearSavedGame();
+    if (mounted) context.go(AppRoutes.gameComplete, extra: capturedElapsed);
   }
 
   Future<void> _exitGame() async {
@@ -110,12 +117,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     // Completion detection: navigate once when all cells are filled.
     ref.listen(gameStateProvider, (_, next) {
-      if (!_completionHandled && next.isSolved) {
-        _completionHandled = true;
-        ref.read(timerProvider.notifier).stop();
-        ref.read(gameStateProvider.notifier).clearSavedGame();
-        context.push(AppRoutes.gameComplete, extra: elapsed);
-      }
+      if (!_completionHandled && next.isSolved) _onPuzzleComplete();
     });
 
     return Scaffold(

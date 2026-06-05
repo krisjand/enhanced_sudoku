@@ -7,7 +7,9 @@ import '../../../shared/providers/persistence_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../game/screens/game_screen.dart';
 
-final _inProgressGameProvider = FutureProvider<InProgressGame?>((ref) async {
+final _inProgressGameProvider = FutureProvider.autoDispose<InProgressGame?>((
+  ref,
+) async {
   final db = ref.watch(persistenceProvider);
   return db.inProgressGameDao.getCurrent();
 });
