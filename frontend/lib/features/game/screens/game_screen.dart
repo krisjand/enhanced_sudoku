@@ -120,66 +120,65 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (!_completionHandled && next.isSolved) _onPuzzleComplete();
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_formatTime(elapsed)),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            tooltip: 'Exit & save',
-            onPressed: _exitGame,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: SudokuGrid(
-                  state: state,
-                  selectedRow: selection?.row,
-                  selectedCol: selection?.col,
-                  conflictRow: conflict?.row,
-                  conflictCol: conflict?.col,
-                  isHighlightMode: isHighlightMode,
-                  onCellTap: (row, col) =>
-                      ref.read(selectionProvider.notifier).select(row, col),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _exitGame();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: Text(_formatTime(elapsed))),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: SudokuGrid(
+                    state: state,
+                    selectedRow: selection?.row,
+                    selectedCol: selection?.col,
+                    conflictRow: conflict?.row,
+                    conflictCol: conflict?.col,
+                    isHighlightMode: isHighlightMode,
+                    onCellTap: (row, col) =>
+                        ref.read(selectionProvider.notifier).select(row, col),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            DigitPad(
-              isEnabled: selection != null,
-              isNotesMode: isNotesMode,
-              onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
-              canUndo: gameNotifier.canUndo,
-              onUndo: gameNotifier.undo,
-              canRedo: gameNotifier.canRedo,
-              onRedo: gameNotifier.redo,
-              isHighlightMode: isHighlightMode,
-              onToggleHighlight: ref
-                  .read(highlightModeProvider.notifier)
-                  .toggle,
-              onAutoFillNotes: gameNotifier.autoFillNotes,
-              onDigitTap: (digit) {
-                final sel = ref.read(selectionProvider);
-                if (sel == null) return;
-                if (isNotesMode) {
-                  gameNotifier.toggleNote(sel.row, sel.col, digit);
-                } else {
-                  final ok = gameNotifier.enterDigit(sel.row, sel.col, digit);
-                  if (!ok) {
-                    final cn = ref.read(_conflictProvider.notifier);
-                    cn.flash(sel.row, sel.col);
-                    Future.delayed(const Duration(milliseconds: 600), cn.clear);
+              const SizedBox(height: 12),
+              DigitPad(
+                isEnabled: selection != null,
+                isNotesMode: isNotesMode,
+                onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
+                canUndo: gameNotifier.canUndo,
+                onUndo: gameNotifier.undo,
+                canRedo: gameNotifier.canRedo,
+                onRedo: gameNotifier.redo,
+                isHighlightMode: isHighlightMode,
+                onToggleHighlight: ref
+                    .read(highlightModeProvider.notifier)
+                    .toggle,
+                onAutoFillNotes: gameNotifier.autoFillNotes,
+                onDigitTap: (digit) {
+                  final sel = ref.read(selectionProvider);
+                  if (sel == null) return;
+                  if (isNotesMode) {
+                    gameNotifier.toggleNote(sel.row, sel.col, digit);
+                  } else {
+                    final ok = gameNotifier.enterDigit(sel.row, sel.col, digit);
+                    if (!ok) {
+                      final cn = ref.read(_conflictProvider.notifier);
+                      cn.flash(sel.row, sel.col);
+                      Future.delayed(
+                        const Duration(milliseconds: 600),
+                        cn.clear,
+                      );
+                    }
                   }
-                }
-              },
-            ),
-          ],
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
