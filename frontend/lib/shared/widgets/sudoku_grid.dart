@@ -8,9 +8,10 @@ const _thinBorder = 2.0;
 const _thickBorder = 4.0;
 
 class SudokuGrid extends StatelessWidget {
-  const SudokuGrid({super.key, required this.state});
+  const SudokuGrid({super.key, required this.state, this.onCellTap});
 
   final GameState state;
+  final void Function(int row, int col)? onCellTap;
 
   @override
   Widget build(BuildContext context) {
@@ -29,14 +30,19 @@ class SudokuGrid extends StatelessWidget {
               child: Row(
                 children: List.generate(9, (col) {
                   return Expanded(
-                    child: SudokuCell(
-                      digit: state.digit(row, col),
-                      isClue: state.isClue(row, col),
-                      notes: state.notes[row][col],
-                      rightBorderWidth: _rightBorder(col),
-                      bottomBorderWidth: _bottomBorder(row),
-                      rightBorderColor: _borderColor(_rightBorder(col)),
-                      bottomBorderColor: _borderColor(_bottomBorder(row)),
+                    child: GestureDetector(
+                      onTap: () => onCellTap?.call(row, col),
+                      child: SudokuCell(
+                        digit: state.digit(row, col),
+                        isClue: state.isClue(row, col),
+                        notes: state.notes[row][col],
+                        rightBorderWidth: _rightBorder(col),
+                        bottomBorderWidth: _bottomBorder(row),
+                        rightBorderColor: _borderColor(_rightBorder(col)),
+                        bottomBorderColor: _borderColor(_bottomBorder(row)),
+                        isSelected: state.isSelected(row, col),
+                        isPeer: state.isPeer(row, col),
+                      ),
                     ),
                   );
                 }),

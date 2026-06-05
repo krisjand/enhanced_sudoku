@@ -12,6 +12,8 @@ class SudokuCell extends StatelessWidget {
     required this.bottomBorderWidth,
     required this.rightBorderColor,
     required this.bottomBorderColor,
+    this.isSelected = false,
+    this.isPeer = false,
   });
 
   final int digit;
@@ -21,11 +23,20 @@ class SudokuCell extends StatelessWidget {
   final double bottomBorderWidth;
   final Color rightBorderColor;
   final Color bottomBorderColor;
+  final bool isSelected;
+  final bool isPeer;
+
+  Color get _background {
+    if (isSelected) return GameColors.selectedCell;
+    if (isPeer) return GameColors.peerCell;
+    return Colors.transparent;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
+        color: _background,
         border: Border(
           right: BorderSide(color: rightBorderColor, width: rightBorderWidth),
           bottom: BorderSide(
