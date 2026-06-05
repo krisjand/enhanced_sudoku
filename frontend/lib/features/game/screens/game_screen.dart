@@ -68,6 +68,7 @@ class GameScreen extends ConsumerWidget {
               onToggleHighlight: ref
                   .read(highlightModeProvider.notifier)
                   .toggle,
+              onAutoFillNotes: gameNotifier.autoFillNotes,
               onDigitTap: (digit) {
                 final sel = ref.read(selectionProvider);
                 if (sel == null) return;

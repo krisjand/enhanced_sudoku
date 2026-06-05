@@ -15,6 +15,7 @@ class DigitPad extends StatelessWidget {
     required this.canRedo,
     required this.onToggleHighlight,
     required this.isHighlightMode,
+    required this.onAutoFillNotes,
   });
 
   final void Function(int digit) onDigitTap;
@@ -27,6 +28,7 @@ class DigitPad extends StatelessWidget {
   final bool canRedo;
   final VoidCallback onToggleHighlight;
   final bool isHighlightMode;
+  final VoidCallback onAutoFillNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +89,16 @@ class DigitPad extends StatelessWidget {
               tooltip: 'Highlight digit',
               onPressed: onToggleHighlight,
               color: isHighlightMode ? GameColors.primary : GameColors.noteText,
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              icon: const Icon(Icons.auto_fix_high, size: 18),
+              label: const Text('Auto-fill'),
+              style: TextButton.styleFrom(
+                foregroundColor: GameColors.noteText,
+                textStyle: const TextStyle(fontSize: 13),
+              ),
+              onPressed: onAutoFillNotes,
             ),
           ],
         ),
