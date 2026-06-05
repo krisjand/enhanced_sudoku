@@ -132,7 +132,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
         setState(() => _activeHint = result.step);
         _hintTimer = Timer(const Duration(seconds: 5), _applyAndDismissHint);
       }
-    } catch (_) {
+    } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not reach the hint service.')),

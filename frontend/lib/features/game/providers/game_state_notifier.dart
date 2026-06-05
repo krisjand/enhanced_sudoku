@@ -72,6 +72,7 @@ class GameStateNotifier extends Notifier<GameState> {
     _savedGameId = saved.id;
     _history.clear();
     _redoStack.clear();
+    _hintCount = 0;
     final initial = (jsonDecode(saved.initialGrid) as List)
         .map((r) => (r as List).map((v) => v as int).toList())
         .toList();
@@ -104,6 +105,7 @@ class GameStateNotifier extends Notifier<GameState> {
     _history.clear();
     _redoStack.clear();
     _savedGameId = null;
+    _hintCount = 0;
     state = _initialPuzzle;
   }
 
@@ -199,6 +201,7 @@ class GameStateNotifier extends Notifier<GameState> {
   // Applies all actions from a hint step to the board in one undo step and
   // increments the hint counter.
   void applyHintStep(SolveStep step) {
+    if (step.actions.isEmpty) return;
     _pushHistory();
     var grid = state.currentGrid;
     var notes = state.notes;
