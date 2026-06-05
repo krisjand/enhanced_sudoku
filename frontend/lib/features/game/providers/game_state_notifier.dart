@@ -50,7 +50,9 @@ class GameStateNotifier extends Notifier<GameState> {
       currentGrid: Value(jsonEncode(state.currentGrid)),
       notes: Value(notesJson),
       elapsedSeconds: Value(elapsedSeconds),
-      createdAt: const Value.absent(),
+      createdAt: _savedGameId == null
+          ? Value(DateTime.now())
+          : const Value.absent(),
       updatedAt: Value(DateTime.now()),
     );
     await db.inProgressGameDao.save(companion);
