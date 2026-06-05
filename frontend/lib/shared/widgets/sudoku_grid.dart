@@ -4,7 +4,7 @@ import '../models/game_state.dart';
 import '../theme/game_colors.dart';
 import 'sudoku_cell.dart';
 
-const _thinBorder = 0.5;
+const _thinBorder = 1.0;
 const _thickBorder = 2.0;
 
 class SudokuGrid extends StatelessWidget {

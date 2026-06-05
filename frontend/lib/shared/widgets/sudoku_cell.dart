@@ -50,11 +50,16 @@ class _DigitContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text(
-        '$digit',
-        style: TextStyle(
-          color: isClue ? GameColors.clueDigit : GameColors.userDigit,
-          fontWeight: isClue ? FontWeight.bold : FontWeight.normal,
+      child: FittedBox(
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Text(
+            '$digit',
+            style: TextStyle(
+              color: isClue ? GameColors.clueDigit : GameColors.userDigit,
+              fontWeight: isClue ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ),
       ),
     );
@@ -68,21 +73,26 @@ class _NotesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      children: List.generate(9, (i) {
-        final digit = i + 1;
-        return Center(
-          child: notes.contains(digit)
-              ? FittedBox(
-                  child: Text(
-                    '$digit',
-                    style: const TextStyle(color: GameColors.noteText),
-                  ),
-                )
-              : const SizedBox.shrink(),
+    return Column(
+      children: List.generate(3, (row) {
+        return Expanded(
+          child: Row(
+            children: List.generate(3, (col) {
+              final digit = row * 3 + col + 1;
+              return Expanded(
+                child: Center(
+                  child: notes.contains(digit)
+                      ? FittedBox(
+                          child: Text(
+                            '$digit',
+                            style: const TextStyle(color: GameColors.noteText),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              );
+            }),
+          ),
         );
       }),
     );
