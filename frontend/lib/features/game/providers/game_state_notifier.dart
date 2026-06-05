@@ -86,6 +86,14 @@ class GameStateNotifier extends Notifier<GameState> {
     return saved.elapsedSeconds;
   }
 
+  // Resets to the initial puzzle (new game). Clears history and saved ID.
+  void reset() {
+    _history.clear();
+    _redoStack.clear();
+    _savedGameId = null;
+    state = _initialPuzzle;
+  }
+
   // Deletes the saved in-progress record (called on game completion or give-up).
   Future<void> clearSavedGame() async {
     if (_savedGameId == null) return;

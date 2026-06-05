@@ -86,6 +86,12 @@ class InProgressGameDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  Stream<InProgressGame?> watchCurrent() =>
+      (select(inProgressGames)
+            ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])
+            ..limit(1))
+          .watchSingleOrNull();
+
   Future<int> deleteGame(int id) =>
       (delete(inProgressGames)..where((t) => t.id.equals(id))).go();
 }

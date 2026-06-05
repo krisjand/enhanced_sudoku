@@ -7,11 +7,11 @@ import '../../../shared/providers/persistence_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../game/screens/game_screen.dart';
 
-final _inProgressGameProvider = FutureProvider.autoDispose<InProgressGame?>((
+final _inProgressGameProvider = StreamProvider.autoDispose<InProgressGame?>((
   ref,
-) async {
+) {
   final db = ref.watch(persistenceProvider);
-  return db.inProgressGameDao.getCurrent();
+  return db.inProgressGameDao.watchCurrent();
 });
 
 class HomeScreen extends ConsumerWidget {

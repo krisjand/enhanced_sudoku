@@ -64,6 +64,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
       final elapsed = ref.read(gameStateProvider.notifier).loadSavedGame(saved);
       ref.read(timerProvider.notifier).start(elapsed);
     } else {
+      ref.read(gameStateProvider.notifier).reset();
+      ref.read(selectionProvider.notifier).clear();
       ref.read(timerProvider.notifier).start(0);
     }
   }
