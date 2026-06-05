@@ -23,6 +23,7 @@ final _initialPuzzle = GameState(
 
 class GameStateNotifier extends Notifier<GameState> {
   final List<GameState> _history = [];
+  final List<GameState> _redoStack = [];
 
   @override
   GameState build() => _initialPuzzle;
@@ -81,12 +82,23 @@ class GameStateNotifier extends Notifier<GameState> {
 
   void undo() {
     if (_history.isEmpty) return;
+    _redoStack.add(state);
     state = _history.removeLast();
   }
 
-  bool get canUndo => _history.isNotEmpty;
+  void redo() {
+    if (_redoStack.isEmpty) return;
+    _history.add(state);
+    state = _redoStack.removeLast();
+  }
 
-  void _pushHistory() => _history.add(state);
+  bool get canUndo => _history.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  void _pushHistory() {
+    _history.add(state);
+    _redoStack.clear();
+  }
 }
 
 final gameStateProvider = NotifierProvider<GameStateNotifier, GameState>(

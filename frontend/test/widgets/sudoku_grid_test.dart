@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/game/providers/selection_provider.dart';
 import 'package:frontend/shared/models/game_state.dart';
+import 'package:frontend/shared/theme/game_colors.dart';
 import 'package:frontend/shared/widgets/sudoku_cell.dart';
 import 'package:frontend/shared/widgets/sudoku_grid.dart';
 
@@ -178,6 +179,84 @@ void main() {
               .isSelected,
           isFalse,
         );
+      });
+    });
+
+    group('Highlight', () {
+      test('_isHighlighted matches placed digit', () {
+        final state = GameState(
+          initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+          currentGrid: [
+            [5, 0, ...List.filled(7, 0)],
+            ...List.generate(8, (_) => List.filled(9, 0)),
+          ],
+          notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+        );
+        final grid = SudokuGrid(state: state, highlightedDigit: 5);
+        expect(grid.isHighlighted(0, 0), isTrue);
+        expect(grid.isHighlighted(0, 1), isFalse);
+      });
+
+      test('_isHighlighted matches note digit', () {
+        final notes = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
+        notes[1][2] = {7};
+        final state = GameState(
+          initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+          currentGrid: List.generate(9, (_) => List.filled(9, 0)),
+          notes: notes,
+        );
+        final grid = SudokuGrid(state: state, highlightedDigit: 7);
+        expect(grid.isHighlighted(1, 2), isTrue);
+        expect(grid.isHighlighted(0, 0), isFalse);
+      });
+
+      test('_isHighlighted returns false when highlightedDigit is null', () {
+        final grid = SudokuGrid(state: GameState.empty());
+        expect(grid.isHighlighted(0, 0), isFalse);
+      });
+
+      test('_isHighlighted returns false when highlightedDigit is 0', () {
+        final grid = SudokuGrid(state: GameState.empty(), highlightedDigit: 0);
+        expect(grid.isHighlighted(0, 0), isFalse);
+      });
+
+      testWidgets('highlighted cell shows highlightedDigit background color', (
+        tester,
+      ) async {
+        final state = GameState(
+          initialGrid: [
+            [5, 0, ...List.filled(7, 0)],
+            ...List.generate(8, (_) => List.filled(9, 0)),
+          ],
+          currentGrid: List.generate(9, (_) => List.filled(9, 0)),
+          notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: SudokuGrid(state: state, highlightedDigit: 5)),
+          ),
+        );
+
+        final cells = tester
+            .widgetList<SudokuCell>(find.byType(SudokuCell))
+            .toList();
+        // Cell (0,0) has digit 5 — should be highlighted.
+        expect(cells[0].isHighlighted, isTrue);
+        // Cell (0,1) is empty — should not be highlighted.
+        expect(cells[1].isHighlighted, isFalse);
+
+        // Verify the container for (0,0) uses the highlight color.
+        final containers = tester
+            .widgetList<Container>(
+              find.descendant(
+                of: find.byType(SudokuCell).first,
+                matching: find.byType(Container),
+              ),
+            )
+            .toList();
+        final decoration = containers.first.decoration as BoxDecoration?;
+        expect(decoration?.color, GameColors.highlightedDigit);
       });
     });
 

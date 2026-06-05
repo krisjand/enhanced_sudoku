@@ -44,6 +44,60 @@ class _PuzzleNotifier extends GameStateNotifier {
 }
 
 void main() {
+  group('redo', () {
+    test('redo restores state after undo', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.enterDigit(0, 0, 5);
+      notifier.undo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 0);
+      expect(notifier.canRedo, isTrue);
+
+      notifier.redo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 5);
+      expect(notifier.canRedo, isFalse);
+    });
+
+    test('new action clears redo stack', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.enterDigit(0, 0, 5);
+      notifier.undo();
+      expect(notifier.canRedo, isTrue);
+
+      notifier.enterDigit(0, 0, 3);
+      expect(notifier.canRedo, isFalse);
+    });
+
+    test('redo without prior undo does nothing', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+      expect(notifier.canRedo, isFalse);
+      notifier.redo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 0);
+    });
+
+    test('multiple undo/redo steps round-trip correctly', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.enterDigit(0, 0, 1);
+      notifier.enterDigit(0, 1, 2);
+      notifier.undo();
+      notifier.undo();
+
+      expect(c.read(gameStateProvider).currentGrid[0][0], 0);
+      expect(c.read(gameStateProvider).currentGrid[0][1], 0);
+
+      notifier.redo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 1);
+      notifier.redo();
+      expect(c.read(gameStateProvider).currentGrid[0][1], 2);
+    });
+  });
+
   group('auto-remove notes', () {
     test('placing a digit removes that digit from peer notes when enabled', () {
       final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
@@ -105,6 +159,14 @@ void main() {
         expect(state.notes[1][0], {5}); // peer untouched when disabled
       },
     );
+
+    test('undo without prior action does nothing', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+      expect(notifier.canUndo, isFalse);
+      notifier.undo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 0);
+    });
 
     test('digit + peer note removal is a single undo step', () {
       final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));

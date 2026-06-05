@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 import '../providers/game_state_notifier.dart';
+import '../providers/highlight_provider.dart';
 import '../providers/notes_mode_provider.dart';
 import '../providers/selection_provider.dart';
 
@@ -28,9 +29,12 @@ class GameScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameStateProvider);
+    final gameNotifier = ref.read(gameStateProvider.notifier);
     final selection = ref.watch(selectionProvider);
     final isNotesMode = ref.watch(notesModeProvider);
     final conflict = ref.watch(_conflictProvider);
+    final highlightState = ref.watch(highlightProvider);
+    final highlightNotifier = ref.read(highlightProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Game')),
@@ -42,28 +46,42 @@ class GameScreen extends ConsumerWidget {
               child: Center(
                 child: SudokuGrid(
                   state: state,
-                  selectedRow: selection?.row,
-                  selectedCol: selection?.col,
+                  selectedRow: highlightState != null ? null : selection?.row,
+                  selectedCol: highlightState != null ? null : selection?.col,
                   conflictRow: conflict?.row,
                   conflictCol: conflict?.col,
-                  onCellTap: (row, col) =>
-                      ref.read(selectionProvider.notifier).select(row, col),
+                  highlightedDigit: highlightState,
+                  onCellTap: (row, col) {
+                    if (highlightState != null) {
+                      // Highlight mode: tapping a cell with a digit sets the
+                      // highlighted digit; tapping an empty cell does nothing.
+                      final d = state.digit(row, col);
+                      if (d != 0) highlightNotifier.selectDigit(d);
+                    } else {
+                      ref.read(selectionProvider.notifier).select(row, col);
+                    }
+                  },
                 ),
               ),
             ),
             const SizedBox(height: 12),
             DigitPad(
-              isEnabled: selection != null,
+              isEnabled: selection != null && highlightState == null,
               isNotesMode: isNotesMode,
               onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
+              canUndo: gameNotifier.canUndo,
+              onUndo: gameNotifier.undo,
+              canRedo: gameNotifier.canRedo,
+              onRedo: gameNotifier.redo,
+              isHighlightMode: highlightState != null,
+              onToggleHighlight: highlightNotifier.toggle,
               onDigitTap: (digit) {
                 final sel = ref.read(selectionProvider);
                 if (sel == null) return;
-                final notifier = ref.read(gameStateProvider.notifier);
                 if (isNotesMode) {
-                  notifier.toggleNote(sel.row, sel.col, digit);
+                  gameNotifier.toggleNote(sel.row, sel.col, digit);
                 } else {
-                  final ok = notifier.enterDigit(sel.row, sel.col, digit);
+                  final ok = gameNotifier.enterDigit(sel.row, sel.col, digit);
                   if (!ok) {
                     final cn = ref.read(_conflictProvider.notifier);
                     cn.flash(sel.row, sel.col);

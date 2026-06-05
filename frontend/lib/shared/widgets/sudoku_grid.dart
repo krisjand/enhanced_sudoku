@@ -16,6 +16,7 @@ class SudokuGrid extends StatelessWidget {
     this.selectedCol,
     this.conflictRow,
     this.conflictCol,
+    this.highlightedDigit,
     this.onCellTap,
   });
 
@@ -24,6 +25,7 @@ class SudokuGrid extends StatelessWidget {
   final int? selectedCol;
   final int? conflictRow;
   final int? conflictCol;
+  final int? highlightedDigit;
   final void Function(int row, int col)? onCellTap;
 
   @override
@@ -56,6 +58,7 @@ class SudokuGrid extends StatelessWidget {
                         isSelected: row == selectedRow && col == selectedCol,
                         isPeer: isPeer(row, col),
                         hasConflict: row == conflictRow && col == conflictCol,
+                        isHighlighted: isHighlighted(row, col),
                       ),
                     ),
                   );
@@ -66,6 +69,12 @@ class SudokuGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool isHighlighted(int row, int col) {
+    if (highlightedDigit == null || highlightedDigit == 0) return false;
+    return state.digit(row, col) == highlightedDigit ||
+        state.notes[row][col].contains(highlightedDigit);
   }
 
   bool isPeer(int row, int col) {
