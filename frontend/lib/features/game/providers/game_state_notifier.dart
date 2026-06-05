@@ -1,8 +1,13 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/game_state.dart';
 import '../../../shared/models/sudoku_peers.dart';
+import '../../../shared/providers/persistence_provider.dart';
 import '../../../shared/providers/settings_provider.dart';
+import '../../../shared/services/persistence_service.dart';
 
 // Naked-pair fixture — replaced by a real puzzle fetch in story #84.
 final _initialPuzzle = GameState(
@@ -24,9 +29,68 @@ final _initialPuzzle = GameState(
 class GameStateNotifier extends Notifier<GameState> {
   final List<GameState> _history = [];
   final List<GameState> _redoStack = [];
+  int? _savedGameId;
 
   @override
   GameState build() => _initialPuzzle;
+
+  // Persists current board state + elapsed seconds to the in-progress table.
+  // Inserts on first save; updates on subsequent saves using [_savedGameId].
+  Future<void> saveProgress(int elapsedSeconds) async {
+    final db = ref.read(persistenceProvider);
+    final notesJson = jsonEncode([
+      for (var r = 0; r < 9; r++)
+        [for (var c = 0; c < 9; c++) state.notes[r][c].toList()..sort()],
+    ]);
+    final companion = InProgressGamesCompanion(
+      id: _savedGameId != null ? Value(_savedGameId!) : const Value.absent(),
+      puzzleId: const Value('local'),
+      difficulty: const Value('unknown'),
+      initialGrid: Value(jsonEncode(state.initialGrid)),
+      currentGrid: Value(jsonEncode(state.currentGrid)),
+      notes: Value(notesJson),
+      elapsedSeconds: Value(elapsedSeconds),
+      createdAt: const Value.absent(),
+      updatedAt: Value(DateTime.now()),
+    );
+    await db.inProgressGameDao.save(companion);
+    if (_savedGameId == null) {
+      final saved = await db.inProgressGameDao.getCurrent();
+      _savedGameId = saved?.id;
+    }
+  }
+
+  // Loads a previously saved game, restoring board state.
+  // Returns the saved elapsed seconds.
+  int loadSavedGame(InProgressGame saved) {
+    _savedGameId = saved.id;
+    _history.clear();
+    _redoStack.clear();
+    final initial = (jsonDecode(saved.initialGrid) as List)
+        .map((r) => (r as List).map((v) => v as int).toList())
+        .toList();
+    final current = (jsonDecode(saved.currentGrid) as List)
+        .map((r) => (r as List).map((v) => v as int).toList())
+        .toList();
+    final notesRaw = jsonDecode(saved.notes) as List;
+    final notes = [
+      for (var r = 0; r < 9; r++)
+        [
+          for (var c = 0; c < 9; c++)
+            (notesRaw[r][c] as List).map((v) => v as int).toSet(),
+        ],
+    ];
+    state = GameState(initialGrid: initial, currentGrid: current, notes: notes);
+    return saved.elapsedSeconds;
+  }
+
+  // Deletes the saved in-progress record (called on game completion or give-up).
+  Future<void> clearSavedGame() async {
+    if (_savedGameId == null) return;
+    final db = ref.read(persistenceProvider);
+    await db.inProgressGameDao.deleteGame(_savedGameId!);
+    _savedGameId = null;
+  }
 
   // Returns true if placing [digit] at [row,col] conflicts with an existing
   // digit in the same row, column, or 3×3 box.

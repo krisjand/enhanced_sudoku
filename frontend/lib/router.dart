@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import 'features/game/screens/game_complete_screen.dart';
 import 'features/game/screens/game_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/scores/screens/scores_screen.dart';
@@ -9,6 +10,7 @@ import 'features/tutorial/screens/tutorial_list_screen.dart';
 abstract final class AppRoutes {
   static const home = '/';
   static const game = '/game';
+  static const gameComplete = '/game/complete';
   static const tutorialList = '/tutorial';
   static const scores = '/scores';
   static const settings = '/settings';
@@ -24,6 +26,13 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: AppRoutes.game,
       builder: (context, state) => const GameScreen(),
+      routes: [
+        GoRoute(
+          path: 'complete',
+          builder: (context, state) =>
+              GameCompleteScreen(elapsedSeconds: (state.extra as int?) ?? 0),
+        ),
+      ],
     ),
     GoRoute(
       path: AppRoutes.tutorialList,

@@ -27,7 +27,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AppBar), findsOneWidget);
-      expect(find.text('Game'), findsOneWidget);
+      expect(find.text('00:00'), findsOneWidget);
     });
 
     testWidgets('Tutorial navigates to TutorialListScreen', (tester) async {

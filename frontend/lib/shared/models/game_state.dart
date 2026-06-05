@@ -19,6 +19,15 @@ class GameState {
 
   bool isEmpty(int row, int col) => digit(row, col) == 0;
 
+  bool get isSolved {
+    for (var r = 0; r < 9; r++) {
+      for (var c = 0; c < 9; c++) {
+        if (isEmpty(r, c)) return false;
+      }
+    }
+    return true;
+  }
+
   GameState copyWith({
     List<List<int>>? initialGrid,
     List<List<int>>? currentGrid,
