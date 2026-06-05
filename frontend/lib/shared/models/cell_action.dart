@@ -17,6 +17,10 @@ class CellAction {
     row: json['row'] as int,
     col: json['col'] as int,
     digit: json['digit'] as int,
-    type: json['type'] == 'eliminate' ? ActionType.eliminate : ActionType.set,
+    type: switch (json['type'] as String) {
+      'eliminate' => ActionType.eliminate,
+      'set' => ActionType.set,
+      final t => throw ArgumentError('Unknown action type: $t'),
+    },
   );
 }

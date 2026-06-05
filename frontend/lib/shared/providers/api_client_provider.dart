@@ -5,5 +5,7 @@ import 'settings_provider.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final baseUrl = ref.watch(settingsProvider).backendUrl;
-  return ApiClient(baseUrl: baseUrl);
+  final client = ApiClient(baseUrl: baseUrl);
+  ref.onDispose(client.dispose);
+  return client;
 });

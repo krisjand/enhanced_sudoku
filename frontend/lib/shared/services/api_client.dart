@@ -39,6 +39,8 @@ class ApiClient {
 
   final Dio _dio;
 
+  void dispose() => _dio.close();
+
   Future<Puzzle> fetchPuzzle() => _get('/puzzle', Puzzle.fromJson);
 
   Future<HintResult> getHint(
@@ -67,7 +69,10 @@ class ApiClient {
   ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(path);
-      return fromJson(response.data!);
+      final data = response.data;
+      if (data == null)
+        throw const ApiServerException(200, 'Empty response body');
+      return fromJson(data);
     } on DioException catch (e) {
       _rethrow(e);
     }
@@ -79,7 +84,10 @@ class ApiClient {
   ) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(path, data: body);
-      return response.data!;
+      final data = response.data;
+      if (data == null)
+        throw const ApiServerException(200, 'Empty response body');
+      return data;
     } on DioException catch (e) {
       _rethrow(e);
     }
