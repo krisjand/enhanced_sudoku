@@ -41,6 +41,20 @@ const App({super.key, this.router});
 final GoRouter? router;
 ```
 
+## Null guard must cover every force-unwrap on the same line
+
+When a guard checks one nullable (`if (x == null) return`) but the following line also force-unwraps a different nullable (`y!`), the second unwrap is unguarded. Always guard ALL nullables that will be unwrapped:
+
+```dart
+// WRONG — selectedCol! is not guarded
+if (selectedRow == null) return false;
+peerCells[selectedRow!][selectedCol!] ...
+
+// CORRECT
+if (selectedRow == null || selectedCol == null) return false;
+peerCells[selectedRow!][selectedCol!] ...
+```
+
 ## GridView on Flutter web triggers hover blobs
 
 `GridView.count` (and `GridView`) on Flutter web shows grey hover highlights on its cells because the scroll controller registers pointer events. For non-scrollable grids (e.g. a Sudoku cell's 3×3 pencil-mark layout), replace `GridView` with a plain `Column` of `Row`s using `Expanded` children. This gives identical layout with no Material/scroll hover side-effects.

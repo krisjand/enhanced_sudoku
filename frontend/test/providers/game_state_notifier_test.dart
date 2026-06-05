@@ -1,0 +1,126 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/game/providers/game_state_notifier.dart';
+import 'package:frontend/shared/models/game_state.dart';
+import 'package:frontend/shared/providers/settings_provider.dart';
+
+// Minimal blank puzzle with no clues — lets us place any digit freely.
+GameState blankPuzzle({List<List<Set<int>>>? notes}) => GameState(
+  initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+  currentGrid: List.generate(9, (_) => List.filled(9, 0)),
+  notes: notes ?? List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+);
+
+ProviderContainer makeContainer(
+  GameState puzzle, {
+  bool autoRemoveNotes = true,
+}) {
+  final container = ProviderContainer(
+    overrides: [
+      gameStateProvider.overrideWith(() => _PuzzleNotifier(puzzle)),
+      settingsProvider.overrideWith(
+        () => _SettingsNotifierStub(autoRemoveNotes: autoRemoveNotes),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+  return container;
+}
+
+class _SettingsNotifierStub extends SettingsNotifier {
+  _SettingsNotifierStub({required this.autoRemoveNotes});
+  final bool autoRemoveNotes;
+
+  @override
+  SettingsState build() => SettingsState(autoRemoveNotes: autoRemoveNotes);
+}
+
+class _PuzzleNotifier extends GameStateNotifier {
+  _PuzzleNotifier(this._puzzle);
+  final GameState _puzzle;
+
+  @override
+  GameState build() => _puzzle;
+}
+
+void main() {
+  group('auto-remove notes', () {
+    test('placing a digit removes that digit from peer notes when enabled', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][1] = {5}; // same row
+      notes[1][0] = {5}; // same col
+      notes[1][1] = {5}; // same box
+      notes[5][5] = {5}; // unrelated cell — must NOT be affected
+
+      final c = makeContainer(blankPuzzle(notes: notes));
+      c.read(gameStateProvider.notifier).enterDigit(0, 0, 5);
+
+      final state = c.read(gameStateProvider);
+      expect(state.currentGrid[0][0], 5);
+      expect(state.notes[0][0], isEmpty); // target cell cleared
+      expect(state.notes[0][1], isEmpty); // same row — 5 removed
+      expect(state.notes[1][0], isEmpty); // same col — 5 removed
+      expect(state.notes[1][1], isEmpty); // same box — 5 removed
+      expect(state.notes[5][5], {5}); // unrelated — unchanged
+    });
+
+    test('clearing a digit does NOT remove peer notes', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][1] = {5}; // same row — must survive the clear
+
+      final initial = GameState(
+        initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+        currentGrid: [
+          [5, 0, 0, 0, 0, 0, 0, 0, 0],
+          ...List.generate(8, (_) => List.filled(9, 0)),
+        ],
+        notes: notes,
+      );
+
+      final c = makeContainer(initial);
+      c.read(gameStateProvider.notifier).enterDigit(0, 0, 5); // toggle-to-clear
+
+      final state = c.read(gameStateProvider);
+      expect(state.currentGrid[0][0], 0); // digit cleared
+      expect(state.notes[0][1], {5}); // peer note untouched
+    });
+
+    test(
+      'placing a digit does NOT remove peer notes when setting is disabled',
+      () {
+        final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+        notes[0][1] = {5};
+        notes[1][0] = {5};
+
+        final c = makeContainer(
+          blankPuzzle(notes: notes),
+          autoRemoveNotes: false,
+        );
+        c.read(gameStateProvider.notifier).enterDigit(0, 0, 5);
+
+        final state = c.read(gameStateProvider);
+        expect(state.currentGrid[0][0], 5);
+        expect(state.notes[0][0], isEmpty); // target cell always cleared
+        expect(state.notes[0][1], {5}); // peer untouched when disabled
+        expect(state.notes[1][0], {5}); // peer untouched when disabled
+      },
+    );
+
+    test('digit + peer note removal is a single undo step', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][1] = {5};
+
+      final c = makeContainer(blankPuzzle(notes: notes));
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.enterDigit(0, 0, 5);
+      expect(c.read(gameStateProvider).notes[0][1], isEmpty);
+
+      notifier.undo();
+
+      final restored = c.read(gameStateProvider);
+      expect(restored.currentGrid[0][0], 0); // digit gone
+      expect(restored.notes[0][1], {5}); // peer note restored
+    });
+  });
+}
