@@ -15,23 +15,23 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Home', style: theme.textTheme.headlineMedium),
+            Text('Enhanced Sudoku', style: theme.textTheme.headlineMedium),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () => context.go(AppRoutes.game),
+              onPressed: () => context.push(AppRoutes.game),
               child: const Text('New Game'),
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.go(AppRoutes.tutorialList),
+              onPressed: () => context.push(AppRoutes.tutorialList),
               child: const Text('Tutorial'),
             ),
             TextButton(
-              onPressed: () => context.go(AppRoutes.scores),
+              onPressed: () => context.push(AppRoutes.scores),
               child: const Text('Scores'),
             ),
             TextButton(
-              onPressed: () => context.go(AppRoutes.settings),
+              onPressed: () => context.push(AppRoutes.settings),
               child: const Text('Settings'),
             ),
           ],
