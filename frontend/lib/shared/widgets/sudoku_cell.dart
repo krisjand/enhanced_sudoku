@@ -49,16 +49,14 @@ class _DigitContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FittedBox(
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Text(
-            '$digit',
-            style: TextStyle(
-              color: isClue ? GameColors.clueDigit : GameColors.userDigit,
-              fontWeight: isClue ? FontWeight.bold : FontWeight.normal,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) => Center(
+        child: Text(
+          '$digit',
+          style: TextStyle(
+            fontSize: constraints.maxWidth * 0.65,
+            color: isClue ? GameColors.clueDigit : GameColors.userDigit,
+            fontWeight: isClue ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
