@@ -55,7 +55,7 @@ class GameStateNotifier extends Notifier<GameState> {
     final newDigit = current == digit ? 0 : digit;
     state = state.copyWith(
       currentGrid: _updatedGrid(state.currentGrid, row, col, newDigit),
-      notes: _clearedNotes(state.notes, row, col),
+      notes: _updatedNotes(state.notes, row, col, <int>{}),
     );
     return true;
   }
@@ -99,18 +99,6 @@ List<List<int>> _updatedGrid(
 ) => [
   for (var r = 0; r < 9; r++)
     [for (var c = 0; c < 9; c++) (r == row && c == col) ? value : grid[r][c]],
-];
-
-List<List<Set<int>>> _clearedNotes(
-  List<List<Set<int>>> notes,
-  int row,
-  int col,
-) => [
-  for (var r = 0; r < 9; r++)
-    [
-      for (var c = 0; c < 9; c++)
-        (r == row && c == col) ? <int>{} : notes[r][c],
-    ],
 ];
 
 List<List<Set<int>>> _updatedNotes(
