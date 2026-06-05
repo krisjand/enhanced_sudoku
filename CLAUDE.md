@@ -14,7 +14,7 @@ Every feature follows this loop **in strict order**. Do not skip or reorder step
    - `CRITICAL` — must be resolved before merge
    - `WARNING` — must be resolved before merge
    - `SUGGESTION` — optional improvement, does not block merge
-   - **CRITICAL and WARNING** → post as inline PR comments on the relevant line. Fall back to a top-level comment only when the code no longer exists in the PR.
+   - **CRITICAL and WARNING** → MUST be posted as **inline PR comments** on the relevant line using `gh api repos/{owner}/{repo}/pulls/{pr}/comments` with `commit_id`, `path`, `line` (integer), and `side: "RIGHT"`. Fall back to a top-level comment **only** when the code no longer exists in the PR (e.g. the line was removed in a later commit). Never post a CRITICAL or WARNING as a top-level comment if the code is still present in the diff.
    - **SUGGESTION** → post as a top-level PR comment (reference file + line in the body). This avoids unresolved threads that would block merging. Log deferred suggestions in GitHub issue #42. When addressing a PR review, evaluate each suggestion on impact vs. effort — act on it if worthwhile, otherwise leave it deferred.
 6. **Address comments** — resolve all CRITICAL and WARNING comments; resolve each thread via the GitHub GraphQL API, then re-request review
 7. **Re-review if production code changed** — if step 6 touched production code (not test-only changes), perform another full review and repeat from step 6 until clean; test-only fixes do not require a new review pass

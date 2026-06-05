@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/game_state.dart';
+import '../../../shared/models/sudoku_peers.dart';
 import '../../../shared/providers/settings_provider.dart';
 
 // Naked-pair fixture — replaced by a real puzzle fetch in story #84.
@@ -104,33 +105,30 @@ List<List<int>> _updatedGrid(
     [for (var c = 0; c < 9; c++) (r == row && c == col) ? value : grid[r][c]],
 ];
 
-// Builds the new notes grid for a digit-placement event in one pass:
-// - target cell (row, col): always cleared
-// - peer cells: digit removed if autoRemovePeers is true
-bool _isPeerCell(int r, int c, int row, int col) =>
-    (r != row || c != col) &&
-    (r == row || c == col || (r ~/ 3 == row ~/ 3 && c ~/ 3 == col ~/ 3));
-
+// Builds the new notes grid for a digit-placement event.
+// Target cell is always cleared; if autoRemovePeers, the digit is removed from
+// the pre-computed peer list (20 cells) rather than scanning all 81.
 List<List<Set<int>>> _enterDigitNotes(
   List<List<Set<int>>> notes,
   int row,
   int col,
   int digit,
   bool autoRemovePeers,
-) => [
-  for (var r = 0; r < 9; r++)
-    [
-      for (var c = 0; c < 9; c++)
-        if (r == row && c == col)
-          <int>{}
-        else if (autoRemovePeers &&
-            _isPeerCell(r, c, row, col) &&
-            notes[r][c].contains(digit))
-          (Set<int>.from(notes[r][c])..remove(digit))
-        else
-          notes[r][c],
-    ],
-];
+) {
+  final updated = [
+    for (var r = 0; r < 9; r++) [...notes[r]],
+  ];
+  updated[row][col] = <int>{};
+  if (autoRemovePeers && digit != 0) {
+    for (final peer in peerCells[row][col]) {
+      final peerNotes = updated[peer.row][peer.col];
+      if (peerNotes.contains(digit)) {
+        updated[peer.row][peer.col] = Set<int>.from(peerNotes)..remove(digit);
+      }
+    }
+  }
+  return updated;
+}
 
 List<List<Set<int>>> _updatedNotes(
   List<List<Set<int>>> notes,

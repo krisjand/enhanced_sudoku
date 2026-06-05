@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/game_state.dart';
+import '../models/sudoku_peers.dart';
 import '../theme/game_colors.dart';
 import 'sudoku_cell.dart';
 
@@ -69,10 +70,9 @@ class SudokuGrid extends StatelessWidget {
 
   bool isPeer(int row, int col) {
     if (selectedRow == null) return false;
-    if (row == selectedRow && col == selectedCol) return false;
-    return row == selectedRow! ||
-        col == selectedCol! ||
-        (row ~/ 3 == selectedRow! ~/ 3 && col ~/ 3 == selectedCol! ~/ 3);
+    return peerCells[selectedRow!][selectedCol!].any(
+      (p) => p.row == row && p.col == col,
+    );
   }
 
   static Color _borderColor(double width) => width == _thickBorder
