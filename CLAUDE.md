@@ -22,7 +22,7 @@ Every feature follows this loop **in strict order**. Do not skip or reorder step
 9. **Acceptance test** — after merging, verify all ACs are met
 10. **Bug fix loop** — if the acceptance test finds failures, open a new PR and re-enter the loop from step 4
 
-Learnings from reviews and acceptance tests are documented in `docs/best-practices/`.
+Learnings from reviews and acceptance tests are documented in `docs/best-practices/` **and** in the relevant memory files under `.claude/` (system memory). Both must be updated — best-practices files hold concrete code-level patterns; memory files hold behavioral rules and process learnings.
 
 ## Time Tracking
 
@@ -61,16 +61,22 @@ Once a frontend story is started, proceed through every phase without asking the
 4. **Code review** — same three-level system (CRITICAL / WARNING / SUGGESTION) and inline comment rules as the backend
 5. **Address comments** — resolve all CRITICAL and WARNING, resolve threads via GraphQL, re-request review
 6. **Re-review if production code changed** — same rule as backend
-7. **Pause: owner PR approval** — post a summary comment on the PR and wait for the owner to approve and merge. Do not merge the PR yourself.
-8. **Acceptance test** — see below
-9. **Pause: story close** — post the final time log and wait for the owner to close the issue
+7. **Pause: owner PR approval** — post a summary comment on the PR containing:
+   - The AC checklist (checkboxes)
+   - Step-by-step test instructions: what to do in the app and what to expect to see for each AC
+   The owner follows the instructions, verifies visual output, checks off ACs, then approves and merges. Do not merge the PR yourself.
+8. **Pause: story close** — post the final time log and wait for the owner to close the issue
 
-The only two points where execution pauses are **owner PR approval** (step 7) and **story close** (step 9).
+The only two points where execution pauses are **owner PR approval** (step 7) and **story close** (step 8).
 
 ### Acceptance testing
 
-- **Before a playable game board exists:** perform code-level acceptance testing (run the app, verify routes compile, check API calls).
-- **Once the game board is playable:** the owner performs manual acceptance testing in the app. Post the ACs as a checklist in the acceptance comment and wait for the owner to confirm.
+The AI cannot capture screenshots in this environment, so visual output cannot be verified programmatically. Responsibilities are split:
+
+- **AI verifies:** the app compiles (`flutter build web` / `flutter test`) and the code is structurally correct via review.
+- **Owner verifies:** visual output — runs the app in their browser and confirms the ACs look correct **before approving the PR**.
+
+Post the ACs as a checklist in a comment on the PR. The owner checks them off while reviewing, then approves and merges. There is no separate post-merge acceptance test phase for frontend stories.
 
 ### Time tracking (frontend)
 
