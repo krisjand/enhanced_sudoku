@@ -83,8 +83,8 @@ void main() {
       expect(await db.inProgressGameDao.getCurrent(), isNull);
     });
 
-    test('upsert inserts and getCurrent returns latest', () async {
-      await db.inProgressGameDao.upsert(
+    test('save without id inserts and getCurrent returns latest', () async {
+      await db.inProgressGameDao.save(
         InProgressGamesCompanion.insert(
           puzzleId: 'g1',
           difficulty: 'medium',
@@ -95,7 +95,7 @@ void main() {
           updatedAt: DateTime(2026, 6, 5, 10),
         ),
       );
-      await db.inProgressGameDao.upsert(
+      await db.inProgressGameDao.save(
         InProgressGamesCompanion.insert(
           puzzleId: 'g2',
           difficulty: 'hard',
@@ -111,8 +111,40 @@ void main() {
       expect(current?.puzzleId, 'g2');
     });
 
+    test(
+      'save with id updates the existing row, not inserts a new one',
+      () async {
+        await db.inProgressGameDao.save(
+          InProgressGamesCompanion.insert(
+            puzzleId: 'g1',
+            difficulty: 'easy',
+            initialGrid: '[]',
+            currentGrid: '[[1]]',
+            notes: '[]',
+            createdAt: DateTime(2026, 6, 5),
+            updatedAt: DateTime(2026, 6, 5, 10),
+          ),
+        );
+        final inserted = await db.inProgressGameDao.getCurrent();
+
+        // Save again with same id — should update, not insert.
+        await db.inProgressGameDao.save(
+          InProgressGamesCompanion(
+            id: Value(inserted!.id),
+            currentGrid: const Value('[[1],[2]]'),
+            updatedAt: Value(DateTime(2026, 6, 5, 11)),
+          ),
+        );
+
+        final rows = await db.inProgressGameDao.getCurrent();
+        final all = await (db.select(db.inProgressGames)).get();
+        expect(all.length, 1); // update, not insert
+        expect(rows?.currentGrid, '[[1],[2]]');
+      },
+    );
+
     test('delete removes the row', () async {
-      await db.inProgressGameDao.upsert(
+      await db.inProgressGameDao.save(
         InProgressGamesCompanion.insert(
           puzzleId: 'g1',
           difficulty: 'easy',

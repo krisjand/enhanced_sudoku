@@ -67,8 +67,17 @@ class InProgressGameDao extends DatabaseAccessor<AppDatabase>
     with _$InProgressGameDaoMixin {
   InProgressGameDao(super.db);
 
-  Future<void> upsert(InProgressGamesCompanion game) =>
-      into(inProgressGames).insertOnConflictUpdate(game);
+  // Insert when companion has no id (new game); update only the provided
+  // columns when companion carries an id (saving progress on an existing game).
+  Future<void> save(InProgressGamesCompanion game) async {
+    if (game.id.present) {
+      await (update(
+        inProgressGames,
+      )..where((t) => t.id.equals(game.id.value))).write(game);
+    } else {
+      await into(inProgressGames).insert(game);
+    }
+  }
 
   Future<InProgressGame?> getCurrent() =>
       (select(inProgressGames)
