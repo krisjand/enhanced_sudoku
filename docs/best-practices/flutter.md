@@ -4,7 +4,7 @@ This file documents Flutter/Dart-specific best practices learned during developm
 
 ## Formatting
 
-- Always run `dart format lib/` before committing. The CI job runs `dart format --output=none --set-exit-if-changed .` and will fail on any unformatted file.
+- Always run `dart format lib/` before committing. Note that `dart format` will remove braces from single-statement `if` bodies — but the `curly_braces_in_flow_control_structures` lint rule requires them. Always run `flutter analyze` after formatting to catch this conflict. The fix is to keep the braces and accept the multi-line form. The CI job runs `dart format --output=none --set-exit-if-changed .` and will fail on any unformatted file.
 - `dart format` is opinionated and has no configuration — do not add a `.dartfmt.yaml` or similar. Accept the canonical style.
 - Line length defaults to 80 characters. Do not override it.
 

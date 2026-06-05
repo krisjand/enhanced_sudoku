@@ -70,8 +70,9 @@ class ApiClient {
     try {
       final response = await _dio.get<Map<String, dynamic>>(path);
       final data = response.data;
-      if (data == null)
+      if (data == null) {
         throw const ApiServerException(200, 'Empty response body');
+      }
       return fromJson(data);
     } on DioException catch (e) {
       _rethrow(e);
@@ -85,8 +86,9 @@ class ApiClient {
     try {
       final response = await _dio.post<Map<String, dynamic>>(path, data: body);
       final data = response.data;
-      if (data == null)
+      if (data == null) {
         throw const ApiServerException(200, 'Empty response body');
+      }
       return data;
     } on DioException catch (e) {
       _rethrow(e);
