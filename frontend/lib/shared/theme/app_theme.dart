@@ -7,10 +7,7 @@ abstract final class AppTheme {
     final base = ColorScheme.fromSeed(
       seedColor: GameColors.primary,
       brightness: Brightness.light,
-    ).copyWith(
-      surface: GameColors.background,
-      onSurface: GameColors.clueDigit,
-    );
+    ).copyWith(surface: GameColors.background, onSurface: GameColors.clueDigit);
 
     return ThemeData(
       useMaterial3: true,

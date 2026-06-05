@@ -15,10 +15,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Home',
-              style: theme.textTheme.headlineMedium,
-            ),
+            Text('Home', style: theme.textTheme.headlineMedium),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () => context.go(AppRoutes.game),

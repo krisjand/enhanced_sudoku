@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/app.dart';
+import 'package:frontend/router.dart';
 
-import 'package:frontend/main.dart';
+Widget buildApp() => ProviderScope(child: App(router: buildAppRouter()));
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('HomeScreen', () {
+    testWidgets('renders app title and all navigation buttons', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      expect(find.text('Enhanced Sudoku'), findsOneWidget);
+      expect(find.text('New Game'), findsOneWidget);
+      expect(find.text('Tutorial'), findsOneWidget);
+      expect(find.text('Scores'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    testWidgets('New Game navigates to GameScreen', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      await tester.tap(find.text('New Game'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Game — coming soon'), findsOneWidget);
+    });
+
+    testWidgets('Tutorial navigates to TutorialListScreen', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tutorial'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tutorial — coming soon'), findsOneWidget);
+    });
+
+    testWidgets('Scores navigates to ScoresScreen', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Scores'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Scores — coming soon'), findsOneWidget);
+    });
+
+    testWidgets('Settings navigates to SettingsScreen', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings — coming soon'), findsOneWidget);
+    });
   });
 }

@@ -14,7 +14,7 @@ abstract final class AppRoutes {
   static const settings = '/settings';
 }
 
-final appRouter = GoRouter(
+GoRouter buildAppRouter() => GoRouter(
   initialLocation: AppRoutes.home,
   routes: [
     GoRoute(
@@ -39,3 +39,5 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+final appRouter = buildAppRouter();
