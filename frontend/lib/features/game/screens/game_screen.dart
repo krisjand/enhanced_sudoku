@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../router.dart';
 import '../../../shared/services/persistence_service.dart';
+import '../../../shared/utils/format_time.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 import '../providers/game_state_notifier.dart';
@@ -103,12 +104,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (mounted) context.go(AppRoutes.home);
   }
 
-  String _formatTime(int seconds) {
-    final m = (seconds ~/ 60).toString().padLeft(2, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameStateProvider);
@@ -130,7 +125,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
         if (!didPop) _exitGame();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(_formatTime(elapsed))),
+        appBar: AppBar(title: Text(formatTime(elapsed))),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

@@ -2,17 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../router.dart';
+import '../../../shared/utils/format_time.dart';
 
 class GameCompleteScreen extends StatelessWidget {
   const GameCompleteScreen({super.key, required this.elapsedSeconds});
 
   final int elapsedSeconds;
-
-  String get _formattedTime {
-    final m = (elapsedSeconds ~/ 60).toString().padLeft(2, '0');
-    final s = (elapsedSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +20,7 @@ class GameCompleteScreen extends StatelessWidget {
             const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
             const SizedBox(height: 16),
             Text(
-              'Solved in $_formattedTime',
+              'Solved in ${formatTime(elapsedSeconds)}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 32),
