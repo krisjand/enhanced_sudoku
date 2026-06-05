@@ -73,7 +73,12 @@ The only two points where execution pauses are **owner PR approval** (step 7) an
 
 The AI cannot capture screenshots in this environment, so visual output cannot be verified programmatically. Responsibilities are split:
 
-- **AI verifies:** the app compiles (`flutter build web` / `flutter test`) and the code is structurally correct via review.
+- **AI verifies:** the app compiles and passes lint + tests. Before every commit, run in this order:
+  1. `dart format lib/ test/`
+  2. `flutter analyze`
+  3. `flutter test`
+  4. `flutter build web`
+  CI enforces all four; skipping any step locally will block the merge.
 - **Owner verifies:** visual output — runs the app in their browser and confirms the ACs look correct **before approving the PR**.
 
 Post the ACs as a checklist in a comment on the PR. The owner checks them off while reviewing, then approves and merges. There is no separate post-merge acceptance test phase for frontend stories.

@@ -9,12 +9,24 @@ class DigitPad extends StatelessWidget {
     required this.onToggleNotes,
     required this.isNotesMode,
     required this.isEnabled,
+    required this.onUndo,
+    required this.canUndo,
+    required this.onRedo,
+    required this.canRedo,
+    required this.onToggleHighlight,
+    required this.isHighlightMode,
   });
 
   final void Function(int digit) onDigitTap;
   final VoidCallback onToggleNotes;
   final bool isNotesMode;
   final bool isEnabled;
+  final VoidCallback onUndo;
+  final bool canUndo;
+  final VoidCallback onRedo;
+  final bool canRedo;
+  final VoidCallback onToggleHighlight;
+  final bool isHighlightMode;
 
   @override
   Widget build(BuildContext context) {
@@ -39,21 +51,44 @@ class DigitPad extends StatelessWidget {
           }),
         ),
         const SizedBox(height: 4),
-        Center(
-          child: TextButton.icon(
-            icon: Icon(
-              isNotesMode ? Icons.edit : Icons.edit_outlined,
-              size: 18,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: 'Undo',
+              onPressed: canUndo ? onUndo : null,
+              color: GameColors.primary,
             ),
-            label: Text(isNotesMode ? 'Notes on' : 'Notes off'),
-            style: TextButton.styleFrom(
-              foregroundColor: isNotesMode
-                  ? GameColors.primary
-                  : GameColors.noteText,
-              textStyle: const TextStyle(fontSize: 13),
+            IconButton(
+              icon: const Icon(Icons.redo),
+              tooltip: 'Redo',
+              onPressed: canRedo ? onRedo : null,
+              color: GameColors.primary,
             ),
-            onPressed: onToggleNotes,
-          ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              icon: Icon(
+                isNotesMode ? Icons.edit : Icons.edit_outlined,
+                size: 18,
+              ),
+              label: Text(isNotesMode ? 'Notes on' : 'Notes off'),
+              style: TextButton.styleFrom(
+                foregroundColor: isNotesMode
+                    ? GameColors.primary
+                    : GameColors.noteText,
+                textStyle: const TextStyle(fontSize: 13),
+              ),
+              onPressed: onToggleNotes,
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.highlight),
+              tooltip: 'Highlight digit',
+              onPressed: onToggleHighlight,
+              color: isHighlightMode ? GameColors.primary : GameColors.noteText,
+            ),
+          ],
         ),
       ],
     );

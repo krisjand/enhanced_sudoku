@@ -16,6 +16,7 @@ class SudokuGrid extends StatelessWidget {
     this.selectedCol,
     this.conflictRow,
     this.conflictCol,
+    this.isHighlightMode = true,
     this.onCellTap,
   });
 
@@ -24,10 +25,20 @@ class SudokuGrid extends StatelessWidget {
   final int? selectedCol;
   final int? conflictRow;
   final int? conflictCol;
+  final bool isHighlightMode;
   final void Function(int row, int col)? onCellTap;
+
+  // The digit in the selected cell (1–9), or null when nothing useful to highlight.
+  int? get selectedDigit {
+    if (!isHighlightMode) return null;
+    if (selectedRow == null || selectedCol == null) return null;
+    final d = state.digit(selectedRow!, selectedCol!);
+    return d == 0 ? null : d;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final highlightDigit = selectedDigit;
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
@@ -56,6 +67,12 @@ class SudokuGrid extends StatelessWidget {
                         isSelected: row == selectedRow && col == selectedCol,
                         isPeer: isPeer(row, col),
                         hasConflict: row == conflictRow && col == conflictCol,
+                        isDigitMatch: isDigitMatch(row, col, highlightDigit),
+                        highlightedNote: highlightedNote(
+                          row,
+                          col,
+                          highlightDigit,
+                        ),
                       ),
                     ),
                   );
@@ -69,10 +86,29 @@ class SudokuGrid extends StatelessWidget {
   }
 
   bool isPeer(int row, int col) {
+    if (!isHighlightMode) return false;
     if (selectedRow == null || selectedCol == null) return false;
     return peerCells[selectedRow!][selectedCol!].any(
       (p) => p.row == row && p.col == col,
     );
+  }
+
+  // True when this cell holds the same placed digit as the selected cell
+  // (but is not the selected cell itself).
+  bool isDigitMatch(int row, int col, int? highlightDigit) {
+    if (highlightDigit == null) return false;
+    if (row == selectedRow && col == selectedCol) return false;
+    return state.digit(row, col) == highlightDigit;
+  }
+
+  // Returns the note digit to highlight in this cell, or null.
+  // Only applies to empty cells whose notes contain the selected digit.
+  int? highlightedNote(int row, int col, int? highlightDigit) {
+    if (highlightDigit == null) return null;
+    if (state.digit(row, col) != 0) return null;
+    return state.notes[row][col].contains(highlightDigit)
+        ? highlightDigit
+        : null;
   }
 
   static Color _borderColor(double width) => width == _thickBorder
