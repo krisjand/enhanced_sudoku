@@ -14,6 +14,7 @@ class SudokuCell extends StatelessWidget {
     required this.bottomBorderColor,
     this.isSelected = false,
     this.isPeer = false,
+    this.hasConflict = false,
   });
 
   final int digit;
@@ -25,8 +26,10 @@ class SudokuCell extends StatelessWidget {
   final Color bottomBorderColor;
   final bool isSelected;
   final bool isPeer;
+  final bool hasConflict;
 
   Color get _background {
+    if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
     if (isSelected) return GameColors.selectedCell;
     if (isPeer) return GameColors.peerCell;
     return Colors.transparent;

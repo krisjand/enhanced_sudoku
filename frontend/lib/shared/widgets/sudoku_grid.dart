@@ -13,12 +13,16 @@ class SudokuGrid extends StatelessWidget {
     required this.state,
     this.selectedRow,
     this.selectedCol,
+    this.conflictRow,
+    this.conflictCol,
     this.onCellTap,
   });
 
   final GameState state;
   final int? selectedRow;
   final int? selectedCol;
+  final int? conflictRow;
+  final int? conflictCol;
   final void Function(int row, int col)? onCellTap;
 
   @override
@@ -50,6 +54,7 @@ class SudokuGrid extends StatelessWidget {
                         bottomBorderColor: _borderColor(_bottomBorder(row)),
                         isSelected: row == selectedRow && col == selectedCol,
                         isPeer: isPeer(row, col),
+                        hasConflict: row == conflictRow && col == conflictCol,
                       ),
                     ),
                   );
