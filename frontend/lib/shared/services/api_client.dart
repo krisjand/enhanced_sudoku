@@ -1,4 +1,6 @@
-import 'package:dio/dio.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/puzzle.dart';
 import '../models/solve_result.dart';
@@ -35,11 +37,15 @@ class HintResult {
 
 class ApiClient {
   ApiClient({required String baseUrl})
-    : _dio = Dio(BaseOptions(baseUrl: baseUrl));
+    : _baseUrl = baseUrl.endsWith('/')
+          ? baseUrl.substring(0, baseUrl.length - 1)
+          : baseUrl,
+      _client = http.Client();
 
-  final Dio _dio;
+  final String _baseUrl;
+  final http.Client _client;
 
-  void dispose() => _dio.close();
+  void dispose() => _client.close();
 
   Future<Puzzle> fetchPuzzle() => _get('/puzzle', Puzzle.fromJson);
 
@@ -68,14 +74,10 @@ class ApiClient {
     T Function(Map<String, dynamic>) fromJson,
   ) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(path);
-      final data = response.data;
-      if (data == null) {
-        throw const ApiServerException(200, 'Empty response body');
-      }
-      return fromJson(data);
-    } on DioException catch (e) {
-      _rethrow(e);
+      final response = await _client.get(Uri.parse('$_baseUrl$path'));
+      return fromJson(_parseResponse(response));
+    } on http.ClientException catch (e) {
+      throw ApiNetworkException(e.message);
     }
   }
 
@@ -84,14 +86,14 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(path, data: body);
-      final data = response.data;
-      if (data == null) {
-        throw const ApiServerException(200, 'Empty response body');
-      }
-      return data;
-    } on DioException catch (e) {
-      _rethrow(e);
+      final response = await _client.post(
+        Uri.parse('$_baseUrl$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      return _parseResponse(response);
+    } on http.ClientException catch (e) {
+      throw ApiNetworkException(e.message);
     }
   }
 
@@ -99,25 +101,19 @@ class ApiClient {
     String path,
     Map<String, dynamic> body,
     T Function(Map<String, dynamic>) fromJson,
-  ) async {
-    final data = await _post(path, body);
-    return fromJson(data);
-  }
+  ) async => fromJson(await _post(path, body));
 
-  Never _rethrow(DioException e) {
-    if (e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      throw ApiNetworkException(e.message ?? 'Network error');
+  Map<String, dynamic> _parseResponse(http.Response response) {
+    if (response.statusCode == 404) {
+      throw ApiNotFoundException(response.body);
     }
-    final status = e.response?.statusCode ?? 0;
-    if (status == 404) {
-      throw ApiNotFoundException(e.response?.data?.toString() ?? 'Not found');
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiServerException(response.statusCode, response.body);
     }
-    throw ApiServerException(
-      status,
-      e.response?.data?.toString() ?? 'Server error',
-    );
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw ApiServerException(response.statusCode, 'Unexpected response type');
+    }
+    return decoded;
   }
 }
