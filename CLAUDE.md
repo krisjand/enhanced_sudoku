@@ -22,7 +22,7 @@ Every feature follows this loop **in strict order**. Do not skip or reorder step
 9. **Acceptance test** — after merging, verify all ACs are met
 10. **Bug fix loop** — if the acceptance test finds failures, open a new PR and re-enter the loop from step 4
 
-Learnings from reviews and acceptance tests are documented in `docs/best-practices/`.
+Learnings from reviews and acceptance tests are documented in `docs/best-practices/` **and** in the relevant memory files under `.claude/` (system memory). Both must be updated — best-practices files hold concrete code-level patterns; memory files hold behavioral rules and process learnings.
 
 ## Time Tracking
 
