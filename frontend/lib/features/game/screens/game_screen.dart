@@ -51,32 +51,26 @@ class GameScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 180,
-              child: DigitPad(
-                isEnabled: selection != null,
-                isNotesMode: isNotesMode,
-                onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
-                onDigitTap: (digit) {
-                  final sel = ref.read(selectionProvider);
-                  if (sel == null) return;
-                  final notifier = ref.read(gameStateProvider.notifier);
-                  if (isNotesMode) {
-                    notifier.toggleNote(sel.row, sel.col, digit);
-                  } else {
-                    final ok = notifier.enterDigit(sel.row, sel.col, digit);
-                    if (!ok) {
-                      final cn = ref.read(_conflictProvider.notifier);
-                      cn.flash(sel.row, sel.col);
-                      Future.delayed(
-                        const Duration(milliseconds: 600),
-                        cn.clear,
-                      );
-                    }
+            const SizedBox(height: 12),
+            DigitPad(
+              isEnabled: selection != null,
+              isNotesMode: isNotesMode,
+              onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
+              onDigitTap: (digit) {
+                final sel = ref.read(selectionProvider);
+                if (sel == null) return;
+                final notifier = ref.read(gameStateProvider.notifier);
+                if (isNotesMode) {
+                  notifier.toggleNote(sel.row, sel.col, digit);
+                } else {
+                  final ok = notifier.enterDigit(sel.row, sel.col, digit);
+                  if (!ok) {
+                    final cn = ref.read(_conflictProvider.notifier);
+                    cn.flash(sel.row, sel.col);
+                    Future.delayed(const Duration(milliseconds: 600), cn.clear);
                   }
-                },
-              ),
+                }
+              },
             ),
           ],
         ),
