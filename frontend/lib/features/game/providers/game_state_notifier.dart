@@ -58,7 +58,7 @@ class GameStateNotifier extends Notifier<GameState> {
     final autoRemove = ref.read(settingsProvider).autoRemoveNotes;
     state = state.copyWith(
       currentGrid: _updatedGrid(state.currentGrid, row, col, newDigit),
-      notes: _enterDigitNotes(state.notes, row, col, digit, autoRemove),
+      notes: _enterDigitNotes(state.notes, row, col, newDigit, autoRemove),
     );
     return true;
   }
@@ -108,7 +108,8 @@ List<List<int>> _updatedGrid(
 // - target cell (row, col): always cleared
 // - peer cells: digit removed if autoRemovePeers is true
 bool _isPeerCell(int r, int c, int row, int col) =>
-    r == row || c == col || (r ~/ 3 == row ~/ 3 && c ~/ 3 == col ~/ 3);
+    (r != row || c != col) &&
+    (r == row || c == col || (r ~/ 3 == row ~/ 3 && c ~/ 3 == col ~/ 3));
 
 List<List<Set<int>>> _enterDigitNotes(
   List<List<Set<int>>> notes,
