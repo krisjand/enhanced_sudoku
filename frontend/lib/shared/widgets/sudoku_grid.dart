@@ -8,9 +8,18 @@ const _thinBorder = 2.0;
 const _thickBorder = 4.0;
 
 class SudokuGrid extends StatelessWidget {
-  const SudokuGrid({super.key, required this.state});
+  const SudokuGrid({
+    super.key,
+    required this.state,
+    this.selectedRow,
+    this.selectedCol,
+    this.onCellTap,
+  });
 
   final GameState state;
+  final int? selectedRow;
+  final int? selectedCol;
+  final void Function(int row, int col)? onCellTap;
 
   @override
   Widget build(BuildContext context) {
@@ -29,14 +38,19 @@ class SudokuGrid extends StatelessWidget {
               child: Row(
                 children: List.generate(9, (col) {
                   return Expanded(
-                    child: SudokuCell(
-                      digit: state.digit(row, col),
-                      isClue: state.isClue(row, col),
-                      notes: state.notes[row][col],
-                      rightBorderWidth: _rightBorder(col),
-                      bottomBorderWidth: _bottomBorder(row),
-                      rightBorderColor: _borderColor(_rightBorder(col)),
-                      bottomBorderColor: _borderColor(_bottomBorder(row)),
+                    child: GestureDetector(
+                      onTap: () => onCellTap?.call(row, col),
+                      child: SudokuCell(
+                        digit: state.digit(row, col),
+                        isClue: state.isClue(row, col),
+                        notes: state.notes[row][col],
+                        rightBorderWidth: _rightBorder(col),
+                        bottomBorderWidth: _bottomBorder(row),
+                        rightBorderColor: _borderColor(_rightBorder(col)),
+                        bottomBorderColor: _borderColor(_bottomBorder(row)),
+                        isSelected: row == selectedRow && col == selectedCol,
+                        isPeer: isPeer(row, col),
+                      ),
                     ),
                   );
                 }),
@@ -46,6 +60,14 @@ class SudokuGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool isPeer(int row, int col) {
+    if (selectedRow == null) return false;
+    if (row == selectedRow && col == selectedCol) return false;
+    return row == selectedRow! ||
+        col == selectedCol! ||
+        (row ~/ 3 == selectedRow! ~/ 3 && col ~/ 3 == selectedCol! ~/ 3);
   }
 
   static Color _borderColor(double width) => width == _thickBorder

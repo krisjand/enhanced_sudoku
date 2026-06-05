@@ -19,6 +19,18 @@ class GameState {
 
   bool isEmpty(int row, int col) => digit(row, col) == 0;
 
+  GameState copyWith({
+    List<List<int>>? initialGrid,
+    List<List<int>>? currentGrid,
+    List<List<Set<int>>>? notes,
+  }) {
+    return GameState(
+      initialGrid: initialGrid ?? this.initialGrid,
+      currentGrid: currentGrid ?? this.currentGrid,
+      notes: notes ?? this.notes,
+    );
+  }
+
   static GameState empty() => GameState(
     initialGrid: List.generate(9, (_) => List.filled(9, 0)),
     currentGrid: List.generate(9, (_) => List.filled(9, 0)),
