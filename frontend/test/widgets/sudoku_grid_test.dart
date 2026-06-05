@@ -70,7 +70,7 @@ void main() {
 
     group('Selection', () {
       // Build a state with digit 5 at (4,4) so isPeer can fire.
-      GameState _stateWithDigitAt44() => GameState(
+      GameState stateWithDigitAt44() => GameState(
         initialGrid: List.generate(9, (_) => List.filled(9, 0)),
         currentGrid: [
           ...List.generate(4, (_) => List.filled(9, 0)),
@@ -84,7 +84,7 @@ void main() {
         'isPeer: same row, col, and box return true; selected cell is not a peer',
         () {
           final grid = SudokuGrid(
-            state: _stateWithDigitAt44(),
+            state: stateWithDigitAt44(),
             selectedRow: 4,
             selectedCol: 4,
             isHighlightMode: true,
@@ -220,7 +220,7 @@ void main() {
     group('Highlight', () {
       // Grid: selected cell (0,0) has digit 5; cell (0,1) also has digit 5;
       // cell (0,2) is empty with note 5.
-      GameState _digitMatchState() {
+      GameState digitMatchState() {
         final notes = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
         notes[0][2] = {5};
         return GameState(
@@ -234,7 +234,7 @@ void main() {
       }
 
       test('isDigitMatch: other cell with same digit returns true', () {
-        final state = _digitMatchState();
+        final state = digitMatchState();
         final grid = SudokuGrid(
           state: state,
           selectedRow: 0,
@@ -248,7 +248,7 @@ void main() {
       });
 
       test('isDigitMatch: returns false when highlight mode is off', () {
-        final state = _digitMatchState();
+        final state = digitMatchState();
         final grid = SudokuGrid(
           state: state,
           selectedRow: 0,
@@ -261,7 +261,7 @@ void main() {
       });
 
       test('highlightedNote: empty cell with matching note returns digit', () {
-        final state = _digitMatchState();
+        final state = digitMatchState();
         final grid = SudokuGrid(
           state: state,
           selectedRow: 0,
@@ -275,7 +275,7 @@ void main() {
       });
 
       test('highlightedNote: returns null when highlight mode is off', () {
-        final state = _digitMatchState();
+        final state = digitMatchState();
         final grid = SudokuGrid(
           state: state,
           selectedRow: 0,
@@ -306,7 +306,7 @@ void main() {
       testWidgets('digit-match cell shows selectedCell background', (
         tester,
       ) async {
-        final state = _digitMatchState();
+        final state = digitMatchState();
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
