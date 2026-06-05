@@ -8,15 +8,12 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Enhanced Sudoku')),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Enhanced Sudoku', style: theme.textTheme.headlineMedium),
-            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () => context.push(AppRoutes.game),
               child: const Text('New Game'),

@@ -12,7 +12,7 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Enhanced Sudoku'), findsAtLeastNWidgets(2));
+      expect(find.text('Enhanced Sudoku'), findsOneWidget);
       expect(find.text('New Game'), findsOneWidget);
       expect(find.text('Tutorial'), findsOneWidget);
       expect(find.text('Scores'), findsOneWidget);
