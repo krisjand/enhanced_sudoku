@@ -1,18 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../router.dart';
-import '../../../shared/models/solve_step.dart';
 import '../../../shared/providers/api_client_provider.dart';
 import '../../../shared/providers/error_log_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../../shared/utils/format_time.dart';
+import '../../../shared/utils/technique_names.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
-import '../../../shared/widgets/technique_overlay.dart';
 import '../providers/game_state_notifier.dart';
 import '../providers/highlight_provider.dart';
 import '../providers/notes_mode_provider.dart';
@@ -57,8 +54,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
     with WidgetsBindingObserver {
   bool _completionHandled = false;
   bool _hintLoading = false;
-  SolveStep? _activeHint;
-  Timer? _hintTimer;
 
   @override
   void initState() {
@@ -82,7 +77,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   @override
   void dispose() {
-    _hintTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -129,9 +123,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No hint available for this position.')),
         );
-      } else {
-        setState(() => _activeHint = result.step);
-        _hintTimer = Timer(const Duration(seconds: 5), _applyAndDismissHint);
+      } else if (result.step != null) {
+        final name = techniqueDisplayName(result.step!.technique);
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Hint'),
+            content: Text('Try looking for a $name.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     } on Exception catch (e) {
       ref.read(errorLogProvider.notifier).log('Hint request failed', e);
@@ -142,16 +148,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
     } finally {
       if (mounted) setState(() => _hintLoading = false);
-    }
-  }
-
-  void _applyAndDismissHint() {
-    _hintTimer?.cancel();
-    _hintTimer = null;
-    final hint = _activeHint;
-    setState(() => _activeHint = null);
-    if (hint != null) {
-      ref.read(gameStateProvider.notifier).applyHintStep(hint);
     }
   }
 
@@ -203,7 +199,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               IconButton(
                 icon: const Icon(Icons.lightbulb_outline),
                 tooltip: 'Hint',
-                onPressed: _activeHint == null ? _requestHint : null,
+                onPressed: _requestHint,
               ),
           ],
         ),
@@ -213,27 +209,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
             children: [
               Expanded(
                 child: Center(
-                  child: Stack(
-                    children: [
-                      SudokuGrid(
-                        state: state,
-                        selectedRow: selection?.row,
-                        selectedCol: selection?.col,
-                        conflictRow: conflict?.row,
-                        conflictCol: conflict?.col,
-                        isHighlightMode: isHighlightMode,
-                        onCellTap: _activeHint != null
-                            ? (_, _) => _applyAndDismissHint()
-                            : (row, col) => ref
-                                  .read(selectionProvider.notifier)
-                                  .select(row, col),
-                      ),
-                      if (_activeHint != null)
-                        TechniqueOverlay(
-                          step: _activeHint!,
-                          onDismiss: _applyAndDismissHint,
-                        ),
-                    ],
+                  child: SudokuGrid(
+                    state: state,
+                    selectedRow: selection?.row,
+                    selectedCol: selection?.col,
+                    conflictRow: conflict?.row,
+                    conflictCol: conflict?.col,
+                    isHighlightMode: isHighlightMode,
+                    onCellTap: (row, col) =>
+                        ref.read(selectionProvider.notifier).select(row, col),
                   ),
                 ),
               ),
