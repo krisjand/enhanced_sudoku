@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../router.dart';
+import '../../../shared/providers/api_client_provider.dart';
+import '../../../shared/providers/error_log_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../../shared/utils/format_time.dart';
+import '../../../shared/utils/technique_names.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 import '../providers/game_state_notifier.dart';
@@ -50,6 +53,7 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen>
     with WidgetsBindingObserver {
   bool _completionHandled = false;
+  bool _hintLoading = false;
 
   @override
   void initState() {
@@ -95,6 +99,58 @@ class _GameScreenState extends ConsumerState<GameScreen>
     if (mounted) context.go(AppRoutes.gameComplete, extra: capturedElapsed);
   }
 
+  Future<void> _requestHint() async {
+    setState(() => _hintLoading = true);
+    final state = ref.read(gameStateProvider);
+    final grid = List.generate(
+      9,
+      (r) => List.generate(9, (c) => state.digit(r, c)),
+    );
+    final candidates = List.generate(
+      9,
+      (r) => List.generate(9, (c) => state.notes[r][c].toList()..sort()),
+    );
+    try {
+      final result = await ref
+          .read(apiClientProvider)
+          .getHint(grid, candidates: candidates);
+      if (!mounted) return;
+      if (result.solved) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Puzzle already solved!')));
+      } else if (result.stuck) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hint available for this position.')),
+        );
+      } else if (result.step != null) {
+        final name = techniqueDisplayName(result.step!.technique);
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Hint'),
+            content: Text('Try looking for a $name.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } on Exception catch (e) {
+      ref.read(errorLogProvider.notifier).log('Hint request failed', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not reach the hint service.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _hintLoading = false);
+    }
+  }
+
   Future<void> _exitGame() async {
     final elapsed = ref.read(timerProvider);
     ref.read(timerProvider.notifier).stop();
@@ -125,7 +181,28 @@ class _GameScreenState extends ConsumerState<GameScreen>
         if (!didPop) _exitGame();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(formatTime(elapsed))),
+        appBar: AppBar(
+          title: Text(formatTime(elapsed)),
+          actions: [
+            if (_hintLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.lightbulb_outline),
+                tooltip: 'Hint',
+                onPressed: _requestHint,
+              ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
