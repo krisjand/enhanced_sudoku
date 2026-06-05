@@ -22,14 +22,6 @@ final _initialPuzzle = GameState(
 class GameStateNotifier extends Notifier<GameState> {
   @override
   GameState build() => _initialPuzzle;
-
-  void selectCell(int row, int col) {
-    if (state.isSelected(row, col)) {
-      state = state.copyWith(selectedRow: null, selectedCol: null);
-    } else {
-      state = state.copyWith(selectedRow: row, selectedCol: col);
-    }
-  }
 }
 
 final gameStateProvider = NotifierProvider<GameStateNotifier, GameState>(

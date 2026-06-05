@@ -8,9 +8,17 @@ const _thinBorder = 2.0;
 const _thickBorder = 4.0;
 
 class SudokuGrid extends StatelessWidget {
-  const SudokuGrid({super.key, required this.state, this.onCellTap});
+  const SudokuGrid({
+    super.key,
+    required this.state,
+    this.selectedRow,
+    this.selectedCol,
+    this.onCellTap,
+  });
 
   final GameState state;
+  final int? selectedRow;
+  final int? selectedCol;
   final void Function(int row, int col)? onCellTap;
 
   @override
@@ -40,8 +48,8 @@ class SudokuGrid extends StatelessWidget {
                         bottomBorderWidth: _bottomBorder(row),
                         rightBorderColor: _borderColor(_rightBorder(col)),
                         bottomBorderColor: _borderColor(_bottomBorder(row)),
-                        isSelected: state.isSelected(row, col),
-                        isPeer: state.isPeer(row, col),
+                        isSelected: row == selectedRow && col == selectedCol,
+                        isPeer: isPeer(row, col),
                       ),
                     ),
                   );
@@ -52,6 +60,14 @@ class SudokuGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool isPeer(int row, int col) {
+    if (selectedRow == null) return false;
+    if (row == selectedRow && col == selectedCol) return false;
+    return row == selectedRow! ||
+        col == selectedCol! ||
+        (row ~/ 3 == selectedRow! ~/ 3 && col ~/ 3 == selectedCol! ~/ 3);
   }
 
   static Color _borderColor(double width) => width == _thickBorder
