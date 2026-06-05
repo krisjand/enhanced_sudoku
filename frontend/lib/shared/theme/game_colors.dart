@@ -9,7 +9,7 @@ abstract final class GameColors {
   static const primary = Color(0xFF2B6CB0);
 
   // Grid lines
-  static const gridLineLight = Color(0xFFCBD5E0);
+  static const gridLineLight = Color(0xFF94A3B8); // slate-400, visible on peer grey
   static const gridLineHeavy = Color(0xFF2D3748);
 
   // Digits
