@@ -77,7 +77,8 @@ The AI cannot capture screenshots in this environment, so visual output cannot b
   1. `dart format lib/ test/`
   2. `flutter analyze`
   3. `flutter test`
-  CI enforces all three; skipping `flutter analyze` locally will block the merge.
+  4. `flutter build web`
+  CI enforces all four; skipping any step locally will block the merge.
 - **Owner verifies:** visual output — runs the app in their browser and confirms the ACs look correct **before approving the PR**.
 
 Post the ACs as a checklist in a comment on the PR. The owner checks them off while reviewing, then approves and merges. There is no separate post-merge acceptance test phase for frontend stories.
