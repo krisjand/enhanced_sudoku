@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/game_state.dart';
+import '../../../shared/providers/settings_provider.dart';
 
 // Naked-pair fixture — replaced by a real puzzle fetch in story #84.
 final _initialPuzzle = GameState(
@@ -45,7 +46,8 @@ class GameStateNotifier extends Notifier<GameState> {
   }
 
   // Places [digit] in [row,col], or clears the cell if it already holds [digit].
-  // Clears all notes in the cell. Rejects and returns false if it conflicts.
+  // Clears notes in the target cell; optionally removes that digit from peer
+  // notes in one atomic update (same undo step). Rejects if conflicting.
   bool enterDigit(int row, int col, int digit) {
     if (state.isClue(row, col)) return false;
     if (isConflict(row, col, digit)) return false;
@@ -53,9 +55,10 @@ class GameStateNotifier extends Notifier<GameState> {
     _pushHistory();
     final current = state.currentGrid[row][col];
     final newDigit = current == digit ? 0 : digit;
+    final autoRemove = ref.read(settingsProvider).autoRemoveNotes;
     state = state.copyWith(
       currentGrid: _updatedGrid(state.currentGrid, row, col, newDigit),
-      notes: _updatedNotes(state.notes, row, col, <int>{}),
+      notes: _enterDigitNotes(state.notes, row, col, digit, autoRemove),
     );
     return true;
   }
@@ -99,6 +102,33 @@ List<List<int>> _updatedGrid(
 ) => [
   for (var r = 0; r < 9; r++)
     [for (var c = 0; c < 9; c++) (r == row && c == col) ? value : grid[r][c]],
+];
+
+// Builds the new notes grid for a digit-placement event in one pass:
+// - target cell (row, col): always cleared
+// - peer cells: digit removed if autoRemovePeers is true
+bool _isPeerCell(int r, int c, int row, int col) =>
+    r == row || c == col || (r ~/ 3 == row ~/ 3 && c ~/ 3 == col ~/ 3);
+
+List<List<Set<int>>> _enterDigitNotes(
+  List<List<Set<int>>> notes,
+  int row,
+  int col,
+  int digit,
+  bool autoRemovePeers,
+) => [
+  for (var r = 0; r < 9; r++)
+    [
+      for (var c = 0; c < 9; c++)
+        if (r == row && c == col)
+          <int>{}
+        else if (autoRemovePeers &&
+            _isPeerCell(r, c, row, col) &&
+            notes[r][c].contains(digit))
+          (Set<int>.from(notes[r][c])..remove(digit))
+        else
+          notes[r][c],
+    ],
 ];
 
 List<List<Set<int>>> _updatedNotes(
