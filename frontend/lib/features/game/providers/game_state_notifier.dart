@@ -20,10 +20,105 @@ final _initialPuzzle = GameState(
 );
 
 class GameStateNotifier extends Notifier<GameState> {
+  final List<GameState> _history = [];
+
   @override
   GameState build() => _initialPuzzle;
+
+  // Returns true if placing [digit] at [row,col] conflicts with an existing
+  // digit in the same row, column, or 3×3 box.
+  bool isConflict(int row, int col, int digit) {
+    for (var c = 0; c < 9; c++) {
+      if (c != col && state.digit(row, c) == digit) return true;
+    }
+    for (var r = 0; r < 9; r++) {
+      if (r != row && state.digit(r, col) == digit) return true;
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (var r = br; r < br + 3; r++) {
+      for (var c = bc; c < bc + 3; c++) {
+        if ((r != row || c != col) && state.digit(r, c) == digit) return true;
+      }
+    }
+    return false;
+  }
+
+  // Places [digit] in [row,col], or clears the cell if it already holds [digit].
+  // Clears all notes in the cell. Rejects and returns false if it conflicts.
+  bool enterDigit(int row, int col, int digit) {
+    if (state.isClue(row, col)) return false;
+    if (isConflict(row, col, digit)) return false;
+
+    _pushHistory();
+    final current = state.currentGrid[row][col];
+    final newDigit = current == digit ? 0 : digit;
+    state = state.copyWith(
+      currentGrid: _updatedGrid(state.currentGrid, row, col, newDigit),
+      notes: _clearedNotes(state.notes, row, col),
+    );
+    return true;
+  }
+
+  // Toggles [digit] as a pencil mark in [row,col].
+  void toggleNote(int row, int col, int digit) {
+    if (state.isClue(row, col)) return;
+    if (state.currentGrid[row][col] != 0) return;
+
+    _pushHistory();
+    final cell = Set<int>.from(state.notes[row][col]);
+    if (cell.contains(digit)) {
+      cell.remove(digit);
+    } else {
+      cell.add(digit);
+    }
+    state = state.copyWith(notes: _updatedNotes(state.notes, row, col, cell));
+  }
+
+  void undo() {
+    if (_history.isEmpty) return;
+    state = _history.removeLast();
+  }
+
+  bool get canUndo => _history.isNotEmpty;
+
+  void _pushHistory() => _history.add(state);
 }
 
 final gameStateProvider = NotifierProvider<GameStateNotifier, GameState>(
   GameStateNotifier.new,
 );
+
+// ── Immutable helpers ──────────────────────────────────────────────────────────
+
+List<List<int>> _updatedGrid(
+  List<List<int>> grid,
+  int row,
+  int col,
+  int value,
+) => [
+  for (var r = 0; r < 9; r++)
+    [for (var c = 0; c < 9; c++) (r == row && c == col) ? value : grid[r][c]],
+];
+
+List<List<Set<int>>> _clearedNotes(
+  List<List<Set<int>>> notes,
+  int row,
+  int col,
+) => [
+  for (var r = 0; r < 9; r++)
+    [
+      for (var c = 0; c < 9; c++)
+        (r == row && c == col) ? <int>{} : notes[r][c],
+    ],
+];
+
+List<List<Set<int>>> _updatedNotes(
+  List<List<Set<int>>> notes,
+  int row,
+  int col,
+  Set<int> cell,
+) => [
+  for (var r = 0; r < 9; r++)
+    [for (var c = 0; c < 9; c++) (r == row && c == col) ? cell : notes[r][c]],
+];
