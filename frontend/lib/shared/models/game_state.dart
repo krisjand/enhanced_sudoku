@@ -19,6 +19,16 @@ class GameState {
 
   bool isEmpty(int row, int col) => digit(row, col) == 0;
 
+  bool get isPristine {
+    for (var r = 0; r < 9; r++) {
+      for (var c = 0; c < 9; c++) {
+        if (currentGrid[r][c] != 0) return false;
+        if (notes[r][c].isNotEmpty) return false;
+      }
+    }
+    return true;
+  }
+
   bool get isSolved {
     for (var r = 0; r < 9; r++) {
       for (var c = 0; c < 9; c++) {

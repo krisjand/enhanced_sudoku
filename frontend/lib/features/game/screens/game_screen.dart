@@ -97,7 +97,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Future<void> _exitGame() async {
     final elapsed = ref.read(timerProvider);
     ref.read(timerProvider.notifier).stop();
-    await ref.read(gameStateProvider.notifier).saveProgress(elapsed);
+    if (!ref.read(gameStateProvider).isPristine) {
+      await ref.read(gameStateProvider.notifier).saveProgress(elapsed);
+    }
     if (mounted) context.go(AppRoutes.home);
   }
 
