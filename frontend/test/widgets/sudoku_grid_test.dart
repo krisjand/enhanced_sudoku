@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/game/providers/selection_provider.dart';
 import 'package:frontend/shared/models/game_state.dart';
-import 'package:frontend/shared/theme/game_colors.dart';
 import 'package:frontend/shared/widgets/sudoku_cell.dart';
 import 'package:frontend/shared/widgets/sudoku_grid.dart';
 
@@ -70,13 +69,25 @@ void main() {
     });
 
     group('Selection', () {
+      // Build a state with digit 5 at (4,4) so isPeer can fire.
+      GameState _stateWithDigitAt44() => GameState(
+        initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+        currentGrid: [
+          ...List.generate(4, (_) => List.filled(9, 0)),
+          [0, 0, 0, 0, 5, ...List.filled(4, 0)],
+          ...List.generate(4, (_) => List.filled(9, 0)),
+        ],
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+
       test(
         'isPeer: same row, col, and box return true; selected cell is not a peer',
         () {
           final grid = SudokuGrid(
-            state: GameState.empty(),
+            state: _stateWithDigitAt44(),
             selectedRow: 4,
             selectedCol: 4,
+            isHighlightMode: true,
           );
           // same row
           expect(grid.isPeer(4, 0), isTrue);
@@ -100,6 +111,17 @@ void main() {
             expect(grid.isPeer(r, c), isFalse);
           }
         }
+      });
+
+      test('selecting empty cell shows no peers (highlight off for empty)', () {
+        final grid = SudokuGrid(
+          state: GameState.empty(),
+          selectedRow: 4,
+          selectedCol: 4,
+          isHighlightMode: true,
+        );
+        expect(grid.isPeer(4, 0), isFalse);
+        expect(grid.isPeer(0, 4), isFalse);
       });
 
       testWidgets('tapping a cell updates selectionProvider', (tester) async {
@@ -134,8 +156,9 @@ void main() {
             .widgetList<SudokuCell>(find.byType(SudokuCell))
             .toList();
         expect(updated.first.isSelected, isTrue);
-        expect(updated[1].isPeer, isTrue); // (0,1) same row
-        expect(updated[9].isPeer, isTrue); // (1,0) same col
+        // (0,0) is empty so no peer highlighting
+        expect(updated[1].isPeer, isFalse);
+        expect(updated[9].isPeer, isFalse);
       });
 
       testWidgets('tapping selected cell deselects it', (tester) async {
@@ -183,80 +206,111 @@ void main() {
     });
 
     group('Highlight', () {
-      test('_isHighlighted matches placed digit', () {
-        final state = GameState(
+      // Grid: selected cell (0,0) has digit 5; cell (0,1) also has digit 5;
+      // cell (0,2) is empty with note 5.
+      GameState _digitMatchState() {
+        final notes = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
+        notes[0][2] = {5};
+        return GameState(
           initialGrid: List.generate(9, (_) => List.filled(9, 0)),
           currentGrid: [
-            [5, 0, ...List.filled(7, 0)],
+            [5, 5, 0, ...List.filled(6, 0)],
             ...List.generate(8, (_) => List.filled(9, 0)),
           ],
-          notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
-        );
-        final grid = SudokuGrid(state: state, highlightedDigit: 5);
-        expect(grid.isHighlighted(0, 0), isTrue);
-        expect(grid.isHighlighted(0, 1), isFalse);
-      });
-
-      test('_isHighlighted matches note digit', () {
-        final notes = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
-        notes[1][2] = {7};
-        final state = GameState(
-          initialGrid: List.generate(9, (_) => List.filled(9, 0)),
-          currentGrid: List.generate(9, (_) => List.filled(9, 0)),
           notes: notes,
         );
-        final grid = SudokuGrid(state: state, highlightedDigit: 7);
-        expect(grid.isHighlighted(1, 2), isTrue);
-        expect(grid.isHighlighted(0, 0), isFalse);
+      }
+
+      test('isDigitMatch: other cell with same digit returns true', () {
+        final state = _digitMatchState();
+        final grid = SudokuGrid(
+          state: state,
+          selectedRow: 0,
+          selectedCol: 0,
+          isHighlightMode: true,
+        );
+        final d = grid.selectedDigit;
+        expect(grid.isDigitMatch(0, 1, d), isTrue);
+        expect(grid.isDigitMatch(0, 0, d), isFalse); // selected cell itself
+        expect(grid.isDigitMatch(1, 0, d), isFalse); // different digit
       });
 
-      test('_isHighlighted returns false when highlightedDigit is null', () {
-        final grid = SudokuGrid(state: GameState.empty());
-        expect(grid.isHighlighted(0, 0), isFalse);
+      test('isDigitMatch: returns false when highlight mode is off', () {
+        final state = _digitMatchState();
+        final grid = SudokuGrid(
+          state: state,
+          selectedRow: 0,
+          selectedCol: 0,
+          isHighlightMode: false,
+        );
+        final d = grid.selectedDigit;
+        expect(d, isNull);
+        expect(grid.isDigitMatch(0, 1, d), isFalse);
       });
 
-      test('_isHighlighted returns false when highlightedDigit is 0', () {
-        final grid = SudokuGrid(state: GameState.empty(), highlightedDigit: 0);
-        expect(grid.isHighlighted(0, 0), isFalse);
+      test('highlightedNote: empty cell with matching note returns digit', () {
+        final state = _digitMatchState();
+        final grid = SudokuGrid(
+          state: state,
+          selectedRow: 0,
+          selectedCol: 0,
+          isHighlightMode: true,
+        );
+        final d = grid.selectedDigit;
+        expect(grid.highlightedNote(0, 2, d), 5); // has note 5
+        expect(grid.highlightedNote(0, 1, d), isNull); // has a placed digit
+        expect(grid.highlightedNote(1, 0, d), isNull); // no note 5
       });
 
-      testWidgets('highlighted cell shows highlightedDigit background color', (
+      test('highlightedNote: returns null when highlight mode is off', () {
+        final state = _digitMatchState();
+        final grid = SudokuGrid(
+          state: state,
+          selectedRow: 0,
+          selectedCol: 0,
+          isHighlightMode: false,
+        );
+        final d = grid.selectedDigit;
+        expect(grid.highlightedNote(0, 2, d), isNull);
+      });
+
+      test('isPeer: returns false when selected digit is 0 (empty cell)', () {
+        final state = GameState.empty();
+        final grid = SudokuGrid(
+          state: state,
+          selectedRow: 0,
+          selectedCol: 0,
+          isHighlightMode: true,
+        );
+        expect(grid.isPeer(0, 1), isFalse);
+      });
+
+      testWidgets('digit-match cell shows selectedCell background', (
         tester,
       ) async {
-        final state = GameState(
-          initialGrid: [
-            [5, 0, ...List.filled(7, 0)],
-            ...List.generate(8, (_) => List.filled(9, 0)),
-          ],
-          currentGrid: List.generate(9, (_) => List.filled(9, 0)),
-          notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
-        );
-
+        final state = _digitMatchState();
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(body: SudokuGrid(state: state, highlightedDigit: 5)),
+            home: Scaffold(
+              body: SudokuGrid(
+                state: state,
+                selectedRow: 0,
+                selectedCol: 0,
+                isHighlightMode: true,
+              ),
+            ),
           ),
         );
 
         final cells = tester
             .widgetList<SudokuCell>(find.byType(SudokuCell))
             .toList();
-        // Cell (0,0) has digit 5 — should be highlighted.
-        expect(cells[0].isHighlighted, isTrue);
-        // Cell (0,1) is empty — should not be highlighted.
-        expect(cells[1].isHighlighted, isFalse);
-
-        // Verify the container for (0,0) uses the highlight color.
-        final containers = tester
-            .widgetList<Container>(
-              find.descendant(
-                of: find.byType(SudokuCell).first,
-                matching: find.byType(Container),
-              ),
-            )
-            .toList();
-        final decoration = containers.first.decoration as BoxDecoration?;
-        expect(decoration?.color, GameColors.highlightedDigit);
+        expect(cells[0].isSelected, isTrue); // (0,0) selected
+        expect(cells[1].isDigitMatch, isTrue); // (0,1) same digit
+        expect(
+          cells[2].isDigitMatch,
+          isFalse,
+        ); // (0,2) empty, has note not digit
       });
     });
 

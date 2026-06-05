@@ -15,7 +15,8 @@ class SudokuCell extends StatelessWidget {
     this.isSelected = false,
     this.isPeer = false,
     this.hasConflict = false,
-    this.isHighlighted = false,
+    this.isDigitMatch = false,
+    this.highlightedNote,
   });
 
   final int digit;
@@ -28,12 +29,14 @@ class SudokuCell extends StatelessWidget {
   final bool isSelected;
   final bool isPeer;
   final bool hasConflict;
-  final bool isHighlighted;
+  // True when another placed cell holds the same digit as the selected cell.
+  final bool isDigitMatch;
+  // When non-null, this note digit slot inside the notes grid is highlighted.
+  final int? highlightedNote;
 
   Color get _background {
     if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
-    if (isSelected) return GameColors.selectedCell;
-    if (isHighlighted) return GameColors.highlightedDigit;
+    if (isSelected || isDigitMatch) return GameColors.selectedCell;
     if (isPeer) return GameColors.peerCell;
     return Colors.transparent;
   }
@@ -53,7 +56,7 @@ class SudokuCell extends StatelessWidget {
       ),
       child: digit != 0
           ? _DigitContent(digit: digit, isClue: isClue)
-          : _NotesContent(notes: notes),
+          : _NotesContent(notes: notes, highlightedNote: highlightedNote),
     );
   }
 }
@@ -82,9 +85,10 @@ class _DigitContent extends StatelessWidget {
 }
 
 class _NotesContent extends StatelessWidget {
-  const _NotesContent({required this.notes});
+  const _NotesContent({required this.notes, this.highlightedNote});
 
   final Set<int> notes;
+  final int? highlightedNote;
 
   @override
   Widget build(BuildContext context) {
@@ -94,16 +98,23 @@ class _NotesContent extends StatelessWidget {
           child: Row(
             children: List.generate(3, (col) {
               final digit = row * 3 + col + 1;
+              final isHighlit =
+                  digit == highlightedNote && notes.contains(digit);
               return Expanded(
-                child: Center(
-                  child: notes.contains(digit)
-                      ? FittedBox(
-                          child: Text(
-                            '$digit',
-                            style: const TextStyle(color: GameColors.noteText),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                child: Container(
+                  color: isHighlit ? GameColors.selectedCell : null,
+                  child: Center(
+                    child: notes.contains(digit)
+                        ? FittedBox(
+                            child: Text(
+                              '$digit',
+                              style: const TextStyle(
+                                color: GameColors.noteText,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ),
               );
             }),

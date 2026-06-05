@@ -33,8 +33,7 @@ class GameScreen extends ConsumerWidget {
     final selection = ref.watch(selectionProvider);
     final isNotesMode = ref.watch(notesModeProvider);
     final conflict = ref.watch(_conflictProvider);
-    final highlightState = ref.watch(highlightProvider);
-    final highlightNotifier = ref.read(highlightProvider.notifier);
+    final isHighlightMode = ref.watch(highlightModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Game')),
@@ -46,40 +45,29 @@ class GameScreen extends ConsumerWidget {
               child: Center(
                 child: SudokuGrid(
                   state: state,
-                  selectedRow: highlightState != null ? null : selection?.row,
-                  selectedCol: highlightState != null ? null : selection?.col,
+                  selectedRow: selection?.row,
+                  selectedCol: selection?.col,
                   conflictRow: conflict?.row,
                   conflictCol: conflict?.col,
-                  highlightedDigit: highlightState,
-                  onCellTap: (row, col) {
-                    if (highlightState != null) {
-                      // Highlight mode: tapping a cell with a digit sets the
-                      // highlighted digit; tapping an empty cell does nothing.
-                      final d = state.digit(row, col);
-                      if (d != 0) highlightNotifier.selectDigit(d);
-                    } else {
-                      ref.read(selectionProvider.notifier).select(row, col);
-                    }
-                  },
+                  isHighlightMode: isHighlightMode,
+                  onCellTap: (row, col) =>
+                      ref.read(selectionProvider.notifier).select(row, col),
                 ),
               ),
             ),
             const SizedBox(height: 12),
             DigitPad(
-              isEnabled: selection != null && highlightState == null,
+              isEnabled: selection != null,
               isNotesMode: isNotesMode,
               onToggleNotes: ref.read(notesModeProvider.notifier).toggle,
               canUndo: gameNotifier.canUndo,
               onUndo: gameNotifier.undo,
               canRedo: gameNotifier.canRedo,
               onRedo: gameNotifier.redo,
-              isHighlightMode: highlightState != null,
-              onToggleHighlight: () {
-                highlightNotifier.toggle();
-                if (highlightState == null) {
-                  ref.read(selectionProvider.notifier).clear();
-                }
-              },
+              isHighlightMode: isHighlightMode,
+              onToggleHighlight: ref
+                  .read(highlightModeProvider.notifier)
+                  .toggle,
               onDigitTap: (digit) {
                 final sel = ref.read(selectionProvider);
                 if (sel == null) return;
