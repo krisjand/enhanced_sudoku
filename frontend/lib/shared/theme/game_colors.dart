@@ -28,6 +28,9 @@ abstract final class GameColors {
   static const peerCell = Color(0xFFD1D5DB);
   static const highlightedDigit = Color(0xFFF6E05E);
 
+  // Digit pad — [configurable]
+  static const digitPadButton = Color(0xFFE2E8F0); // cool light grey
+
   // Hint overlay — [configurable]
   static const sourceCell = Color(0xFFC6F6D5);
   static const actionCell = Color(0xFFFEB2B2);

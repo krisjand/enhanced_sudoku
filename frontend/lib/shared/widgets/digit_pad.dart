@@ -70,7 +70,7 @@ class _DigitButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     return Material(
-      color: enabled ? GameColors.surface : GameColors.background,
+      color: enabled ? GameColors.digitPadButton : GameColors.background,
       borderRadius: BorderRadius.circular(6),
       elevation: enabled ? 2 : 0,
       shadowColor: GameColors.gridLineHeavy.withValues(alpha: 0.3),
