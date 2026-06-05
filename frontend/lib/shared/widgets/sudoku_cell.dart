@@ -10,6 +10,8 @@ class SudokuCell extends StatelessWidget {
     required this.notes,
     required this.rightBorderWidth,
     required this.bottomBorderWidth,
+    required this.rightBorderColor,
+    required this.bottomBorderColor,
   });
 
   final int digit;
@@ -17,18 +19,17 @@ class SudokuCell extends StatelessWidget {
   final Set<int> notes;
   final double rightBorderWidth;
   final double bottomBorderWidth;
+  final Color rightBorderColor;
+  final Color bottomBorderColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(
-            color: GameColors.gridLineHeavy,
-            width: rightBorderWidth,
-          ),
+          right: BorderSide(color: rightBorderColor, width: rightBorderWidth),
           bottom: BorderSide(
-            color: GameColors.gridLineHeavy,
+            color: bottomBorderColor,
             width: bottomBorderWidth,
           ),
         ),

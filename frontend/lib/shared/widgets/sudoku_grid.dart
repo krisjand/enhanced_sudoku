@@ -35,6 +35,8 @@ class SudokuGrid extends StatelessWidget {
                       notes: state.notes[row][col],
                       rightBorderWidth: _rightBorder(col),
                       bottomBorderWidth: _bottomBorder(row),
+                      rightBorderColor: _borderColor(_rightBorder(col)),
+                      bottomBorderColor: _borderColor(_bottomBorder(row)),
                     ),
                   );
                 }),
@@ -45,6 +47,10 @@ class SudokuGrid extends StatelessWidget {
       ),
     );
   }
+
+  static Color _borderColor(double width) => width == _thickBorder
+      ? GameColors.gridLineHeavy
+      : GameColors.gridLineLight;
 
   static double _rightBorder(int col) {
     if (col == 8) return 0;
