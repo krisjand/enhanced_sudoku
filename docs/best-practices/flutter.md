@@ -41,6 +41,14 @@ const App({super.key, this.router});
 final GoRouter? router;
 ```
 
+## GridView on Flutter web triggers hover blobs
+
+`GridView.count` (and `GridView`) on Flutter web shows grey hover highlights on its cells because the scroll controller registers pointer events. For non-scrollable grids (e.g. a Sudoku cell's 3×3 pencil-mark layout), replace `GridView` with a plain `Column` of `Row`s using `Expanded` children. This gives identical layout with no Material/scroll hover side-effects.
+
+## Digits inside fixed-size cells must use FittedBox
+
+`Text(digit)` without a `FittedBox` uses a fixed font size regardless of how large or small the parent cell is. Always wrap cell digit text in `FittedBox` (with a small `Padding`) so the digit fills the available space proportionally at any grid size.
+
 ## Drift persistence patterns
 
 **insertOnConflictUpdate requires all non-nullable fields.** When doing an upsert-by-id with only partial columns (e.g. saving game progress), use `update()` + `write()` instead:
