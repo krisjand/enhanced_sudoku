@@ -17,9 +17,15 @@ class TimerNotifier extends Notifier<int> {
     _sub = Stream.periodic(const Duration(seconds: 1)).listen((_) => state++);
   }
 
-  void pause() => _sub?.pause();
+  void pause() {
+    _sub?.cancel();
+    _sub = null;
+  }
 
-  void resume() => _sub?.resume();
+  void resume() {
+    if (_sub != null) return;
+    _sub = Stream.periodic(const Duration(seconds: 1)).listen((_) => state++);
+  }
 
   void stop() {
     _sub?.cancel();
