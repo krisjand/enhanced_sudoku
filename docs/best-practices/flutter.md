@@ -41,6 +41,31 @@ const App({super.key, this.router});
 final GoRouter? router;
 ```
 
+## Drift persistence patterns
+
+**insertOnConflictUpdate requires all non-nullable fields.** When doing an upsert-by-id with only partial columns (e.g. saving game progress), use `update()` + `write()` instead:
+```dart
+// Partial update — only provided columns are written:
+await (update(table)..where((t) => t.id.equals(id))).write(companion);
+// Full insert — all required fields must be in the companion:
+await into(table).insert(companion);
+```
+A DAO named `save` should branch on `companion.id.present` to do the right thing.
+
+**Widget tests must override persistenceProvider.** `persistenceProvider` opens a real SQLite file (`enhanced_sudoku`). Once any screen reads this provider, widget tests that pump a `ProviderScope` will open the same file and may conflict. Override it in `buildApp()`:
+```dart
+Widget buildApp() => ProviderScope(
+  overrides: [persistenceProvider.overrideWithValue(openTestDb())],
+  child: App(router: buildAppRouter()),
+);
+```
+where `openTestDb()` returns `AppDatabase(NativeDatabase.memory())`.
+
+**Import conflicts between drift and flutter_test.** `package:drift/drift.dart` exports `isNull` which conflicts with `flutter_test`'s `isNull`. Use `hide` on the drift import in test files:
+```dart
+import 'package:drift/drift.dart' hide isNull;
+```
+
 ## Riverpod v3 API
 
 `flutter_riverpod ^3.x` removed `StateNotifier` and `StateNotifierProvider`. Use the new equivalents:
