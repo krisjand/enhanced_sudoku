@@ -26,7 +26,8 @@ void main() {
       await tester.tap(find.text('New Game'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Game — coming soon'), findsOneWidget);
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.text('Game'), findsOneWidget);
     });
 
     testWidgets('Tutorial navigates to TutorialListScreen', (tester) async {
