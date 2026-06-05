@@ -86,8 +86,17 @@ class GameStateNotifier extends Notifier<GameState> {
     return saved.elapsedSeconds;
   }
 
-  // Resets to the initial puzzle (new game). Clears history and saved ID.
-  void reset() {
+  // Resets to the initial puzzle (new game). Deletes any in-progress DB record
+  // (whether from this session via _savedGameId, or an orphan from a previous
+  // session), then clears history.
+  Future<void> reset() async {
+    final db = ref.read(persistenceProvider);
+    if (_savedGameId != null) {
+      await db.inProgressGameDao.deleteGame(_savedGameId!);
+    } else {
+      final orphan = await db.inProgressGameDao.getCurrent();
+      if (orphan != null) await db.inProgressGameDao.deleteGame(orphan.id);
+    }
     _history.clear();
     _redoStack.clear();
     _savedGameId = null;

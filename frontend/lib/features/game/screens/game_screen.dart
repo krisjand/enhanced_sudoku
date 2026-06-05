@@ -57,14 +57,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) => _initGame());
   }
 
-  void _initGame() {
+  Future<void> _initGame() async {
     final saved = ref.read(pendingResumeProvider);
     if (saved != null) {
       ref.read(pendingResumeProvider.notifier).set(null);
       final elapsed = ref.read(gameStateProvider.notifier).loadSavedGame(saved);
       ref.read(timerProvider.notifier).start(elapsed);
     } else {
-      ref.read(gameStateProvider.notifier).reset();
+      await ref.read(gameStateProvider.notifier).reset();
       ref.read(selectionProvider.notifier).clear();
       ref.read(timerProvider.notifier).start(0);
     }
