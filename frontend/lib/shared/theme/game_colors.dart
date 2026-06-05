@@ -20,7 +20,7 @@ abstract final class GameColors {
 
   // Cell states
   static const selectedCell = Color(0xFF90CAF9); // Material Blue 200
-  static const peerCell = Color(0xFFBBDEFB); // Material Blue 100
+  static const peerCell = Color(0xFFD1D5DB); // neutral grey
   static const highlightedDigit = Color(0xFFF6E05E);
 
   // Hint overlay
