@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/game/providers/game_state_notifier.dart';
+import 'package:frontend/shared/models/cell_action.dart';
 import 'package:frontend/shared/models/game_state.dart';
+import 'package:frontend/shared/models/solve_step.dart';
+import 'package:frontend/shared/models/source_cell.dart';
 import 'package:frontend/shared/providers/settings_provider.dart';
 
 // Minimal blank puzzle with no clues — lets us place any digit freely.
@@ -393,6 +396,89 @@ void main() {
         ],
       );
       expect(filled.isSolved, isTrue);
+    });
+  });
+
+  group('applyHintStep', () {
+    SolveStep makeStep(List<CellAction> actions) => SolveStep(
+      technique: 'nakedSingles',
+      sources: const [
+        SourceCell(row: 0, col: 0, digits: [5]),
+      ],
+      actions: actions,
+    );
+
+    test('set action places digit and clears notes', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][0] = {5, 7};
+      final c = makeContainer(blankPuzzle(notes: notes));
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.applyHintStep(
+        makeStep([
+          const CellAction(row: 0, col: 0, digit: 5, type: ActionType.set),
+        ]),
+      );
+
+      final state = c.read(gameStateProvider);
+      expect(state.currentGrid[0][0], 5);
+      expect(state.notes[0][0], isEmpty);
+    });
+
+    test('eliminate action removes digit from notes', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][0] = {3, 5, 7};
+      final c = makeContainer(blankPuzzle(notes: notes));
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.applyHintStep(
+        makeStep([
+          const CellAction(
+            row: 0,
+            col: 0,
+            digit: 5,
+            type: ActionType.eliminate,
+          ),
+        ]),
+      );
+
+      expect(c.read(gameStateProvider).notes[0][0], {3, 7});
+    });
+
+    test('increments hintCount', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+      expect(notifier.hintCount, 0);
+
+      notifier.applyHintStep(
+        makeStep([
+          const CellAction(row: 0, col: 0, digit: 1, type: ActionType.set),
+        ]),
+      );
+      expect(notifier.hintCount, 1);
+
+      notifier.applyHintStep(
+        makeStep([
+          const CellAction(row: 0, col: 1, digit: 2, type: ActionType.set),
+        ]),
+      );
+      expect(notifier.hintCount, 2);
+    });
+
+    test('is a single undo step', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.applyHintStep(
+        makeStep([
+          const CellAction(row: 0, col: 0, digit: 5, type: ActionType.set),
+        ]),
+      );
+      expect(c.read(gameStateProvider).currentGrid[0][0], 5);
+
+      notifier.undo();
+      expect(c.read(gameStateProvider).currentGrid[0][0], 0);
+      expect(notifier.canUndo, isFalse);
     });
   });
 }

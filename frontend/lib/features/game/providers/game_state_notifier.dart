@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/models/cell_action.dart';
 import '../../../shared/models/game_state.dart';
+import '../../../shared/models/solve_step.dart';
 import '../../../shared/models/sudoku_peers.dart';
 import '../../../shared/providers/persistence_provider.dart';
 import '../../../shared/providers/settings_provider.dart';
@@ -30,6 +32,8 @@ class GameStateNotifier extends Notifier<GameState> {
   final List<GameState> _history = [];
   final List<GameState> _redoStack = [];
   int? _savedGameId;
+  int _hintCount = 0;
+  int get hintCount => _hintCount;
 
   @override
   GameState build() => _initialPuzzle;
@@ -190,6 +194,26 @@ class GameStateNotifier extends Notifier<GameState> {
         }
       }
     }
+  }
+
+  // Applies all actions from a hint step to the board in one undo step and
+  // increments the hint counter.
+  void applyHintStep(SolveStep step) {
+    _pushHistory();
+    var grid = state.currentGrid;
+    var notes = state.notes;
+    for (final action in step.actions) {
+      if (action.type == ActionType.set) {
+        grid = _updatedGrid(grid, action.row, action.col, action.digit);
+        notes = _updatedNotes(notes, action.row, action.col, <int>{});
+      } else {
+        final cell = Set<int>.from(notes[action.row][action.col])
+          ..remove(action.digit);
+        notes = _updatedNotes(notes, action.row, action.col, cell);
+      }
+    }
+    state = state.copyWith(currentGrid: grid, notes: notes);
+    _hintCount++;
   }
 
   void undo() {

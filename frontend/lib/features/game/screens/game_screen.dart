@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../router.dart';
+import '../../../shared/models/solve_step.dart';
+import '../../../shared/providers/api_client_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../../shared/utils/format_time.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
+import '../../../shared/widgets/technique_overlay.dart';
 import '../providers/game_state_notifier.dart';
 import '../providers/highlight_provider.dart';
 import '../providers/notes_mode_provider.dart';
@@ -50,6 +55,9 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen>
     with WidgetsBindingObserver {
   bool _completionHandled = false;
+  bool _hintLoading = false;
+  SolveStep? _activeHint;
+  Timer? _hintTimer;
 
   @override
   void initState() {
@@ -73,6 +81,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   @override
   void dispose() {
+    _hintTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -93,6 +102,55 @@ class _GameScreenState extends ConsumerState<GameScreen>
     ref.read(timerProvider.notifier).stop();
     await ref.read(gameStateProvider.notifier).clearSavedGame();
     if (mounted) context.go(AppRoutes.gameComplete, extra: capturedElapsed);
+  }
+
+  Future<void> _requestHint() async {
+    setState(() => _hintLoading = true);
+    final state = ref.read(gameStateProvider);
+    final grid = List.generate(
+      9,
+      (r) => List.generate(9, (c) => state.digit(r, c)),
+    );
+    final candidates = List.generate(
+      9,
+      (r) => List.generate(9, (c) => state.notes[r][c].toList()..sort()),
+    );
+    try {
+      final result = await ref
+          .read(apiClientProvider)
+          .getHint(grid, candidates: candidates);
+      if (!mounted) return;
+      if (result.solved) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Puzzle already solved!')));
+      } else if (result.stuck) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hint available for this position.')),
+        );
+      } else {
+        setState(() => _activeHint = result.step);
+        _hintTimer = Timer(const Duration(seconds: 5), _applyAndDismissHint);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not reach the hint service.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _hintLoading = false);
+    }
+  }
+
+  void _applyAndDismissHint() {
+    _hintTimer?.cancel();
+    _hintTimer = null;
+    final hint = _activeHint;
+    setState(() => _activeHint = null);
+    if (hint != null) {
+      ref.read(gameStateProvider.notifier).applyHintStep(hint);
+    }
   }
 
   Future<void> _exitGame() async {
@@ -125,22 +183,55 @@ class _GameScreenState extends ConsumerState<GameScreen>
         if (!didPop) _exitGame();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(formatTime(elapsed))),
+        appBar: AppBar(
+          title: Text(formatTime(elapsed)),
+          actions: [
+            if (_hintLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.lightbulb_outline),
+                tooltip: 'Hint',
+                onPressed: _activeHint == null ? _requestHint : null,
+              ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Expanded(
                 child: Center(
-                  child: SudokuGrid(
-                    state: state,
-                    selectedRow: selection?.row,
-                    selectedCol: selection?.col,
-                    conflictRow: conflict?.row,
-                    conflictCol: conflict?.col,
-                    isHighlightMode: isHighlightMode,
-                    onCellTap: (row, col) =>
-                        ref.read(selectionProvider.notifier).select(row, col),
+                  child: Stack(
+                    children: [
+                      SudokuGrid(
+                        state: state,
+                        selectedRow: selection?.row,
+                        selectedCol: selection?.col,
+                        conflictRow: conflict?.row,
+                        conflictCol: conflict?.col,
+                        isHighlightMode: isHighlightMode,
+                        onCellTap: _activeHint != null
+                            ? (_, _) => _applyAndDismissHint()
+                            : (row, col) => ref
+                                  .read(selectionProvider.notifier)
+                                  .select(row, col),
+                      ),
+                      if (_activeHint != null)
+                        TechniqueOverlay(
+                          step: _activeHint!,
+                          onDismiss: _applyAndDismissHint,
+                        ),
+                    ],
                   ),
                 ),
               ),
