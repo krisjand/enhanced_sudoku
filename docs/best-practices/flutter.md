@@ -41,6 +41,31 @@ const App({super.key, this.router});
 final GoRouter? router;
 ```
 
+## Riverpod v3 API
+
+`flutter_riverpod ^3.x` removed `StateNotifier` and `StateNotifierProvider`. Use the new equivalents:
+
+| Old (v2) | New (v3) |
+|---|---|
+| `class Foo extends StateNotifier<T>` | `class Foo extends Notifier<T>` |
+| `StateNotifierProvider<Foo, T>((_) => Foo())` | `NotifierProvider<Foo, T>(Foo.new)` |
+| `StateNotifier.state = ...` | `state = ...` (same, but inside `Notifier`) |
+| Override `build()` not needed | Must override `build()` — returns initial state |
+
+```dart
+// v3 pattern
+class SettingsNotifier extends Notifier<SettingsState> {
+  @override
+  SettingsState build() => const SettingsState();
+
+  void setBackendUrl(String url) => state = state.copyWith(backendUrl: url);
+}
+
+final settingsProvider = NotifierProvider<SettingsNotifier, SettingsState>(
+  SettingsNotifier.new,
+);
+```
+
 ## CI
 
 - Run `dart format --output=none --set-exit-if-changed .` in CI to enforce formatting without modifying files in the runner. Use `--output=none` to make the check-only intent explicit.
