@@ -74,7 +74,12 @@ class GameScreen extends ConsumerWidget {
               canRedo: gameNotifier.canRedo,
               onRedo: gameNotifier.redo,
               isHighlightMode: highlightState != null,
-              onToggleHighlight: highlightNotifier.toggle,
+              onToggleHighlight: () {
+                highlightNotifier.toggle();
+                if (highlightState == null) {
+                  ref.read(selectionProvider.notifier).clear();
+                }
+              },
               onDigitTap: (digit) {
                 final sel = ref.read(selectionProvider);
                 if (sel == null) return;

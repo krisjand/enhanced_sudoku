@@ -79,7 +79,7 @@ class DigitPad extends StatelessWidget {
                     : GameColors.noteText,
                 textStyle: const TextStyle(fontSize: 13),
               ),
-              onPressed: onToggleNotes,
+              onPressed: isHighlightMode ? null : onToggleNotes,
             ),
             const SizedBox(width: 8),
             IconButton(
