@@ -113,12 +113,24 @@ void main() {
         }
       });
 
-      test('selecting empty cell shows no peers (highlight off for empty)', () {
+      test('selecting empty cell still shows peers when highlight is on', () {
         final grid = SudokuGrid(
           state: GameState.empty(),
           selectedRow: 4,
           selectedCol: 4,
           isHighlightMode: true,
+        );
+        expect(grid.isPeer(4, 0), isTrue); // same row
+        expect(grid.isPeer(0, 4), isTrue); // same col
+        expect(grid.isPeer(3, 3), isTrue); // same box
+      });
+
+      test('selecting empty cell shows no peers when highlight is off', () {
+        final grid = SudokuGrid(
+          state: GameState.empty(),
+          selectedRow: 4,
+          selectedCol: 4,
+          isHighlightMode: false,
         );
         expect(grid.isPeer(4, 0), isFalse);
         expect(grid.isPeer(0, 4), isFalse);
@@ -156,9 +168,9 @@ void main() {
             .widgetList<SudokuCell>(find.byType(SudokuCell))
             .toList();
         expect(updated.first.isSelected, isTrue);
-        // (0,0) is empty so no peer highlighting
-        expect(updated[1].isPeer, isFalse);
-        expect(updated[9].isPeer, isFalse);
+        // highlight on by default: peers show even for empty cell
+        expect(updated[1].isPeer, isTrue); // (0,1) same row
+        expect(updated[9].isPeer, isTrue); // (1,0) same col
       });
 
       testWidgets('tapping selected cell deselects it', (tester) async {
@@ -274,16 +286,22 @@ void main() {
         expect(grid.highlightedNote(0, 2, d), isNull);
       });
 
-      test('isPeer: returns false when selected digit is 0 (empty cell)', () {
-        final state = GameState.empty();
-        final grid = SudokuGrid(
-          state: state,
-          selectedRow: 0,
-          selectedCol: 0,
-          isHighlightMode: true,
-        );
-        expect(grid.isPeer(0, 1), isFalse);
-      });
+      test(
+        'isPeer: returns true for empty-cell selection when highlight is on',
+        () {
+          final grid = SudokuGrid(
+            state: GameState.empty(),
+            selectedRow: 0,
+            selectedCol: 0,
+            isHighlightMode: true,
+          );
+          expect(
+            grid.isPeer(0, 1),
+            isTrue,
+          ); // same row — shown even for empty cell
+          expect(grid.isPeer(1, 0), isTrue); // same col
+        },
+      );
 
       testWidgets('digit-match cell shows selectedCell background', (
         tester,

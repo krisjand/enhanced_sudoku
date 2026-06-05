@@ -86,7 +86,7 @@ class SudokuGrid extends StatelessWidget {
   }
 
   bool isPeer(int row, int col) {
-    if (selectedDigit == null) return false;
+    if (!isHighlightMode) return false;
     if (selectedRow == null || selectedCol == null) return false;
     return peerCells[selectedRow!][selectedCol!].any(
       (p) => p.row == row && p.col == col,
