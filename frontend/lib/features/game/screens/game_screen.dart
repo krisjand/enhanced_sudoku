@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../router.dart';
 import '../../../shared/models/solve_step.dart';
 import '../../../shared/providers/api_client_provider.dart';
+import '../../../shared/providers/error_log_provider.dart';
 import '../../../shared/services/persistence_service.dart';
 import '../../../shared/utils/format_time.dart';
 import '../../../shared/widgets/digit_pad.dart';
@@ -132,7 +133,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
         setState(() => _activeHint = result.step);
         _hintTimer = Timer(const Duration(seconds: 5), _applyAndDismissHint);
       }
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      ref.read(errorLogProvider.notifier).log('Hint request failed', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not reach the hint service.')),

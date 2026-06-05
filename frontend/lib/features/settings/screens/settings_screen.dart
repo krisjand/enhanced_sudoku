@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../router.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -7,7 +10,19 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: const Center(child: Text('Settings — coming soon')),
+      body: ListView(
+        children: [
+          const ListTile(title: Text('Settings — coming soon'), dense: true),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Developer tools'),
+            subtitle: const Text('View error log'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.developerTools),
+          ),
+        ],
+      ),
     );
   }
 }
