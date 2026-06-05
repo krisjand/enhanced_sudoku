@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../shared/providers/error_log_provider.dart';
 import '../../../shared/providers/settings_provider.dart';
@@ -11,6 +12,24 @@ String _fmt(DateTime t) =>
 
 class DeveloperToolsScreen extends ConsumerWidget {
   const DeveloperToolsScreen({super.key});
+
+  Future<void> _ping(BuildContext context, WidgetRef ref) async {
+    final baseUrl = ref.read(settingsProvider).backendUrl;
+    final url = Uri.parse(
+      '${baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl}/health',
+    );
+    final logger = ref.read(errorLogProvider.notifier);
+    logger.log('Pinging $url');
+    try {
+      final response = await http.get(url);
+      logger.log(
+        'Ping OK ${response.statusCode}',
+        'Headers: ${response.headers}\nBody: ${response.body}',
+      );
+    } on Exception catch (e) {
+      logger.log('Ping failed: ${e.runtimeType}', e);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,9 +52,23 @@ class DeveloperToolsScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              'Backend URL: ${ref.watch(settingsProvider).backendUrl}',
-              style: Theme.of(context).textTheme.bodySmall,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Backend: ${ref.watch(settingsProvider).backendUrl}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.wifi_tethering, size: 16),
+                  label: const Text('Ping'),
+                  style: TextButton.styleFrom(
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  onPressed: () => _ping(context, ref),
+                ),
+              ],
             ),
           ),
           const Divider(),
