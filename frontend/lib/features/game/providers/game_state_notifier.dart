@@ -80,6 +80,25 @@ class GameStateNotifier extends Notifier<GameState> {
     state = state.copyWith(notes: _updatedNotes(state.notes, row, col, cell));
   }
 
+  // Fills every empty cell with its valid candidates (digits absent from its
+  // row, column, and box). Replaces any existing notes; one undo step.
+  void autoFillNotes() {
+    _pushHistory();
+    final newNotes = List.generate(
+      9,
+      (r) => List.generate(9, (c) {
+        if (!state.isEmpty(r, c)) return Set<int>.from(state.notes[r][c]);
+        final forbidden = <int>{};
+        for (final peer in peerCells[r][c]) {
+          final d = state.digit(peer.row, peer.col);
+          if (d != 0) forbidden.add(d);
+        }
+        return {1, 2, 3, 4, 5, 6, 7, 8, 9}.difference(forbidden);
+      }),
+    );
+    state = state.copyWith(notes: newNotes);
+  }
+
   void undo() {
     if (_history.isEmpty) return;
     _redoStack.add(state);

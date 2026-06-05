@@ -185,4 +185,146 @@ void main() {
       expect(restored.notes[0][1], {5}); // peer note restored
     });
   });
+
+  group('autoFillNotes', () {
+    test('blank board fills every empty cell with {1..9}', () {
+      final c = makeContainer(blankPuzzle());
+      c.read(gameStateProvider.notifier).autoFillNotes();
+      final state = c.read(gameStateProvider);
+      for (var r = 0; r < 9; r++) {
+        for (var col = 0; col < 9; col++) {
+          expect(state.notes[r][col], {1, 2, 3, 4, 5, 6, 7, 8, 9});
+        }
+      }
+    });
+
+    test('excludes peer digits from candidates', () {
+      final initial = GameState(
+        initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+        currentGrid: [
+          [5, 0, 0, 0, 0, 0, 0, 0, 0],
+          ...List.generate(8, (_) => List.filled(9, 0)),
+        ],
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+      final c = makeContainer(initial);
+      c.read(gameStateProvider.notifier).autoFillNotes();
+      final state = c.read(gameStateProvider);
+
+      expect(state.notes[0][0], isEmpty); // has a digit — not touched
+      expect(state.notes[0][1], {
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+      }); // same row: 5 excluded
+      expect(state.notes[1][0], {
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+      }); // same col: 5 excluded
+      expect(state.notes[1][1], {
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+      }); // same box: 5 excluded
+      expect(state.notes[5][5], {
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+      }); // unrelated: all candidates
+    });
+
+    test('does not modify cells with a clue', () {
+      final initial = GameState(
+        initialGrid: [
+          [5, 0, 0, 0, 0, 0, 0, 0, 0],
+          ...List.generate(8, (_) => List.filled(9, 0)),
+        ],
+        currentGrid: List.generate(9, (_) => List.filled(9, 0)),
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+      final c = makeContainer(initial);
+      c.read(gameStateProvider.notifier).autoFillNotes();
+      final state = c.read(gameStateProvider);
+
+      expect(state.notes[0][0], isEmpty); // clue cell — notes untouched
+      expect(state.notes[0][1], {
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+      }); // 5 excluded (clue peer)
+    });
+
+    test('replaces existing notes in empty cells', () {
+      final notes = List.generate(9, (r) => List.generate(9, (c) => <int>{}));
+      notes[0][0] = {1, 2, 3}; // arbitrary pre-existing notes
+      final c = makeContainer(blankPuzzle(notes: notes));
+      c.read(gameStateProvider.notifier).autoFillNotes();
+      expect(c.read(gameStateProvider).notes[0][0], {
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+      });
+    });
+
+    test('is a single undo step', () {
+      final c = makeContainer(blankPuzzle());
+      final notifier = c.read(gameStateProvider.notifier);
+
+      notifier.autoFillNotes();
+      expect(c.read(gameStateProvider).notes[0][0], {
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+      });
+
+      notifier.undo();
+
+      final restored = c.read(gameStateProvider);
+      for (var r = 0; r < 9; r++) {
+        for (var col = 0; col < 9; col++) {
+          expect(restored.notes[r][col], isEmpty);
+        }
+      }
+      expect(notifier.canUndo, isFalse);
+    });
+  });
 }
