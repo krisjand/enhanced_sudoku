@@ -344,4 +344,55 @@ void main() {
       expect(notifier.canUndo, isFalse);
     });
   });
+
+  group('GameState.isSolved', () {
+    test('false on empty board', () {
+      expect(blankPuzzle().isSolved, isFalse);
+    });
+
+    test('false when one cell is still empty', () {
+      final grid = List.generate(
+        9,
+        (r) => List.generate(9, (c) => (r * 9 + c % 9) % 9 + 1),
+      );
+      grid[8][8] = 0;
+      final state = GameState(
+        initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+        currentGrid: grid,
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+      expect(state.isSolved, isFalse);
+    });
+
+    test('true when all 81 cells have a digit', () {
+      final grid = List.generate(9, (_) => List.filled(9, 1));
+      final state = GameState(
+        initialGrid: List.generate(9, (_) => List.filled(9, 0)),
+        currentGrid: grid,
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+      expect(state.isSolved, isTrue);
+    });
+
+    test('clues count toward isSolved', () {
+      // 80 clues + 1 empty current cell → not solved
+      final initial = List.generate(9, (_) => List.filled(9, 1));
+      initial[8][8] = 0;
+      final state = GameState(
+        initialGrid: initial,
+        currentGrid: List.generate(9, (_) => List.filled(9, 0)),
+        notes: List.generate(9, (_) => List.generate(9, (_) => <int>{})),
+      );
+      expect(state.isSolved, isFalse);
+
+      // Fill last cell
+      final filled = state.copyWith(
+        currentGrid: [
+          ...state.currentGrid.sublist(0, 8),
+          [...state.currentGrid[8].sublist(0, 8), 1],
+        ],
+      );
+      expect(filled.isSolved, isTrue);
+    });
+  });
 }

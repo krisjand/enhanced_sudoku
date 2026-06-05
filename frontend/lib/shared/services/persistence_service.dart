@@ -23,6 +23,7 @@ class InProgressGames extends Table {
   TextColumn get initialGrid => text()(); // JSON
   TextColumn get currentGrid => text()(); // JSON
   TextColumn get notes => text()(); // JSON
+  IntColumn get elapsedSeconds => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -85,6 +86,12 @@ class InProgressGameDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  Stream<InProgressGame?> watchCurrent() =>
+      (select(inProgressGames)
+            ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])
+            ..limit(1))
+          .watchSingleOrNull();
+
   Future<int> deleteGame(int id) =>
       (delete(inProgressGames)..where((t) => t.id.equals(id))).go();
 }
@@ -118,5 +125,14 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'enhanced_sudoku'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(inProgressGames, inProgressGames.elapsedSeconds);
+      }
+    },
+  );
 }

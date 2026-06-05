@@ -630,6 +630,18 @@ class $InProgressGamesTable extends InProgressGames
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _elapsedSecondsMeta = const VerificationMeta(
+    'elapsedSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> elapsedSeconds = GeneratedColumn<int>(
+    'elapsed_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -660,6 +672,7 @@ class $InProgressGamesTable extends InProgressGames
     initialGrid,
     currentGrid,
     notes,
+    elapsedSeconds,
     createdAt,
     updatedAt,
   ];
@@ -724,6 +737,15 @@ class $InProgressGamesTable extends InProgressGames
     } else if (isInserting) {
       context.missing(_notesMeta);
     }
+    if (data.containsKey('elapsed_seconds')) {
+      context.handle(
+        _elapsedSecondsMeta,
+        elapsedSeconds.isAcceptableOrUnknown(
+          data['elapsed_seconds']!,
+          _elapsedSecondsMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -773,6 +795,10 @@ class $InProgressGamesTable extends InProgressGames
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       )!,
+      elapsedSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}elapsed_seconds'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -797,6 +823,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
   final String initialGrid;
   final String currentGrid;
   final String notes;
+  final int elapsedSeconds;
   final DateTime createdAt;
   final DateTime updatedAt;
   const InProgressGame({
@@ -806,6 +833,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
     required this.initialGrid,
     required this.currentGrid,
     required this.notes,
+    required this.elapsedSeconds,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -818,6 +846,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
     map['initial_grid'] = Variable<String>(initialGrid);
     map['current_grid'] = Variable<String>(currentGrid);
     map['notes'] = Variable<String>(notes);
+    map['elapsed_seconds'] = Variable<int>(elapsedSeconds);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -831,6 +860,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
       initialGrid: Value(initialGrid),
       currentGrid: Value(currentGrid),
       notes: Value(notes),
+      elapsedSeconds: Value(elapsedSeconds),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -848,6 +878,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
       initialGrid: serializer.fromJson<String>(json['initialGrid']),
       currentGrid: serializer.fromJson<String>(json['currentGrid']),
       notes: serializer.fromJson<String>(json['notes']),
+      elapsedSeconds: serializer.fromJson<int>(json['elapsedSeconds']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -862,6 +893,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
       'initialGrid': serializer.toJson<String>(initialGrid),
       'currentGrid': serializer.toJson<String>(currentGrid),
       'notes': serializer.toJson<String>(notes),
+      'elapsedSeconds': serializer.toJson<int>(elapsedSeconds),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -874,6 +906,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
     String? initialGrid,
     String? currentGrid,
     String? notes,
+    int? elapsedSeconds,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => InProgressGame(
@@ -883,6 +916,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
     initialGrid: initialGrid ?? this.initialGrid,
     currentGrid: currentGrid ?? this.currentGrid,
     notes: notes ?? this.notes,
+    elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -900,6 +934,9 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
           ? data.currentGrid.value
           : this.currentGrid,
       notes: data.notes.present ? data.notes.value : this.notes,
+      elapsedSeconds: data.elapsedSeconds.present
+          ? data.elapsedSeconds.value
+          : this.elapsedSeconds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -914,6 +951,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
           ..write('initialGrid: $initialGrid, ')
           ..write('currentGrid: $currentGrid, ')
           ..write('notes: $notes, ')
+          ..write('elapsedSeconds: $elapsedSeconds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -928,6 +966,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
     initialGrid,
     currentGrid,
     notes,
+    elapsedSeconds,
     createdAt,
     updatedAt,
   );
@@ -941,6 +980,7 @@ class InProgressGame extends DataClass implements Insertable<InProgressGame> {
           other.initialGrid == this.initialGrid &&
           other.currentGrid == this.currentGrid &&
           other.notes == this.notes &&
+          other.elapsedSeconds == this.elapsedSeconds &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -952,6 +992,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
   final Value<String> initialGrid;
   final Value<String> currentGrid;
   final Value<String> notes;
+  final Value<int> elapsedSeconds;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const InProgressGamesCompanion({
@@ -961,6 +1002,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
     this.initialGrid = const Value.absent(),
     this.currentGrid = const Value.absent(),
     this.notes = const Value.absent(),
+    this.elapsedSeconds = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -971,6 +1013,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
     required String initialGrid,
     required String currentGrid,
     required String notes,
+    this.elapsedSeconds = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : puzzleId = Value(puzzleId),
@@ -987,6 +1030,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
     Expression<String>? initialGrid,
     Expression<String>? currentGrid,
     Expression<String>? notes,
+    Expression<int>? elapsedSeconds,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -997,6 +1041,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
       if (initialGrid != null) 'initial_grid': initialGrid,
       if (currentGrid != null) 'current_grid': currentGrid,
       if (notes != null) 'notes': notes,
+      if (elapsedSeconds != null) 'elapsed_seconds': elapsedSeconds,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1009,6 +1054,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
     Value<String>? initialGrid,
     Value<String>? currentGrid,
     Value<String>? notes,
+    Value<int>? elapsedSeconds,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -1019,6 +1065,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
       initialGrid: initialGrid ?? this.initialGrid,
       currentGrid: currentGrid ?? this.currentGrid,
       notes: notes ?? this.notes,
+      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1045,6 +1092,9 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (elapsedSeconds.present) {
+      map['elapsed_seconds'] = Variable<int>(elapsedSeconds.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1063,6 +1113,7 @@ class InProgressGamesCompanion extends UpdateCompanion<InProgressGame> {
           ..write('initialGrid: $initialGrid, ')
           ..write('currentGrid: $currentGrid, ')
           ..write('notes: $notes, ')
+          ..write('elapsedSeconds: $elapsedSeconds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1572,6 +1623,7 @@ typedef $$InProgressGamesTableCreateCompanionBuilder =
       required String initialGrid,
       required String currentGrid,
       required String notes,
+      Value<int> elapsedSeconds,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -1583,6 +1635,7 @@ typedef $$InProgressGamesTableUpdateCompanionBuilder =
       Value<String> initialGrid,
       Value<String> currentGrid,
       Value<String> notes,
+      Value<int> elapsedSeconds,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -1623,6 +1676,11 @@ class $$InProgressGamesTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1676,6 +1734,11 @@ class $$InProgressGamesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1719,6 +1782,11 @@ class $$InProgressGamesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1770,6 +1838,7 @@ class $$InProgressGamesTableTableManager
                 Value<String> initialGrid = const Value.absent(),
                 Value<String> currentGrid = const Value.absent(),
                 Value<String> notes = const Value.absent(),
+                Value<int> elapsedSeconds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => InProgressGamesCompanion(
@@ -1779,6 +1848,7 @@ class $$InProgressGamesTableTableManager
                 initialGrid: initialGrid,
                 currentGrid: currentGrid,
                 notes: notes,
+                elapsedSeconds: elapsedSeconds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -1790,6 +1860,7 @@ class $$InProgressGamesTableTableManager
                 required String initialGrid,
                 required String currentGrid,
                 required String notes,
+                Value<int> elapsedSeconds = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => InProgressGamesCompanion.insert(
@@ -1799,6 +1870,7 @@ class $$InProgressGamesTableTableManager
                 initialGrid: initialGrid,
                 currentGrid: currentGrid,
                 notes: notes,
+                elapsedSeconds: elapsedSeconds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
