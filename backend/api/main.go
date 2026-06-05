@@ -21,9 +21,24 @@ func main() {
 	mux.Handle("/puzzle/hint", newHintHandler())
 
 	log.Printf("Server listening on :%s", addr)
-	if err := http.ListenAndServe(":"+addr, mux); err != nil {
+	if err := http.ListenAndServe(":"+addr, corsMiddleware(mux)); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
+}
+
+// corsMiddleware adds CORS headers so that the Flutter web client
+// (served on a different port during development) can reach the API.
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
