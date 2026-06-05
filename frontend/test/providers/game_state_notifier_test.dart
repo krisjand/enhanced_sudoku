@@ -299,6 +299,23 @@ void main() {
       });
     });
 
+    test(
+      'no-op when notes already match candidates — does not push history',
+      () {
+        final c = makeContainer(blankPuzzle());
+        final notifier = c.read(gameStateProvider.notifier);
+
+        notifier.autoFillNotes(); // first call fills notes
+        expect(notifier.canUndo, isTrue);
+
+        notifier.autoFillNotes(); // second call is a no-op
+        // Still only one undo step from the first call
+        notifier.undo();
+        expect(c.read(gameStateProvider).notes[0][0], isEmpty);
+        expect(notifier.canUndo, isFalse);
+      },
+    );
+
     test('is a single undo step', () {
       final c = makeContainer(blankPuzzle());
       final notifier = c.read(gameStateProvider.notifier);
