@@ -37,7 +37,7 @@ void main() {
       await tester.tap(find.text('Tutorial'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Tutorial — coming soon'), findsOneWidget);
+      expect(find.text('Basics'), findsOneWidget);
     });
 
     testWidgets('Scores navigates to ScoresScreen', (tester) async {

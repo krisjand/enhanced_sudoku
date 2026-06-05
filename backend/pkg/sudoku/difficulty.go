@@ -1,6 +1,9 @@
 package sudoku
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 const (
 	DifficultyEasy      = "easy"
@@ -15,6 +18,7 @@ const (
 // DifficultyResult is the output of Rate.
 type DifficultyResult struct {
 	Level      string   // one of the Difficulty constants
+	Decisive   string // the hardest technique
 	Techniques []string // techniques that produced at least one step, in complexity order
 }
 
@@ -46,6 +50,66 @@ var rankToLevel = []string{
 	DifficultyGrandmaster,
 }
 
+// DifficultyResult is the output of Rate.
+type SortedTechniques struct {
+	Decisive   string   // the most difficult/highly rated technique
+	Techniques []string // techniques sorted by rank
+}
+
+var techniqueSortRank = map[string]int{
+	TechniqueNakedSingles:     0,
+	TechniqueHiddenSingles:    1,
+	TechniqueLockedCandidates: 2,
+	TechniqueNakedPairs:       3,
+	TechniqueHiddenPairs:      4,
+	TechniqueNakedTriples:     5,
+	TechniqueHiddenTriples:    6,
+	TechniqueNakedQuadruples:  7,
+	TechniqueHiddenQuadruples: 8,
+	TechniqueXWing:            9,
+	TechniqueSwordfish:        10,
+	TechniqueXYWing:           11,
+	TechniqueXYZWing:          12,
+	TechniqueForcedChains:     13,
+}
+
+// SortTechniques deduplicates techniques, sorts them from easiest to hardest
+// by techniqueSortRank, and returns the sorted list plus the decisive (hardest)
+// technique. Unknown techniques are placed at the end.
+func SortTechniques(techniques []string) SortedTechniques {
+	seen := make(map[string]bool, len(techniques))
+	unique := make([]string, 0, len(techniques))
+	for _, t := range techniques {
+		if !seen[t] {
+			seen[t] = true
+			unique = append(unique, t)
+		}
+	}
+
+	sort.SliceStable(unique, func(i, j int) bool {
+		ri, oki := techniqueSortRank[unique[i]]
+		rj, okj := techniqueSortRank[unique[j]]
+		if !oki {
+			ri = len(techniqueSortRank)
+		}
+		if !okj {
+			rj = len(techniqueSortRank)
+		}
+		return ri < rj
+	})
+
+	decisive := ""
+	if len(unique) > 0 {
+		decisive = unique[len(unique)-1]
+	}
+
+	return SortedTechniques{
+		Decisive:         decisive,
+		Techniques: unique,
+	}
+}
+
+
 // RateResult determines the difficulty of a puzzle from a pre-computed
 // SolveResult. Use this when HumanSolve has already been called to avoid a
 // second solve.
@@ -71,8 +135,10 @@ func RateResult(result SolveResult) DifficultyResult {
 		}
 	}
 
+	sortedTechniques := SortTechniques(techniques)
+
 	if !result.Solved {
-		return DifficultyResult{Level: DifficultyLegendary, Techniques: techniques}
+		return DifficultyResult{Level: DifficultyLegendary, Decisive: sortedTechniques.Decisive, Techniques: sortedTechniques.Techniques}
 	}
 
 	level := DifficultyEasy
@@ -83,7 +149,7 @@ func RateResult(result SolveResult) DifficultyResult {
 		level = rankToLevel[maxRank]
 	}
 
-	return DifficultyResult{Level: level, Techniques: techniques}
+	return DifficultyResult{Level: level, Decisive: sortedTechniques.Decisive, Techniques: sortedTechniques.Techniques}
 }
 
 // Rate determines the difficulty of puzzle by running HumanSolve and

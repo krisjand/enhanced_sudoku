@@ -1,4 +1,5 @@
 const _names = <String, String>{
+  'notes': 'Notes',
   'nakedSingles': 'Naked Singles',
   'hiddenSingles': 'Hidden Singles',
   'hiddenSingleRow': 'Hidden Single (Row)',

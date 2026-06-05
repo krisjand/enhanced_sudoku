@@ -11,13 +11,13 @@
 //
 //	-out      Output directory (default: ../puzzle_corpus)
 //	-seed     Random seed (default: current time)
-//	-easy     Target count for easy puzzles (default: 2000)
-//	-medium   Target count for medium puzzles (default: 2000)
-//	-hard     Target count for hard puzzles (default: 1000)
-//	-expert   Target count for expert puzzles (default: 500)
-//	-master   Target count for master puzzles (default: 1000)
+//	-easy     Target count for easy puzzles (default: 3000)
+//	-medium   Target count for medium puzzles (default: 3000)
+//	-hard     Target count for hard puzzles (default: 3000)
+//	-expert   Target count for expert puzzles (default: 3000)
+//	-master   Target count for master puzzles (default: 3000)
 //	-grand    Target count for grandmaster puzzles (default: 2000)
-//	-legend   Cap for legendary puzzles (default: 100; opportunistic — does not block completion)
+//	-legend   Cap for legendary puzzles (default: 200; opportunistic — does not block completion)
 //
 // The script is resumable: it reads existing output files on startup and only
 // generates puzzles for targets not yet met. Duplicate puzzles are skipped via
@@ -100,19 +100,12 @@ func buildRecord(puzzle, solution sudoku.Grid) (puzzleRecord, string, bool) {
 		}
 	}
 
-	// Decisive is the hardest technique applied. For legendary puzzles the
-	// solver got stuck, so it may be empty if no technique produced a step.
-	decisive := ""
-	if len(dr.Techniques) > 0 {
-		decisive = dr.Techniques[len(dr.Techniques)-1]
-	}
-
 	return puzzleRecord{
 		ID:               puzzleID(puzzle),
 		Grid:             toInts(puzzle),
 		Solution:         toInts(solution),
 		Techniques:       dr.Techniques,
-		Decisive:         decisive,
+		Decisive:         dr.Decisive,
 		ForcedChainUses:  fcUses,
 		ForcedChainSteps: fcSteps,
 	}, dr.Level, true
@@ -174,13 +167,13 @@ func saveFile(path string, records []puzzleRecord) error {
 func main() {
 	outDir := flag.String("out", "../puzzle_corpus", "output directory")
 	seed   := flag.Int64("seed", time.Now().UnixNano(), "random seed")
-	easy   := flag.Int("easy",   2000, "target easy puzzles")
-	medium := flag.Int("medium", 2000, "target medium puzzles")
-	hard   := flag.Int("hard",   1000, "target hard puzzles")
-	expert := flag.Int("expert",  500, "target expert puzzles")
-	master  := flag.Int("master",  1000, "target master puzzles")
+	easy   := flag.Int("easy",   3000, "target easy puzzles")
+	medium := flag.Int("medium", 3000, "target medium puzzles")
+	hard   := flag.Int("hard",   3000, "target hard puzzles")
+	expert := flag.Int("expert",  2000, "target expert puzzles")
+	master  := flag.Int("master",  3000, "target master puzzles")
 	grand   := flag.Int("grand",   2000, "target grandmaster puzzles")
-	legend  := flag.Int("legend",   100, "cap for legendary puzzles (opportunistic — does not block completion)")
+	legend  := flag.Int("legend",   200, "cap for legendary puzzles (opportunistic — does not block completion)")
 	flag.Parse()
 
 	targets := map[string]int{
