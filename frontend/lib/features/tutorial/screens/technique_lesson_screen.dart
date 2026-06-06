@@ -33,7 +33,11 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
   int? _wrongRow;
   int? _wrongCol;
 
+  // find / elimination phase — track what the user actually placed
   bool _digitPlaced = false;
+  int? _placedRow;
+  int? _placedCol;
+  int? _placedDigit;
   List<(int, int)> _pendingPeers = [];
   final Set<(int, int)> _eliminatedPeers = {};
 
@@ -50,7 +54,79 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
     return lesson.practice[_observeExampleIdx - 1];
   }
 
-  // Detects which unit makes the step on `board` a hidden single.
+  // ── Technique-validity helpers ───────────────────────────────────────────
+
+  bool _isHiddenSingleForDigit(LessonBoard board, int r, int c, int d) {
+    var rowOk = true;
+    for (var cc = 0; cc < 9 && rowOk; cc++) {
+      if (cc != c && board.notes[r][cc].contains(d)) rowOk = false;
+    }
+    if (rowOk) return true;
+
+    var colOk = true;
+    for (var rr = 0; rr < 9 && colOk; rr++) {
+      if (rr != r && board.notes[rr][c].contains(d)) colOk = false;
+    }
+    if (colOk) return true;
+
+    final br = (r ~/ 3) * 3;
+    final bc = (c ~/ 3) * 3;
+    var boxOk = true;
+    for (var rr = br; rr < br + 3 && boxOk; rr++) {
+      for (var cc = bc; cc < bc + 3 && boxOk; cc++) {
+        if ((rr != r || cc != c) && board.notes[rr][cc].contains(d)) {
+          boxOk = false;
+        }
+      }
+    }
+    return boxOk;
+  }
+
+  bool _isHiddenSingle(LessonBoard board, int r, int c) {
+    if (board.initialGrid[r][c] != 0 || board.currentGrid[r][c] != 0) {
+      return false;
+    }
+    for (final d in board.notes[r][c]) {
+      if (_isHiddenSingleForDigit(board, r, c, d)) return true;
+    }
+    return false;
+  }
+
+  int _hiddenSingleDigit(LessonBoard board, int r, int c) {
+    for (final d in board.notes[r][c]) {
+      if (_isHiddenSingleForDigit(board, r, c, d)) return d;
+    }
+    return board.notes[r][c].first;
+  }
+
+  bool _isValidTarget(LessonBoard board, int r, int c) {
+    if (board.initialGrid[r][c] != 0 || board.currentGrid[r][c] != 0) {
+      return false;
+    }
+    switch (widget.technique) {
+      case 'nakedSingles':
+        return board.notes[r][c].length == 1;
+      case 'hiddenSingles':
+        return _isHiddenSingle(board, r, c);
+      default:
+        final t = board.step?.actions.firstOrNull;
+        return t != null && r == t.row && c == t.col;
+    }
+  }
+
+  int _targetDigit(LessonBoard board, int r, int c) {
+    switch (widget.technique) {
+      case 'nakedSingles':
+        return board.notes[r][c].first;
+      case 'hiddenSingles':
+        return _hiddenSingleDigit(board, r, c);
+      default:
+        return board.step!.actions[0].digit;
+    }
+  }
+
+  // ── Board-state helpers ──────────────────────────────────────────────────
+
   String _hiddenSingleUnit(LessonBoard board) {
     if (board.step == null || board.step!.actions.isEmpty) return 'this unit';
     final action = board.step!.actions[0];
@@ -140,22 +216,32 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
     );
   }
 
+  // Uses _placedRow/Col/Digit (set when user taps the target cell) rather than
+  // board.step, so it works even when the user found a different valid cell.
   GameState _eliminatingState(LessonBoard board) {
-    final base = _appliedState(board);
-    final target = board.step!.actions[0];
+    final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
     final newNotes = List.generate(
       9,
-      (r) => List.generate(9, (c) => Set<int>.from(base.notes[r][c])),
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
     );
-    for (final (r, c) in _eliminatedPeers) {
-      newNotes[r][c].remove(target.digit);
+    final pr = _placedRow;
+    final pc = _placedCol;
+    final pd = _placedDigit;
+    if (pr != null && pc != null && pd != null) {
+      newGrid[pr][pc] = pd;
+      newNotes[pr][pc] = {};
+      for (final (r, c) in _eliminatedPeers) {
+        newNotes[r][c].remove(pd);
+      }
     }
     return GameState(
-      initialGrid: base.initialGrid,
-      currentGrid: base.currentGrid,
+      initialGrid: board.initialGrid,
+      currentGrid: newGrid,
       notes: newNotes,
     );
   }
+
+  // ── Callbacks ────────────────────────────────────────────────────────────
 
   void _onReveal() => setState(() => _revealed = true);
   void _onApply() => setState(() => _applied = true);
@@ -174,6 +260,9 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
       _applied = false;
       _elimMsg = false;
       _digitPlaced = false;
+      _placedRow = null;
+      _placedCol = null;
+      _placedDigit = null;
       _pendingPeers = [];
       _eliminatedPeers.clear();
     });
@@ -185,29 +274,35 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
       return;
     }
     final board = lesson.practice[_practiceStartIndex];
-    if (board.step == null || board.step!.actions.isEmpty) return;
-    final target = board.step!.actions[0];
-    if (row == target.row && col == target.col) {
-      if (_needsEliminationTeaching) {
-        _startElimination(lesson);
-      } else {
-        _onCorrect(lesson);
-      }
-    } else {
+    if (!_isValidTarget(board, row, col)) {
       _flashWrong(row, col);
+      return;
+    }
+    if (_needsEliminationTeaching) {
+      final digit = _targetDigit(board, row, col);
+      _startElimination(lesson, board, row, col, digit);
+    } else {
+      _onCorrect(lesson);
     }
   }
 
-  void _startElimination(TutorialLesson lesson) {
-    final board = lesson.practice[_practiceStartIndex];
-    final target = board.step!.actions[0];
-    final peers = _computePeers(board, target.row, target.col, target.digit);
+  void _startElimination(
+    TutorialLesson lesson,
+    LessonBoard board,
+    int row,
+    int col,
+    int digit,
+  ) {
+    final peers = _computePeers(board, row, col, digit);
     if (peers.isEmpty) {
       _onCorrect(lesson);
       return;
     }
     setState(() {
       _digitPlaced = true;
+      _placedRow = row;
+      _placedCol = col;
+      _placedDigit = digit;
       _pendingPeers = peers;
       _eliminatedPeers.clear();
     });
@@ -223,9 +318,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
         _onCorrect(lesson);
       }
     } else {
-      final board = lesson.practice[_practiceStartIndex];
-      final target = board.step!.actions[0];
-      if (row == target.row && col == target.col) return;
+      if (row == _placedRow && col == _placedCol) return;
       _flashWrong(row, col);
     }
   }
@@ -289,7 +382,6 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
               final board = _currentObserveBoard(lesson);
               final target = board.step?.actions.firstOrNull;
 
-              // Board state
               final GameState boardState;
               if (_applied && _elimMsg && _needsEliminationTeaching) {
                 boardState = _appliedWithElimsState(board);
@@ -299,14 +391,14 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
                 boardState = _boardToState(board);
               }
 
-              // Select the target cell after apply (greys out peers for cleanup step)
-              // and after reveal for hiddenSingles (highlights the target cell).
+              // Select the target cell after reveal for all elimination-teaching
+              // techniques (so peers are greyed out, helping the user orient).
               final int? selRow;
               final int? selCol;
               if (_applied && _needsEliminationTeaching) {
                 selRow = target?.row;
                 selCol = target?.col;
-              } else if (_revealed && _isHiddenSingles) {
+              } else if (_revealed && _needsEliminationTeaching) {
                 selRow = target?.row;
                 selCol = target?.col;
               } else {
@@ -314,13 +406,11 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
                 selCol = null;
               }
 
-              // Overlay: only for techniques where the overlay adds value (not singles).
               final overlayStep =
                   (!_needsEliminationTeaching && _revealed && !_applied)
                   ? board.step
                   : null;
 
-              // Description text computed here so _ObservePhase stays dumb.
               final String descText;
               if (_applied && _elimMsg) {
                 descText =
@@ -389,16 +479,14 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
             final int? findSelCol;
             if (_digitPlaced) {
               findState = _eliminatingState(practiceBoard);
-              final t = practiceBoard.step?.actions.firstOrNull;
-              findSelRow = t?.row;
-              findSelCol = t?.col;
+              findSelRow = _placedRow;
+              findSelCol = _placedCol;
             } else {
               findState = _boardToState(practiceBoard);
               findSelRow = null;
               findSelCol = null;
             }
 
-            final target = practiceBoard.step?.actions.firstOrNull;
             final remaining = _pendingPeers.length - _eliminatedPeers.length;
             final String instrText;
             if (!_digitPlaced) {
@@ -407,7 +495,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
                   '${techniqueDisplayName(lesson.technique)}.';
             } else if (remaining > 0) {
               instrText =
-                  'Now tap each cell to remove ${target?.digit ?? '?'} from '
+                  'Now tap each cell to remove ${_placedDigit ?? '?'} from '
                   'its notes — $remaining cell${remaining == 1 ? '' : 's'} '
                   'remaining.';
             } else {
@@ -463,7 +551,7 @@ class _ObservePhase extends StatelessWidget {
   final VoidCallback onNext;
   final int? selectedRow;
   final int? selectedCol;
-  final dynamic overlayStep; // SolveStep? — null suppresses the overlay
+  final dynamic overlayStep;
 
   @override
   Widget build(BuildContext context) {
@@ -491,8 +579,6 @@ class _ObservePhase extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Fixed-size grid: AspectRatio(1) gets its width from the Column
-          // (full width minus padding), so height == width and never shifts.
           AspectRatio(
             aspectRatio: 1,
             child: Stack(
