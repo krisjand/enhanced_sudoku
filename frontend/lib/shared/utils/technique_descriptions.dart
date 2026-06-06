@@ -30,10 +30,15 @@ String techniqueDescription(String id) =>
 // Longer in-lesson intros that reference previously learned techniques.
 const _lessonIntros = <String, String>{
   'nakedSingles':
-      'Look at the notes you just filled in.\n\n'
+      'Building on the notes from the previous lesson.\n\n'
       'When only one candidate remains in a cell, that digit has nowhere '
       'else to go — place it immediately.\n\n'
-      'Scan the board for a cell with a single pencil mark.',
+      'After placing a digit, it must be removed from the notes of every '
+      'cell that sees the placed cell (same row, column, or box). '
+      "We'll walk through this step together.\n\n"
+      'Tip: once you are comfortable with this, you can enable '
+      'auto-note-removal in Settings — the app removes candidates '
+      'automatically each time you place a digit.',
   'hiddenSingles':
       'Look at the notes you filled in for each unit (row, column, box).\n\n'
       'A hidden single is a digit that appears as a candidate in only one '
