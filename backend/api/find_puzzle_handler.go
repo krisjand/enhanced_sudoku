@@ -51,7 +51,8 @@ func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing required query parameter: technique", http.StatusBadRequest)
 		return
 	}
-	if !sudoku.IsKnownTechnique(technique) {
+	reg, err := sudoku.NewTechniqueRegistry(technique)
+	if err != nil {
 		known := strings.Join(sudoku.KnownTechniques(), ", ")
 		http.Error(w, fmt.Sprintf("unknown technique %q; known: %s", technique, known), http.StatusBadRequest)
 		return
@@ -84,7 +85,10 @@ func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	solveOpts := sudoku.HumanSolveOpts{FCMaxPropagation: fcMaxPropagation}
+	solveOpts := sudoku.HumanSolveOpts{
+		MaxTechnique:     technique,
+		FCMaxPropagation: fcMaxPropagation,
+	}
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		if r.Context().Err() != nil {
@@ -93,20 +97,28 @@ func (h *findPuzzleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		puzzle := h.generate()
 
 		result := sudoku.HumanSolveWith(puzzle, solveOpts)
+		if !result.Solved {
+			continue
+		}
+
+		seen := map[string]bool{}
+		var used []string
 		for _, iter := range result.Iterations {
 			for _, a := range iter {
-				if len(a.Steps) > 0 {
-					if a.Technique == technique {
-						writeJSON(w, findPuzzleResponse{
-							Puzzle:    puzzle,
-							Technique: technique,
-							Attempts:  attempt,
-						})
-						return
-					}
-					break // first technique with steps wins; skip the rest of this iteration
+				if len(a.Steps) > 0 && !seen[a.Technique] {
+					seen[a.Technique] = true
+					used = append(used, a.Technique)
 				}
 			}
+		}
+
+		if reg.Decisive(reg.Sort(used)) == technique {
+			writeJSON(w, findPuzzleResponse{
+				Puzzle:    puzzle,
+				Technique: technique,
+				Attempts:  attempt,
+			})
+			return
 		}
 	}
 

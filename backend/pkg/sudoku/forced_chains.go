@@ -4,6 +4,21 @@ import "time"
 
 const TechniqueForcedChains = "forcedChains"
 
+// Chain type constants for SolveStep.ChainType.
+const (
+	FCChainTypeContradiction     = "contradiction"     // one branch leads to contradiction; surviving candidate is placed
+	FCChainTypeMutualInclusion   = "mutualInclusion"   // all branches agree a digit is placed in a cell
+	FCChainTypeMutualElimination = "mutualElimination" // all branches agree a digit is eliminated
+	FCChainTypeMixed             = "mixed"             // common actions include both placements and eliminations
+)
+
+// Seed type constants for SolveStep.SeedType.
+const (
+	FCSeedTypeBiValue    = "biValue"    // seed from a cell with exactly 2 candidates
+	FCSeedTypeBiLocation = "biLocation" // seed from a unit where a digit appears in exactly 2 cells
+	FCSeedTypeTriValue   = "triValue"   // seed from a cell with exactly 3 candidates
+)
+
 type forcedChainsOptions struct {
 	maxDepth   int
 	techniques []namedTechnique
@@ -21,29 +36,22 @@ func defaultForcedChainsOptions() forcedChainsOptions {
 }
 
 // NewForcedChains returns a TechniqueFn that searches for forced chains.
-// Seeds are tried in three passes, stopping at the first that yields a conclusion:
+// All seed types are searched together in a single BFS so the globally
+// shortest chain is found first, regardless of seed type:
 //  1. Bi-value cell seeds (cell with exactly 2 candidates)
 //  2. Bi-location unit seeds (digit with exactly 2 candidate cells in a unit)
 //  3. Tri-value cell seeds (cell with exactly 3 candidates)
 //
-// Within each pass all seeds are advanced one depth step at a time (BFS) so
-// the shortest chain is found first.
+// Seeds are appended in that order so bi-value is preferred when two chains
+// have equal depth. SolveStep.SeedType records the actual seed type of the
+// winning chain.
 func NewForcedChains(opts forcedChainsOptions) TechniqueFn {
 	return func(g Grid, cands Candidates) []SolveStep {
 		start := time.Now()
-		// Pass 1: bi-value cells
-		if steps := runForcedChainPass(collectBivalueSeeds(g, cands), opts, start); steps != nil {
-			return steps
-		}
-		// Pass 2: bi-location units
-		if steps := runForcedChainPass(collectBilocationSeeds(g, cands), opts, start); steps != nil {
-			return steps
-		}
-		// Pass 3: tri-value cells
-		if steps := runForcedChainPass(collectCellSeeds(g, cands, 3), opts, start); steps != nil {
-			return steps
-		}
-		return nil
+		seeds := collectBivalueSeeds(g, cands)
+		seeds = append(seeds, collectBilocationSeeds(g, cands)...)
+		seeds = append(seeds, collectCellSeeds(g, cands, 3)...)
+		return runForcedChainPass(seeds, opts, start)
 	}
 }
 
@@ -274,6 +282,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		sources = append(sources, SourceCell{Row: key[0], Col: key[1], Digits: seedDigits[key]})
 	}
 
+	seedType := fcSeedType(sources)
+
 	if len(contradicted) > 0 && len(valid) == 1 {
 		// Only one candidate survives: place it and include all consequences.
 		b := valid[0]
@@ -286,6 +296,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 			Actions:   actions,
 			Duration:  time.Since(start),
 			Chains:    chains,
+			ChainType: FCChainTypeContradiction,
+			SeedType:  seedType,
 		}}
 	}
 
@@ -300,6 +312,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		Actions:   common,
 		Duration:  time.Since(start),
 		Chains:    chains,
+		ChainType: fcMutualChainType(common),
+		SeedType:  seedType,
 	}}
 }
 
@@ -307,6 +321,37 @@ type fcActionKey struct {
 	row, col   int
 	digit      int
 	actionType ActionType
+}
+
+// fcSeedType derives the seed type from the step's source cells.
+func fcSeedType(sources []SourceCell) string {
+	if len(sources) == 1 {
+		if len(sources[0].Digits) == 2 {
+			return FCSeedTypeBiValue
+		}
+		return FCSeedTypeTriValue
+	}
+	return FCSeedTypeBiLocation
+}
+
+// fcMutualChainType classifies a mutual conclusion by its action types.
+func fcMutualChainType(actions []CellAction) string {
+	hasSet, hasElim := false, false
+	for _, a := range actions {
+		switch a.Type {
+		case ActionSet:
+			hasSet = true
+		case ActionEliminate:
+			hasElim = true
+		}
+	}
+	if hasSet && hasElim {
+		return FCChainTypeMixed
+	}
+	if hasSet {
+		return FCChainTypeMutualInclusion
+	}
+	return FCChainTypeMutualElimination
 }
 
 // fcIntersectActions returns actions that appear in every branch, preserving

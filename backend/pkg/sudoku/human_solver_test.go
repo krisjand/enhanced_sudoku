@@ -308,6 +308,58 @@ func TestHumanSolve(t *testing.T) {
 	}
 }
 
+func TestHumanSolveWith_MaxTechnique(t *testing.T) {
+	t.Run("solver is stuck when max technique excludes the required one", func(t *testing.T) {
+		// fixtureNakedPairs2Puzzle requires NakedPairs to solve; capping at
+		// HiddenSingles must leave it unsolved.
+		result := HumanSolveWith(fixtureNakedPairs2Puzzle(), HumanSolveOpts{
+			MaxTechnique: TechniqueHiddenSingles,
+		})
+		if result.Solved {
+			t.Error("expected Solved=false when max technique is below what the puzzle needs")
+		}
+	})
+
+	t.Run("techniques beyond max are absent from iterations", func(t *testing.T) {
+		result := HumanSolveWith(fixtureNakedPairs2Puzzle(), HumanSolveOpts{
+			MaxTechnique: TechniqueHiddenSingles,
+		})
+		for i, iter := range result.Iterations {
+			for j, attempt := range iter {
+				if attempt.Technique == TechniqueNakedPairs {
+					t.Errorf("iteration %d attempt %d: found NakedPairs beyond the cap", i, j)
+				}
+			}
+		}
+	})
+
+	t.Run("full solve still works when max technique is forcedChains", func(t *testing.T) {
+		result := HumanSolveWith(fixtureNakedPairs2Puzzle(), HumanSolveOpts{
+			MaxTechnique: TechniqueForcedChains,
+		})
+		if !result.Solved {
+			t.Error("expected Solved=true with max technique set to forcedChains")
+		}
+	})
+
+	t.Run("empty MaxTechnique uses all techniques and solves normally", func(t *testing.T) {
+		result := HumanSolveWith(fixtureNakedPairs2Puzzle(), HumanSolveOpts{})
+		if !result.Solved {
+			t.Error("expected Solved=true with no MaxTechnique set")
+		}
+		found := false
+		for _, iter := range result.Iterations {
+			if w := winningAttempt(iter); w != nil && w.Technique == TechniqueNakedPairs {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("expected NakedPairs to be used when no MaxTechnique is set")
+		}
+	})
+}
+
 func TestHumanSolveStep(t *testing.T) {
 	t.Run("solved grid returns solved=true", func(t *testing.T) {
 		g := fixtureUniqueSolution()

@@ -66,18 +66,17 @@ func TestFindPuzzleHandler(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			// Seed 1 produces only Naked/Hidden Singles wins; Naked Triples never wins in
-			// 1 attempt, so the handler exhausts max and returns 404.
+			// Seed 1 never produces a decisive nakedTriples puzzle in 1 attempt.
 			name:       "technique not found within max attempts returns 404",
 			method:     http.MethodGet,
 			url:        "/puzzle/find?technique=nakedTriples&max=1",
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			// Naked Singles wins on every puzzle; seed 1 confirms it wins in the first attempt.
+			// Seed 1 produces a decisive nakedSingles puzzle by attempt 14; max=50 is safe.
 			name:       "known technique found returns 200 with puzzle and attempt count",
 			method:     http.MethodGet,
-			url:        "/puzzle/find?technique=nakedSingles&max=1",
+			url:        "/puzzle/find?technique=nakedSingles&max=50",
 			wantStatus: http.StatusOK,
 			check: func(t *testing.T, body []byte) {
 				var resp findPuzzleResponse

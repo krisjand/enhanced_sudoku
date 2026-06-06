@@ -15,6 +15,7 @@ const (
 // DifficultyResult is the output of Rate.
 type DifficultyResult struct {
 	Level      string   // one of the Difficulty constants
+	Decisive   string // the hardest technique
 	Techniques []string // techniques that produced at least one step, in complexity order
 }
 
@@ -71,8 +72,12 @@ func RateResult(result SolveResult) DifficultyResult {
 		}
 	}
 
+	reg, _ := NewTechniqueRegistry()
+	sorted := reg.Sort(techniques)
+	decisive := reg.Decisive(sorted)
+
 	if !result.Solved {
-		return DifficultyResult{Level: DifficultyLegendary, Techniques: techniques}
+		return DifficultyResult{Level: DifficultyLegendary, Decisive: decisive, Techniques: sorted}
 	}
 
 	level := DifficultyEasy
@@ -83,7 +88,7 @@ func RateResult(result SolveResult) DifficultyResult {
 		level = rankToLevel[maxRank]
 	}
 
-	return DifficultyResult{Level: level, Techniques: techniques}
+	return DifficultyResult{Level: level, Decisive: decisive, Techniques: sorted}
 }
 
 // Rate determines the difficulty of puzzle by running HumanSolve and

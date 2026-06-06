@@ -8,6 +8,7 @@
 *.so
 *.dylib
 backend/backend
+puzzle_corpus/*.lock
 
 # Flutter build output
 frontend/build/

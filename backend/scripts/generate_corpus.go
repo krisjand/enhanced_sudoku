@@ -11,13 +11,13 @@
 //
 //	-out      Output directory (default: ../puzzle_corpus)
 //	-seed     Random seed (default: current time)
-//	-easy     Target count for easy puzzles (default: 2000)
-//	-medium   Target count for medium puzzles (default: 2000)
-//	-hard     Target count for hard puzzles (default: 1000)
-//	-expert   Target count for expert puzzles (default: 500)
-//	-master   Target count for master puzzles (default: 1000)
+//	-easy     Target count for easy puzzles (default: 3000)
+//	-medium   Target count for medium puzzles (default: 3000)
+//	-hard     Target count for hard puzzles (default: 3000)
+//	-expert   Target count for expert puzzles (default: 3000)
+//	-master   Target count for master puzzles (default: 3000)
 //	-grand    Target count for grandmaster puzzles (default: 2000)
-//	-legend   Cap for legendary puzzles (default: 100; opportunistic — does not block completion)
+//	-legend   Cap for legendary puzzles (default: 200; opportunistic — does not block completion)
 //
 // The script is resumable: it reads existing output files on startup and only
 // generates puzzles for targets not yet met. Duplicate puzzles are skipped via
@@ -41,13 +41,15 @@ import (
 
 // puzzleRecord is one entry in the output JSON files.
 type puzzleRecord struct {
-	ID               string    `json:"id"`
-	Grid             [9][9]int `json:"grid"`
-	Solution         [9][9]int `json:"solution"`
-	Techniques       []string  `json:"techniques"`
-	Decisive         string    `json:"decisive,omitempty"`
-	ForcedChainUses  int       `json:"forcedChainUses,omitempty"`
-	ForcedChainSteps int       `json:"forcedChainSteps,omitempty"`
+	ID                   string         `json:"id"`
+	Grid                 [9][9]int      `json:"grid"`
+	Solution             [9][9]int      `json:"solution"`
+	Techniques           []string       `json:"techniques"`
+	Decisive             string         `json:"decisive,omitempty"`
+	ForcedChainUses      int            `json:"forcedChainUses,omitempty"`
+	ForcedChainMaxDepth  int            `json:"forcedChainMaxDepth,omitempty"`
+	ForcedChainTypes     map[string]int `json:"forcedChainTypes,omitempty"`
+	ForcedChainSeedTypes map[string]int `json:"forcedChainSeedTypes,omitempty"`
 }
 
 
@@ -74,48 +76,67 @@ func toInts(g sudoku.Grid) [9][9]int {
 // buildRecord analyses puzzle and returns its record and difficulty level.
 // solution comes from Generate() so we never need to re-derive it.
 // Exactly one HumanSolve call is made per puzzle.
-func buildRecord(puzzle, solution sudoku.Grid) (puzzleRecord, string, bool) {
+func buildRecord(puzzle, solution sudoku.Grid, reg *sudoku.TechniqueRegistry) (puzzleRecord, string, bool) {
 	result := sudoku.HumanSolve(puzzle)
-	dr := sudoku.RateResult(result)
 
-	// Collect forced-chain metadata for puzzles that use it.
-	// fcUses counts how many times FC was the decisive technique.
-	// fcSteps is the depth of the longest branch explored across all FC
-	// applications — including contradiction branches, which may be deeper
-	// than the branch that produced the solution.
-	var fcUses, fcSteps int
+	// Collect techniques that produced at least one step, in encounter order.
+	seen := map[string]bool{}
+	var used []string
+	var fcUses, fcMaxDepth int
+	var fcTypes, fcSeedTypes map[string]int
 	for _, iter := range result.Iterations {
 		for _, attempt := range iter {
-			if attempt.Technique != sudoku.TechniqueForcedChains || len(attempt.Steps) == 0 {
+			if len(attempt.Steps) == 0 {
+				continue
+			}
+			if !seen[attempt.Technique] {
+				seen[attempt.Technique] = true
+				used = append(used, attempt.Technique)
+			}
+			if attempt.Technique != sudoku.TechniqueForcedChains {
 				continue
 			}
 			fcUses++
 			for _, step := range attempt.Steps {
+				if step.ChainType != "" {
+					if fcTypes == nil {
+						fcTypes = map[string]int{}
+					}
+					fcTypes[step.ChainType]++
+				}
+				if step.SeedType != "" {
+					if fcSeedTypes == nil {
+						fcSeedTypes = map[string]int{}
+					}
+					fcSeedTypes[step.SeedType]++
+				}
 				for _, branch := range step.Chains {
-					if d := len(branch.Steps); d > fcSteps {
-						fcSteps = d
+					if d := len(branch.Steps); d > fcMaxDepth {
+						fcMaxDepth = d
 					}
 				}
 			}
 		}
 	}
 
-	// Decisive is the hardest technique applied. For legendary puzzles the
-	// solver got stuck, so it may be empty if no technique produced a step.
-	decisive := ""
-	if len(dr.Techniques) > 0 {
-		decisive = dr.Techniques[len(dr.Techniques)-1]
+	sorted := reg.Sort(used)
+	decisive := reg.Decisive(sorted)
+	level := reg.Level(sorted)
+	if !result.Solved {
+		level = sudoku.DifficultyLegendary
 	}
 
 	return puzzleRecord{
-		ID:               puzzleID(puzzle),
-		Grid:             toInts(puzzle),
-		Solution:         toInts(solution),
-		Techniques:       dr.Techniques,
-		Decisive:         decisive,
-		ForcedChainUses:  fcUses,
-		ForcedChainSteps: fcSteps,
-	}, dr.Level, true
+		ID:                   puzzleID(puzzle),
+		Grid:                 toInts(puzzle),
+		Solution:             toInts(solution),
+		Techniques:           sorted,
+		Decisive:             decisive,
+		ForcedChainUses:      fcUses,
+		ForcedChainMaxDepth:  fcMaxDepth,
+		ForcedChainTypes:     fcTypes,
+		ForcedChainSeedTypes: fcSeedTypes,
+	}, level, true
 }
 
 // loadExisting reads a JSON file and returns the records and a set of IDs.
@@ -174,13 +195,13 @@ func saveFile(path string, records []puzzleRecord) error {
 func main() {
 	outDir := flag.String("out", "../puzzle_corpus", "output directory")
 	seed   := flag.Int64("seed", time.Now().UnixNano(), "random seed")
-	easy   := flag.Int("easy",   2000, "target easy puzzles")
-	medium := flag.Int("medium", 2000, "target medium puzzles")
-	hard   := flag.Int("hard",   1000, "target hard puzzles")
-	expert := flag.Int("expert",  500, "target expert puzzles")
-	master  := flag.Int("master",  1000, "target master puzzles")
+	easy   := flag.Int("easy",   3000, "target easy puzzles")
+	medium := flag.Int("medium", 3000, "target medium puzzles")
+	hard   := flag.Int("hard",   3000, "target hard puzzles")
+	expert := flag.Int("expert",  2000, "target expert puzzles")
+	master  := flag.Int("master",  3000, "target master puzzles")
 	grand   := flag.Int("grand",   2000, "target grandmaster puzzles")
-	legend  := flag.Int("legend",   100, "cap for legendary puzzles (opportunistic — does not block completion)")
+	legend  := flag.Int("legend",   200, "cap for legendary puzzles (opportunistic — does not block completion)")
 	flag.Parse()
 
 	targets := map[string]int{
@@ -253,6 +274,8 @@ func main() {
 		return
 	}
 
+	reg, _ := sudoku.NewTechniqueRegistry()
+
 	fmt.Fprintf(os.Stderr, "Starting generation loop…\n")
 	rng          := rand.New(rand.NewSource(*seed))
 	total        := 0
@@ -279,7 +302,7 @@ func main() {
 		puzzle, solution, _ := sudoku.Generate(rng)
 		total++
 
-		rec, lvl, ok := buildRecord(puzzle, solution)
+		rec, lvl, ok := buildRecord(puzzle, solution, reg)
 		if !ok || seen[rec.ID] {
 			// fall through to progress check
 		} else if len(records[lvl]) >= targets[lvl] {

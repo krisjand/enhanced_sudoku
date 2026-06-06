@@ -4,55 +4,54 @@ import "time"
 
 const TechniqueHiddenSingles = "hiddenSingles"
 
-// namedTechnique pairs a camelCase identifier with an analysis function.
-// The identifier appears in TechniqueAttempt regardless of whether the function
-// finds anything; step-level identifiers (e.g. "hiddenSingleRow") live inside
-// the returned SolveSteps.
+// namedTechnique pairs a technique name with its analysis function.
 type namedTechnique struct {
 	name string
 	fn   TechniqueFn
 }
 
-// techniques lists analysis functions in order of complexity — simplest first.
-// Add new techniques here as they are implemented.
-var techniques = []namedTechnique{
-	{TechniqueNakedSingles, NakedSingles},
-	{TechniqueHiddenSingles, HiddenSingles},
-	{TechniqueLockedCandidates, LockedCandidates},
-	{TechniqueNakedPairs, NakedPairs},
-	{TechniqueHiddenPairs, HiddenPairs},
-	{TechniqueNakedTriples, NakedTriples},
-	{TechniqueHiddenTriples, HiddenTriples},
-	{TechniqueNakedQuadruples, NakedQuadruples},
-	{TechniqueHiddenQuadruples, HiddenQuadruples},
-	{TechniqueXWing, XWing},
-	{TechniqueSwordfish, Swordfish},
-	{TechniqueXYWing, XYWing},
-	{TechniqueXYZWing, XYZWing},
-	{TechniqueForcedChains, NewForcedChains(defaultForcedChainsOptions())},
+// techniques maps each technique name to its analysis function.
+// Ordering is determined by TechniqueRegistry (via techniqueDefinitions).
+var techniques = map[string]TechniqueFn{
+	TechniqueNakedSingles:     NakedSingles,
+	TechniqueHiddenSingles:    HiddenSingles,
+	TechniqueLockedCandidates: LockedCandidates,
+	TechniqueNakedPairs:       NakedPairs,
+	TechniqueHiddenPairs:      HiddenPairs,
+	TechniqueNakedTriples:     NakedTriples,
+	TechniqueHiddenTriples:    HiddenTriples,
+	TechniqueNakedQuadruples:  NakedQuadruples,
+	TechniqueHiddenQuadruples: HiddenQuadruples,
+	TechniqueXWing:            XWing,
+	TechniqueSwordfish:        Swordfish,
+	TechniqueXYWing:           XYWing,
+	TechniqueXYZWing:          XYZWing,
+	TechniqueForcedChains:     NewForcedChains(defaultForcedChainsOptions()),
 }
+
+// defaultTechs is the full ordered technique list, built once at package init.
+var defaultTechs = func() []namedTechnique {
+	reg, _ := NewTechniqueRegistry()
+	return buildTechs(reg.Names(), nil)
+}()
 
 // KnownTechniques returns the registered technique names in complexity order.
 func KnownTechniques() []string {
-	names := make([]string, len(techniques))
-	for i, t := range techniques {
-		names[i] = t.name
-	}
-	return names
+	reg, _ := NewTechniqueRegistry()
+	return reg.Names()
 }
 
 // IsKnownTechnique reports whether name matches a registered technique.
 func IsKnownTechnique(name string) bool {
-	for _, t := range techniques {
-		if t.name == name {
-			return true
-		}
-	}
-	return false
+	_, ok := techniques[name]
+	return ok
 }
 
 // HumanSolveOpts holds optional overrides for HumanSolve.
 type HumanSolveOpts struct {
+	// MaxTechnique, if non-empty, limits the solver to techniques up to and
+	// including the named technique. Must be a known technique name. Ignored when empty.
+	MaxTechnique string
 	// FCMaxPropagation, if non-empty, limits forced chain branch propagation to
 	// techniques up to and including the named technique. Must be a known technique
 	// name simpler than forcedChains. Ignored when empty.
@@ -66,23 +65,32 @@ func HumanSolve(puzzle Grid) SolveResult {
 
 // HumanSolveWith is like HumanSolve but accepts optional overrides.
 func HumanSolveWith(puzzle Grid, opts HumanSolveOpts) SolveResult {
-	techs := techniques
+	var reg *TechniqueRegistry
+	if opts.MaxTechnique != "" {
+		var err error
+		reg, err = NewTechniqueRegistry(opts.MaxTechnique)
+		if err != nil {
+			panic("HumanSolveWith: " + err.Error())
+		}
+	} else {
+		reg, _ = NewTechniqueRegistry()
+	}
+
+	var overrides map[string]TechniqueFn
 	if opts.FCMaxPropagation != "" {
-		propTechs := techniquesUpTo(opts.FCMaxPropagation)
-		customFC := NewForcedChains(forcedChainsOptions{
-			maxDepth:   defaultForcedChainsOptions().maxDepth,
-			techniques: propTechs,
-		})
-		techs = make([]namedTechnique, len(techniques))
-		copy(techs, techniques)
-		for i, t := range techs {
-			if t.name == TechniqueForcedChains {
-				techs[i] = namedTechnique{TechniqueForcedChains, customFC}
-				break
-			}
+		propReg, err := NewTechniqueRegistry(opts.FCMaxPropagation)
+		if err != nil {
+			panic("HumanSolveWith: " + err.Error())
+		}
+		overrides = map[string]TechniqueFn{
+			TechniqueForcedChains: NewForcedChains(forcedChainsOptions{
+				maxDepth:   defaultForcedChainsOptions().maxDepth,
+				techniques: buildTechs(propReg.Names(), nil),
+			}),
 		}
 	}
-	return humanSolveWith(puzzle, techs)
+
+	return humanSolveWith(puzzle, buildTechs(reg.Names(), overrides))
 }
 
 // HumanSolveStep tries each technique once against g and cands and returns the
@@ -92,7 +100,7 @@ func HumanSolveStep(g Grid, cands Candidates) (step *SolveStep, solved bool, stu
 	if g.IsSolved() {
 		return nil, true, false
 	}
-	for _, tech := range techniques {
+	for _, tech := range defaultTechs {
 		steps := tech.fn(g, cands)
 		if len(steps) > 0 {
 			return &steps[0], false, false
@@ -101,18 +109,23 @@ func HumanSolveStep(g Grid, cands Candidates) (step *SolveStep, solved bool, stu
 	return nil, false, true
 }
 
-// techniquesUpTo returns a copy of the techniques slice including entries up to
-// and including the entry named by maxTech. Returns nil if maxTech is not found
-// (caller should have validated beforehand).
-func techniquesUpTo(maxTech string) []namedTechnique {
-	for i, t := range techniques {
-		if t.name == maxTech {
-			result := make([]namedTechnique, i+1)
-			copy(result, techniques[:i+1])
-			return result
+// buildTechs constructs an ordered []namedTechnique from the given names,
+// looking up each function in the techniques map. Entries in overrides replace
+// the default function for that technique name. Names absent from the map are skipped.
+func buildTechs(names []string, overrides map[string]TechniqueFn) []namedTechnique {
+	result := make([]namedTechnique, 0, len(names))
+	for _, name := range names {
+		fn := techniques[name]
+		if overrides != nil {
+			if override, ok := overrides[name]; ok {
+				fn = override
+			}
+		}
+		if fn != nil {
+			result = append(result, namedTechnique{name, fn})
 		}
 	}
-	return nil
+	return result
 }
 
 func humanSolveWith(puzzle Grid, techs []namedTechnique) SolveResult {

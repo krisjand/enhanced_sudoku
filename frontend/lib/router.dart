@@ -6,6 +6,8 @@ import 'features/game/screens/game_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/scores/screens/scores_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
+import 'features/tutorial/screens/notes_lesson_screen.dart';
+import 'features/tutorial/screens/technique_lesson_screen.dart';
 import 'features/tutorial/screens/tutorial_list_screen.dart';
 
 abstract final class AppRoutes {
@@ -13,6 +15,9 @@ abstract final class AppRoutes {
   static const game = '/game';
   static const gameComplete = '/game/complete';
   static const tutorialList = '/tutorial';
+  static const tutorialNotes = '/tutorial/notes';
+  static String tutorialLesson(String technique) =>
+      '/tutorial/lesson/$technique';
   static const scores = '/scores';
   static const settings = '/settings';
   static const developerTools = '/settings/dev-tools';
@@ -39,6 +44,18 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: AppRoutes.tutorialList,
       builder: (context, state) => const TutorialListScreen(),
+      routes: [
+        GoRoute(
+          path: 'notes',
+          builder: (context, state) => const NotesLessonScreen(),
+        ),
+        GoRoute(
+          path: 'lesson/:technique',
+          builder: (context, state) => TechniqueLessonScreen(
+            technique: state.pathParameters['technique']!,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: AppRoutes.scores,

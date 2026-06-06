@@ -38,7 +38,9 @@ type SolveStep struct {
 	Sources   []SourceCell        // cells forming the pattern that triggered the technique
 	Actions   []CellAction
 	Duration  time.Duration       // total time for this technique pass
-	Chains    []ForcedChainBranch `json:"chains,omitempty"` // only set for forced chain conclusions
+	Chains    []ForcedChainBranch `json:"chains,omitempty"`    // only set for forced chain conclusions
+	ChainType string              `json:"chainType,omitempty"` // forced chains only: contradiction / mutualInclusion / mutualElimination / mixed
+	SeedType  string              `json:"seedType,omitempty"`  // forced chains only: biValue / biLocation / triValue
 }
 
 // TechniqueFn is the common signature all analysis functions implement.
