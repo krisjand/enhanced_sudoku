@@ -41,13 +41,15 @@ import (
 
 // puzzleRecord is one entry in the output JSON files.
 type puzzleRecord struct {
-	ID               string    `json:"id"`
-	Grid             [9][9]int `json:"grid"`
-	Solution         [9][9]int `json:"solution"`
-	Techniques       []string  `json:"techniques"`
-	Decisive         string    `json:"decisive,omitempty"`
-	ForcedChainUses  int       `json:"forcedChainUses,omitempty"`
-	ForcedChainSteps int       `json:"forcedChainSteps,omitempty"`
+	ID                   string         `json:"id"`
+	Grid                 [9][9]int      `json:"grid"`
+	Solution             [9][9]int      `json:"solution"`
+	Techniques           []string       `json:"techniques"`
+	Decisive             string         `json:"decisive,omitempty"`
+	ForcedChainUses      int            `json:"forcedChainUses,omitempty"`
+	ForcedChainMaxDepth  int            `json:"forcedChainMaxDepth,omitempty"`
+	ForcedChainTypes     map[string]int `json:"forcedChainTypes,omitempty"`
+	ForcedChainSeedTypes map[string]int `json:"forcedChainSeedTypes,omitempty"`
 }
 
 
@@ -80,7 +82,8 @@ func buildRecord(puzzle, solution sudoku.Grid, reg *sudoku.TechniqueRegistry) (p
 	// Collect techniques that produced at least one step, in encounter order.
 	seen := map[string]bool{}
 	var used []string
-	var fcUses, fcSteps int
+	var fcUses, fcMaxDepth int
+	var fcTypes, fcSeedTypes map[string]int
 	for _, iter := range result.Iterations {
 		for _, attempt := range iter {
 			if len(attempt.Steps) == 0 {
@@ -95,9 +98,21 @@ func buildRecord(puzzle, solution sudoku.Grid, reg *sudoku.TechniqueRegistry) (p
 			}
 			fcUses++
 			for _, step := range attempt.Steps {
+				if step.ChainType != "" {
+					if fcTypes == nil {
+						fcTypes = map[string]int{}
+					}
+					fcTypes[step.ChainType]++
+				}
+				if step.SeedType != "" {
+					if fcSeedTypes == nil {
+						fcSeedTypes = map[string]int{}
+					}
+					fcSeedTypes[step.SeedType]++
+				}
 				for _, branch := range step.Chains {
-					if d := len(branch.Steps); d > fcSteps {
-						fcSteps = d
+					if d := len(branch.Steps); d > fcMaxDepth {
+						fcMaxDepth = d
 					}
 				}
 			}
@@ -112,13 +127,15 @@ func buildRecord(puzzle, solution sudoku.Grid, reg *sudoku.TechniqueRegistry) (p
 	}
 
 	return puzzleRecord{
-		ID:               puzzleID(puzzle),
-		Grid:             toInts(puzzle),
-		Solution:         toInts(solution),
-		Techniques:       sorted,
-		Decisive:         decisive,
-		ForcedChainUses:  fcUses,
-		ForcedChainSteps: fcSteps,
+		ID:                   puzzleID(puzzle),
+		Grid:                 toInts(puzzle),
+		Solution:             toInts(solution),
+		Techniques:           sorted,
+		Decisive:             decisive,
+		ForcedChainUses:      fcUses,
+		ForcedChainMaxDepth:  fcMaxDepth,
+		ForcedChainTypes:     fcTypes,
+		ForcedChainSeedTypes: fcSeedTypes,
 	}, level, true
 }
 

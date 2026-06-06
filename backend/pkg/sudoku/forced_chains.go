@@ -4,6 +4,21 @@ import "time"
 
 const TechniqueForcedChains = "forcedChains"
 
+// Chain type constants for SolveStep.ChainType.
+const (
+	FCChainTypeContradiction     = "contradiction"     // one branch leads to contradiction; surviving candidate is placed
+	FCChainTypeMutualInclusion   = "mutualInclusion"   // all branches agree a digit is placed in a cell
+	FCChainTypeMutualElimination = "mutualElimination" // all branches agree a digit is eliminated
+	FCChainTypeMixed             = "mixed"             // common actions include both placements and eliminations
+)
+
+// Seed type constants for SolveStep.SeedType.
+const (
+	FCSeedTypeBiValue    = "biValue"    // seed from a cell with exactly 2 candidates
+	FCSeedTypeBiLocation = "biLocation" // seed from a unit where a digit appears in exactly 2 cells
+	FCSeedTypeTriValue   = "triValue"   // seed from a cell with exactly 3 candidates
+)
+
 type forcedChainsOptions struct {
 	maxDepth   int
 	techniques []namedTechnique
@@ -274,6 +289,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		sources = append(sources, SourceCell{Row: key[0], Col: key[1], Digits: seedDigits[key]})
 	}
 
+	seedType := fcSeedType(sources)
+
 	if len(contradicted) > 0 && len(valid) == 1 {
 		// Only one candidate survives: place it and include all consequences.
 		b := valid[0]
@@ -286,6 +303,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 			Actions:   actions,
 			Duration:  time.Since(start),
 			Chains:    chains,
+			ChainType: FCChainTypeContradiction,
+			SeedType:  seedType,
 		}}
 	}
 
@@ -300,6 +319,8 @@ func fcExtractConclusion(branches []*fcBranch, start time.Time) []SolveStep {
 		Actions:   common,
 		Duration:  time.Since(start),
 		Chains:    chains,
+		ChainType: fcMutualChainType(common),
+		SeedType:  seedType,
 	}}
 }
 
@@ -307,6 +328,37 @@ type fcActionKey struct {
 	row, col   int
 	digit      int
 	actionType ActionType
+}
+
+// fcSeedType derives the seed type from the step's source cells.
+func fcSeedType(sources []SourceCell) string {
+	if len(sources) == 1 {
+		if len(sources[0].Digits) == 2 {
+			return FCSeedTypeBiValue
+		}
+		return FCSeedTypeTriValue
+	}
+	return FCSeedTypeBiLocation
+}
+
+// fcMutualChainType classifies a mutual conclusion by its action types.
+func fcMutualChainType(actions []CellAction) string {
+	hasSet, hasElim := false, false
+	for _, a := range actions {
+		switch a.Type {
+		case ActionSet:
+			hasSet = true
+		case ActionEliminate:
+			hasElim = true
+		}
+	}
+	if hasSet && hasElim {
+		return FCChainTypeMixed
+	}
+	if hasSet {
+		return FCChainTypeMutualInclusion
+	}
+	return FCChainTypeMutualElimination
 }
 
 // fcIntersectActions returns actions that appear in every branch, preserving

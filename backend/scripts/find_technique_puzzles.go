@@ -29,6 +29,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
@@ -46,13 +47,15 @@ var corpusFileForLevel = map[string]string{
 }
 
 type puzzleRecord struct {
-	ID               string    `json:"id"`
-	Grid             [9][9]int `json:"grid"`
-	Solution         [9][9]int `json:"solution"`
-	Techniques       []string  `json:"techniques"`
-	Decisive         string    `json:"decisive,omitempty"`
-	ForcedChainUses  int       `json:"forcedChainUses,omitempty"`
-	ForcedChainSteps int       `json:"forcedChainSteps,omitempty"`
+	ID                   string         `json:"id"`
+	Grid                 [9][9]int      `json:"grid"`
+	Solution             [9][9]int      `json:"solution"`
+	Techniques           []string       `json:"techniques"`
+	Decisive             string         `json:"decisive,omitempty"`
+	ForcedChainUses      int            `json:"forcedChainUses,omitempty"`
+	ForcedChainMaxDepth  int            `json:"forcedChainMaxDepth,omitempty"`
+	ForcedChainTypes     map[string]int `json:"forcedChainTypes,omitempty"`
+	ForcedChainSeedTypes map[string]int `json:"forcedChainSeedTypes,omitempty"`
 }
 
 func puzzleID(g sudoku.Grid) string {
@@ -86,7 +89,8 @@ func buildRecord(puzzle, solution sudoku.Grid, technique string, reg *sudoku.Tec
 
 	seen := map[string]bool{}
 	var used []string
-	var fcUses, fcSteps int
+	var fcUses, fcMaxDepth int
+	var fcTypes, fcSeedTypes map[string]int
 	for _, iter := range result.Iterations {
 		for _, attempt := range iter {
 			if len(attempt.Steps) == 0 {
@@ -101,9 +105,21 @@ func buildRecord(puzzle, solution sudoku.Grid, technique string, reg *sudoku.Tec
 			}
 			fcUses++
 			for _, step := range attempt.Steps {
+				if step.ChainType != "" {
+					if fcTypes == nil {
+						fcTypes = map[string]int{}
+					}
+					fcTypes[step.ChainType]++
+				}
+				if step.SeedType != "" {
+					if fcSeedTypes == nil {
+						fcSeedTypes = map[string]int{}
+					}
+					fcSeedTypes[step.SeedType]++
+				}
 				for _, branch := range step.Chains {
-					if d := len(branch.Steps); d > fcSteps {
-						fcSteps = d
+					if d := len(branch.Steps); d > fcMaxDepth {
+						fcMaxDepth = d
 					}
 				}
 			}
@@ -117,13 +133,15 @@ func buildRecord(puzzle, solution sudoku.Grid, technique string, reg *sudoku.Tec
 	}
 
 	return puzzleRecord{
-		ID:               puzzleID(puzzle),
-		Grid:             toInts(puzzle),
-		Solution:         toInts(solution),
-		Techniques:       sorted,
-		Decisive:         decisive,
-		ForcedChainUses:  fcUses,
-		ForcedChainSteps: fcSteps,
+		ID:                   puzzleID(puzzle),
+		Grid:                 toInts(puzzle),
+		Solution:             toInts(solution),
+		Techniques:           sorted,
+		Decisive:             decisive,
+		ForcedChainUses:      fcUses,
+		ForcedChainMaxDepth:  fcMaxDepth,
+		ForcedChainTypes:     fcTypes,
+		ForcedChainSeedTypes: fcSeedTypes,
 	}, true
 }
 
@@ -150,13 +168,13 @@ func loadExisting(path string) ([]puzzleRecord, map[string]bool) {
 	return records, seen
 }
 
-func saveFile(path string, records []puzzleRecord) error {
+func marshalRecords(records []puzzleRecord) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString("[\n")
 	for i, r := range records {
 		line, err := json.Marshal(r)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		buf.WriteString("  ")
 		buf.Write(line)
@@ -166,12 +184,40 @@ func saveFile(path string, records []puzzleRecord) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteString("]\n")
+	return buf.Bytes(), nil
+}
 
+func writeRecords(path string, records []puzzleRecord) error {
+	data, err := marshalRecords(records)
+	if err != nil {
+		return err
+	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// appendRecord locks the corpus file, re-reads it, appends rec if not already
+// present, and writes it back. Safe to call from parallel instances.
+func appendRecord(path string, rec puzzleRecord) error {
+	lockPath := path + ".lock"
+	lf, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer lf.Close()
+	if err := syscall.Flock(int(lf.Fd()), syscall.LOCK_EX); err != nil {
+		return err
+	}
+	defer syscall.Flock(int(lf.Fd()), syscall.LOCK_UN) //nolint:errcheck
+
+	records, seen := loadExisting(path)
+	if seen[rec.ID] {
+		return nil // another instance already added it
+	}
+	return writeRecords(path, append(records, rec))
 }
 
 func main() {
@@ -243,28 +289,21 @@ func main() {
 			continue
 		}
 		seen[rec.ID] = true
-
-		records = append(records, rec)
 		found++
 
 		elapsed := time.Since(start).Seconds()
 		rate := float64(generated) / elapsed
 		fmt.Fprintf(os.Stderr, "\r%7d generated  %5.0f/s  found %d/%d", generated, rate, found, *target)
 
-		if err := saveFile(outPath, records); err != nil {
+		if err := appendRecord(outPath, rec); err != nil {
 			fmt.Fprintf(os.Stderr, "\nsave error: %v\n", err)
 		}
 	}
 
-	// Final save.
 	fmt.Fprintln(os.Stderr, "")
-	if err := saveFile(outPath, records); err != nil {
-		fmt.Fprintf(os.Stderr, "save error: %v\n", err)
-		os.Exit(1)
-	}
-
+	finalRecords, _ := loadExisting(outPath)
 	elapsed := time.Since(start)
 	fmt.Printf("\nDone — found %d decisive puzzles in %d generated (%s)\n",
 		found, generated, elapsed.Round(time.Second))
-	fmt.Printf("Corpus file now has %d total records.\n", len(records))
+	fmt.Printf("Corpus file now has %d total records.\n", len(finalRecords))
 }
