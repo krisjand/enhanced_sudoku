@@ -60,6 +60,10 @@ var corpusFileForLevel = map[string]string{
 	sudoku.DifficultyLegendary:   "legendary.json",
 }
 
+// legendaryTechnique is the pseudo-technique name used with -technique to target
+// puzzles that our solver cannot solve with any known technique.
+const legendaryTechnique = "legendary"
+
 type puzzleRecord struct {
 	ID                   string         `json:"id"`
 	Grid                 [9][9]int      `json:"grid"`
@@ -95,10 +99,21 @@ func toInts(g sudoku.Grid) [9][9]int {
 // buildRecord solves puzzle capped at technique and returns the record if that
 // technique is decisive. Returns ok=false if the puzzle is unsolvable within
 // the cap or if a simpler technique is sufficient.
+//
+// When technique == legendaryTechnique the solver runs uncapped; ok is true only
+// when the puzzle cannot be solved by any known technique.
 func buildRecord(puzzle, solution sudoku.Grid, technique string, reg *sudoku.TechniqueRegistry) (puzzleRecord, bool) {
-	result := sudoku.HumanSolveWith(puzzle, sudoku.HumanSolveOpts{MaxTechnique: technique})
-	if !result.Solved {
-		return puzzleRecord{}, false
+	var result sudoku.SolveResult
+	if technique == legendaryTechnique {
+		result = sudoku.HumanSolve(puzzle)
+		if result.Solved {
+			return puzzleRecord{}, false // solvable — not legendary
+		}
+	} else {
+		result = sudoku.HumanSolveWith(puzzle, sudoku.HumanSolveOpts{MaxTechnique: technique})
+		if !result.Solved {
+			return puzzleRecord{}, false
+		}
 	}
 
 	seen := map[string]bool{}
@@ -140,10 +155,19 @@ func buildRecord(puzzle, solution sudoku.Grid, technique string, reg *sudoku.Tec
 		}
 	}
 
-	sorted := reg.Sort(used)
-	decisive := reg.Decisive(sorted)
-	if decisive != technique {
-		return puzzleRecord{}, false
+	var sorted []string
+	var decisive string
+	if technique == legendaryTechnique {
+		// Use whatever techniques were attempted before the solver got stuck.
+		fullReg, _ := sudoku.NewTechniqueRegistry()
+		sorted = fullReg.Sort(used)
+		decisive = "" // no single decisive technique — solver couldn't finish
+	} else {
+		sorted = reg.Sort(used)
+		decisive = reg.Decisive(sorted)
+		if decisive != technique {
+			return puzzleRecord{}, false
+		}
 	}
 
 	return puzzleRecord{
@@ -280,21 +304,30 @@ func main() {
 		for _, t := range fullReg.Names() {
 			fmt.Fprintf(os.Stderr, "  %s\n", t)
 		}
+		fmt.Fprintf(os.Stderr, "  %s  (puzzles unsolvable by any known technique)\n", legendaryTechnique)
 		os.Exit(1)
 	}
 
-	reg, err := sudoku.NewTechniqueRegistry(*technique)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: unknown technique %q\n", *technique)
-		fmt.Fprintln(os.Stderr, "known techniques:")
-		fullReg, _ := sudoku.NewTechniqueRegistry()
-		for _, t := range fullReg.Names() {
-			fmt.Fprintf(os.Stderr, "  %s\n", t)
+	var reg *sudoku.TechniqueRegistry
+	var level string
+	if *technique == legendaryTechnique {
+		level = sudoku.DifficultyLegendary
+	} else {
+		var err error
+		reg, err = sudoku.NewTechniqueRegistry(*technique)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: unknown technique %q\n", *technique)
+			fmt.Fprintln(os.Stderr, "known techniques:")
+			fullReg, _ := sudoku.NewTechniqueRegistry()
+			for _, t := range fullReg.Names() {
+				fmt.Fprintf(os.Stderr, "  %s\n", t)
+			}
+			fmt.Fprintf(os.Stderr, "  %s  (puzzles unsolvable by any known technique)\n", legendaryTechnique)
+			os.Exit(1)
 		}
-		os.Exit(1)
+		level = reg.Level([]string{*technique})
 	}
 
-	level := reg.Level([]string{*technique})
 	corpusFile := corpusFileForLevel[level]
 	outPath := filepath.Join(*corpusDir, corpusFile)
 	fmt.Printf("Searching for puzzles decisive in: %s\n", *technique)
@@ -316,7 +349,9 @@ func main() {
 	// Count how many puzzles already match all filters.
 	alreadyHave := 0
 	for _, r := range records {
-		if r.Decisive == *technique && matchesFilters(r, alsoTechs, *chainType, *seedType) {
+		decisiveMatch := r.Decisive == *technique ||
+			(*technique == legendaryTechnique && r.Decisive == "")
+		if decisiveMatch && matchesFilters(r, alsoTechs, *chainType, *seedType) {
 			alreadyHave++
 		}
 	}
