@@ -25,6 +25,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/krisjand/enhanced_sudoku/backend/pkg/sudoku"
@@ -41,9 +42,17 @@ type lessonBoard struct {
 }
 
 type stepJSON struct {
-	Technique string       `json:"technique"`
-	Sources   []sourceJSON `json:"sources"`
-	Actions   []actionJSON `json:"actions"`
+	Technique string           `json:"technique"`
+	Sources   []sourceJSON     `json:"sources"`
+	Actions   []actionJSON     `json:"actions"`
+	Chains    []chainBranchJSON `json:"chains,omitempty"`
+	ChainType string           `json:"chain_type,omitempty"`
+	SeedType  string           `json:"seed_type,omitempty"`
+}
+
+type chainBranchJSON struct {
+	Candidate int        `json:"candidate"`
+	Steps     []stepJSON `json:"steps"`
 }
 
 type sourceJSON struct {
@@ -306,9 +315,45 @@ func writeJSON(path string, v any) {
 	if err != nil {
 		log.Fatalf("marshal: %v", err)
 	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	// Collapse any [[n,n,...],[n,n,...],...] patterns to one row per line.
+	compact := collapseNumberArrays(data)
+	if err := os.WriteFile(path, append(compact, '\n'), 0o644); err != nil {
 		log.Fatalf("write %s: %v", path, err)
 	}
+}
+
+// collapseNumberArrays reformats JSON so grids and notes are readable:
+// pass 1 collapses [n,n,...] onto one line;
+// pass 2 collapses [[n,...],[n,...],...] (notes rows) onto one line.
+func collapseNumberArrays(data []byte) []byte {
+	reNum := regexp.MustCompile(`\[\s*(-?\d+(?:,\s*-?\d+)*)\s*\]`)
+	collapse := func(match []byte) []byte {
+		nums := regexp.MustCompile(`-?\d+`).FindAll(match, -1)
+		out := []byte{'['}
+		for i, n := range nums {
+			if i > 0 {
+				out = append(out, ',')
+			}
+			out = append(out, n...)
+		}
+		return append(out, ']')
+	}
+	// Pass 1: [n,n,...] → [n,n,...]
+	result := reNum.ReplaceAllFunc(data, collapse)
+	// Pass 2: [[n,...],[n,...],...] → [[n,...],[n,...],...]  (notes rows)
+	reRow := regexp.MustCompile(`\[\s*(\[[\d,]*\](?:,\s*\[[\d,]*\])*)\s*\]`)
+	result = reRow.ReplaceAllFunc(result, func(match []byte) []byte {
+		inner := regexp.MustCompile(`\[[\d,]*\]`).FindAll(match, -1)
+		out := []byte{'['}
+		for i, cell := range inner {
+			if i > 0 {
+				out = append(out, ',')
+			}
+			out = append(out, cell...)
+		}
+		return append(out, ']')
+	})
+	return result
 }
 
 func exists(path string) bool {
@@ -373,7 +418,21 @@ func toStepJSON(s *sudoku.SolveStep) *stepJSON {
 		}
 		actions[i] = actionJSON{Row: a.Row, Col: a.Col, Digit: a.Digit, Type: t}
 	}
-	return &stepJSON{Technique: s.Technique, Sources: sources, Actions: actions}
+	sj := &stepJSON{
+		Technique: s.Technique,
+		Sources:   sources,
+		Actions:   actions,
+		ChainType: s.ChainType,
+		SeedType:  s.SeedType,
+	}
+	for _, branch := range s.Chains {
+		bj := chainBranchJSON{Candidate: branch.Candidate}
+		for i := range branch.Steps {
+			bj.Steps = append(bj.Steps, *toStepJSON(&branch.Steps[i]))
+		}
+		sj.Chains = append(sj.Chains, bj)
+	}
+	return sj
 }
 
 func minCount(seen map[string]int, variants []string) int {
