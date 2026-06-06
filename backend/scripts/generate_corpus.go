@@ -74,19 +74,23 @@ func toInts(g sudoku.Grid) [9][9]int {
 // buildRecord analyses puzzle and returns its record and difficulty level.
 // solution comes from Generate() so we never need to re-derive it.
 // Exactly one HumanSolve call is made per puzzle.
-func buildRecord(puzzle, solution sudoku.Grid) (puzzleRecord, string, bool) {
+func buildRecord(puzzle, solution sudoku.Grid, reg *sudoku.TechniqueRegistry) (puzzleRecord, string, bool) {
 	result := sudoku.HumanSolve(puzzle)
-	dr := sudoku.RateResult(result)
 
-	// Collect forced-chain metadata for puzzles that use it.
-	// fcUses counts how many times FC was the decisive technique.
-	// fcSteps is the depth of the longest branch explored across all FC
-	// applications — including contradiction branches, which may be deeper
-	// than the branch that produced the solution.
+	// Collect techniques that produced at least one step, in encounter order.
+	seen := map[string]bool{}
+	var used []string
 	var fcUses, fcSteps int
 	for _, iter := range result.Iterations {
 		for _, attempt := range iter {
-			if attempt.Technique != sudoku.TechniqueForcedChains || len(attempt.Steps) == 0 {
+			if len(attempt.Steps) == 0 {
+				continue
+			}
+			if !seen[attempt.Technique] {
+				seen[attempt.Technique] = true
+				used = append(used, attempt.Technique)
+			}
+			if attempt.Technique != sudoku.TechniqueForcedChains {
 				continue
 			}
 			fcUses++
@@ -100,15 +104,22 @@ func buildRecord(puzzle, solution sudoku.Grid) (puzzleRecord, string, bool) {
 		}
 	}
 
+	sorted := reg.Sort(used)
+	decisive := reg.Decisive(sorted)
+	level := reg.Level(sorted)
+	if !result.Solved {
+		level = sudoku.DifficultyLegendary
+	}
+
 	return puzzleRecord{
 		ID:               puzzleID(puzzle),
 		Grid:             toInts(puzzle),
 		Solution:         toInts(solution),
-		Techniques:       dr.Techniques,
-		Decisive:         dr.Decisive,
+		Techniques:       sorted,
+		Decisive:         decisive,
 		ForcedChainUses:  fcUses,
 		ForcedChainSteps: fcSteps,
-	}, dr.Level, true
+	}, level, true
 }
 
 // loadExisting reads a JSON file and returns the records and a set of IDs.
@@ -246,6 +257,8 @@ func main() {
 		return
 	}
 
+	reg, _ := sudoku.NewTechniqueRegistry()
+
 	fmt.Fprintf(os.Stderr, "Starting generation loop…\n")
 	rng          := rand.New(rand.NewSource(*seed))
 	total        := 0
@@ -272,7 +285,7 @@ func main() {
 		puzzle, solution, _ := sudoku.Generate(rng)
 		total++
 
-		rec, lvl, ok := buildRecord(puzzle, solution)
+		rec, lvl, ok := buildRecord(puzzle, solution, reg)
 		if !ok || seen[rec.ID] {
 			// fall through to progress check
 		} else if len(records[lvl]) >= targets[lvl] {

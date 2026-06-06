@@ -253,7 +253,7 @@ func TestBilocationSeeds(t *testing.T) {
 
 		// Apply all non-FC techniques until stuck — mirrors HumanSolve state
 		// just before invoking forced chains.
-		preTechs := techniques[:len(techniques)-1]
+		preTechs := buildTechs(mustRegistry(t, TechniqueXYZWing).Names(), nil)
 		for {
 			advanced := false
 			for _, tech := range preTechs {
