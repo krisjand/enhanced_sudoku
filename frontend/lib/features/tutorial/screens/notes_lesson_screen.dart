@@ -270,14 +270,46 @@ class _GuidedBody extends StatelessWidget {
         children: [
           if (guideIdx == 0) ...[
             Text(
-              'Why use notes?',
+              'Welcome to Sudoku',
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
+              'The goal is to fill every row, column, and 3×3 box with the '
+              'digits 1–9, each appearing exactly once. There are many '
+              'techniques to help you get there, and we will teach you them '
+              'one by one. The core concept behind every technique is taking '
+              'notes — and that is where we start.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const Divider(height: 24),
+            Text(
+              'Reading the board',
+              style: theme.textTheme.titleSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'When you select a cell, the cells in the same row, column, '
+              'and box are greyed out. These cells "see" the selected cell, '
+              'meaning a digit can only be placed in the selected cell if it '
+              'does not already appear in any of those greyed-out cells.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const Divider(height: 24),
+            Text(
+              'Notes (candidates)',
+              style: theme.textTheme.titleSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
               'Notes track which digits are still possible in each empty '
-              "cell. Let's fill in one box together, one cell at a time.",
+              "cell — the ones that don't appear in any greyed-out cell. "
+              "Let's fill in one box together, one cell at a time.",
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
