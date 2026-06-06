@@ -27,19 +27,47 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
   _Phase _phase = _Phase.observe;
   bool _revealed = false;
   bool _applied = false;
-  bool _elimMsg = false; // observe: "Show effect →" pressed
+  bool _elimMsg = false;
+  // hiddenSingles cycles through 3 observe examples before practice
+  int _observeExampleIdx = 0;
   int? _wrongRow;
   int? _wrongCol;
 
-  // find / elimination phase
   bool _digitPlaced = false;
   List<(int, int)> _pendingPeers = [];
   final Set<(int, int)> _eliminatedPeers = {};
 
-  final int _practiceIndex = 0;
-
+  bool get _isHiddenSingles => widget.technique == 'hiddenSingles';
   bool get _needsEliminationTeaching =>
       widget.technique == 'nakedSingles' || widget.technique == 'hiddenSingles';
+  // hiddenSingles uses explain + practice[0] + practice[1] as 3 observe examples;
+  // actual practice starts at practice[2].
+  int get _observeExampleCount => _isHiddenSingles ? 3 : 1;
+  int get _practiceStartIndex => _isHiddenSingles ? 2 : 0;
+
+  LessonBoard _currentObserveBoard(TutorialLesson lesson) {
+    if (!_isHiddenSingles || _observeExampleIdx == 0) return lesson.explain;
+    return lesson.practice[_observeExampleIdx - 1];
+  }
+
+  // Detects which unit makes the step on `board` a hidden single.
+  String _hiddenSingleUnit(LessonBoard board) {
+    if (board.step == null || board.step!.actions.isEmpty) return 'this unit';
+    final action = board.step!.actions[0];
+    final d = action.digit;
+    final row = action.row;
+    final col = action.col;
+    final notes = board.notes;
+    var rowCount = 0;
+    var colCount = 0;
+    for (var i = 0; i < 9; i++) {
+      if (i != col && notes[row][i].contains(d)) rowCount++;
+      if (i != row && notes[i][col].contains(d)) colCount++;
+    }
+    if (rowCount == 0) return 'row ${row + 1}';
+    if (colCount == 0) return 'column ${col + 1}';
+    return 'the box';
+  }
 
   GameState _boardToState(LessonBoard board) => GameState(
     initialGrid: board.initialGrid,
@@ -94,7 +122,6 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
     return peers;
   }
 
-  // Observe phase: applied board with all peer notes removed (after "Show effect →").
   GameState _appliedWithElimsState(LessonBoard board) {
     final base = _appliedState(board);
     final target = board.step!.actions[0];
@@ -113,7 +140,6 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
     );
   }
 
-  // Find phase: applied board with only the already-eliminated peers cleaned up.
   GameState _eliminatingState(LessonBoard board) {
     final base = _appliedState(board);
     final target = board.step!.actions[0];
@@ -136,8 +162,14 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
   void _onElimMsg() => setState(() => _elimMsg = true);
 
   void _onNext() {
+    final moreExamples =
+        _isHiddenSingles && _observeExampleIdx < _observeExampleCount - 1;
     setState(() {
-      _phase = _Phase.find;
+      if (moreExamples) {
+        _observeExampleIdx++;
+      } else {
+        _phase = _Phase.find;
+      }
       _revealed = false;
       _applied = false;
       _elimMsg = false;
@@ -152,7 +184,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
       _onPeerTap(lesson, row, col);
       return;
     }
-    final board = lesson.practice[_practiceIndex];
+    final board = lesson.practice[_practiceStartIndex];
     if (board.step == null || board.step!.actions.isEmpty) return;
     final target = board.step!.actions[0];
     if (row == target.row && col == target.col) {
@@ -167,7 +199,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
   }
 
   void _startElimination(TutorialLesson lesson) {
-    final board = lesson.practice[_practiceIndex];
+    final board = lesson.practice[_practiceStartIndex];
     final target = board.step!.actions[0];
     final peers = _computePeers(board, target.row, target.col, target.digit);
     if (peers.isEmpty) {
@@ -183,9 +215,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
 
   void _onPeerTap(TutorialLesson lesson, int row, int col) {
     if (_eliminatedPeers.length == _pendingPeers.length) return;
-    if (_eliminatedPeers.contains((row, col))) {
-      return; // already done — ignore silently
-    }
+    if (_eliminatedPeers.contains((row, col))) return;
 
     if (_pendingPeers.contains((row, col))) {
       setState(() => _eliminatedPeers.add((row, col)));
@@ -193,8 +223,7 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
         _onCorrect(lesson);
       }
     } else {
-      // Ignore taps on the placed cell itself; flash wrong for everything else.
-      final board = lesson.practice[_practiceIndex];
+      final board = lesson.practice[_practiceStartIndex];
       final target = board.step!.actions[0];
       if (row == target.row && col == target.col) return;
       _flashWrong(row, col);
@@ -256,35 +285,96 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error: $e')),
           data: (lesson) {
-            final practiceBoard = lesson.practice[_practiceIndex];
-
             if (_phase == _Phase.observe) {
-              final explainTarget = lesson.explain.step?.actions.firstOrNull;
-              final GameState observeState;
+              final board = _currentObserveBoard(lesson);
+              final target = board.step?.actions.firstOrNull;
+
+              // Board state
+              final GameState boardState;
               if (_applied && _elimMsg && _needsEliminationTeaching) {
-                observeState = _appliedWithElimsState(lesson.explain);
+                boardState = _appliedWithElimsState(board);
               } else if (_applied) {
-                observeState = _appliedState(lesson.explain);
+                boardState = _appliedState(board);
               } else {
-                observeState = _boardToState(lesson.explain);
+                boardState = _boardToState(board);
               }
-              // After applying a digit, select that cell so its peers are greyed out.
-              final int? obsSelRow = (_applied && _needsEliminationTeaching)
-                  ? explainTarget?.row
+
+              // Select the target cell after apply (greys out peers for cleanup step)
+              // and after reveal for hiddenSingles (highlights the target cell).
+              final int? selRow;
+              final int? selCol;
+              if (_applied && _needsEliminationTeaching) {
+                selRow = target?.row;
+                selCol = target?.col;
+              } else if (_revealed && _isHiddenSingles) {
+                selRow = target?.row;
+                selCol = target?.col;
+              } else {
+                selRow = null;
+                selCol = null;
+              }
+
+              // Overlay: only for techniques where the overlay adds value (not singles).
+              final overlayStep =
+                  (!_needsEliminationTeaching && _revealed && !_applied)
+                  ? board.step
                   : null;
-              final int? obsSelCol = (_applied && _needsEliminationTeaching)
-                  ? explainTarget?.col
-                  : null;
+
+              // Description text computed here so _ObservePhase stays dumb.
+              final String descText;
+              if (_applied && _elimMsg) {
+                descText =
+                    'Those notes are now gone.\n\n'
+                    'Tip: in Settings you can enable auto-note-removal — the app '
+                    'removes candidates automatically each time you place a digit.';
+              } else if (_applied) {
+                final d = target?.digit;
+                descText = d != null
+                    ? 'Placing the $d removes it as a candidate from every cell '
+                          'in the same row, column, and box. Tap "Show effect →" to '
+                          'see which notes are removed.'
+                    : 'Placing a digit removes it from the notes of all cells '
+                          'that see it.';
+              } else if (_isHiddenSingles && _revealed) {
+                final d = target?.digit;
+                final unit = _hiddenSingleUnit(board);
+                descText = d != null
+                    ? '$d can only go in this cell in $unit — every other cell '
+                          'in that unit already has $d ruled out. Even though this '
+                          'cell has other candidates, $d must go here.'
+                    : techniqueLessonIntro(lesson.technique);
+              } else if (_isHiddenSingles) {
+                final n = _observeExampleIdx + 1;
+                final total = _observeExampleCount;
+                descText =
+                    'Example $n of $total\n\n'
+                    'Scan this board: one digit can only go in one place within '
+                    'a row, column, or box. Find it and tap "Show me →".';
+              } else {
+                descText = techniqueLessonIntro(lesson.technique);
+              }
+
+              final String nextLabel;
+              if (_isHiddenSingles &&
+                  _observeExampleIdx < _observeExampleCount - 1) {
+                nextLabel = 'Next example →';
+              } else if (_needsEliminationTeaching) {
+                nextLabel = 'Practice →';
+              } else {
+                nextLabel = 'Next →';
+              }
 
               return _ObservePhase(
-                lesson: lesson,
                 revealed: _revealed,
                 applied: _applied,
                 elimMsg: _elimMsg,
                 needsElimTeaching: _needsEliminationTeaching,
-                boardState: observeState,
-                selectedRow: obsSelRow,
-                selectedCol: obsSelCol,
+                boardState: boardState,
+                selectedRow: selRow,
+                selectedCol: selCol,
+                overlayStep: overlayStep,
+                descText: descText,
+                nextLabel: nextLabel,
                 onReveal: _onReveal,
                 onApply: _onApply,
                 onElimMsg: _onElimMsg,
@@ -292,6 +382,8 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
               );
             }
 
+            // Find / elimination phase
+            final practiceBoard = lesson.practice[_practiceStartIndex];
             final GameState findState;
             final int? findSelRow;
             final int? findSelCol;
@@ -306,16 +398,29 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
               findSelCol = null;
             }
 
+            final target = practiceBoard.step?.actions.firstOrNull;
+            final remaining = _pendingPeers.length - _eliminatedPeers.length;
+            final String instrText;
+            if (!_digitPlaced) {
+              instrText =
+                  'Tap the cell where you can apply '
+                  '${techniqueDisplayName(lesson.technique)}.';
+            } else if (remaining > 0) {
+              instrText =
+                  'Now tap each cell to remove ${target?.digit ?? '?'} from '
+                  'its notes — $remaining cell${remaining == 1 ? '' : 's'} '
+                  'remaining.';
+            } else {
+              instrText = 'All done!';
+            }
+
             return _FindPhase(
-              lesson: lesson,
               boardState: findState,
               wrongRow: _wrongRow,
               wrongCol: _wrongCol,
-              digitPlaced: _digitPlaced,
-              pendingCount: _pendingPeers.length,
-              eliminatedCount: _eliminatedPeers.length,
               selectedRow: findSelRow,
               selectedCol: findSelCol,
+              instrText: instrText,
               onCellTap: (r, c) => _onCellTap(lesson, r, c),
             );
           },
@@ -329,56 +434,40 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
 
 class _ObservePhase extends StatelessWidget {
   const _ObservePhase({
-    required this.lesson,
     required this.revealed,
     required this.applied,
     required this.elimMsg,
     required this.needsElimTeaching,
     required this.boardState,
+    required this.descText,
+    required this.nextLabel,
     required this.onReveal,
     required this.onApply,
     required this.onElimMsg,
     required this.onNext,
     this.selectedRow,
     this.selectedCol,
+    this.overlayStep,
   });
 
-  final TutorialLesson lesson;
   final bool revealed;
   final bool applied;
   final bool elimMsg;
   final bool needsElimTeaching;
   final GameState boardState;
+  final String descText;
+  final String nextLabel;
   final VoidCallback onReveal;
   final VoidCallback onApply;
   final VoidCallback onElimMsg;
   final VoidCallback onNext;
   final int? selectedRow;
   final int? selectedCol;
+  final dynamic overlayStep; // SolveStep? — null suppresses the overlay
 
   @override
   Widget build(BuildContext context) {
-    final explain = lesson.explain;
-    final target = explain.step?.actions.firstOrNull;
-
-    final String descText;
-    if (!applied || !needsElimTeaching) {
-      descText = techniqueLessonIntro(lesson.technique);
-    } else if (!elimMsg) {
-      final d = target?.digit;
-      descText = d != null
-          ? 'Placing the $d removes it as a candidate from every cell in '
-                'the same row, column, and box. Tap "Show effect →" to see '
-                'which notes are removed.'
-          : 'Placing a digit removes it from the notes of all cells that see it.';
-    } else {
-      descText =
-          'Those notes are now gone.\n\n'
-          'Tip: in Settings you can enable auto-note-removal — the app '
-          'will remove candidates automatically each time you place a digit.';
-    }
-
-    Widget button() {
+    Widget buildButton() {
       if (!revealed) {
         return FilledButton(
           onPressed: onReveal,
@@ -394,10 +483,7 @@ class _ObservePhase extends StatelessWidget {
           child: const Text('Show effect →'),
         );
       }
-      return FilledButton(
-        onPressed: onNext,
-        child: Text(needsElimTeaching ? 'Practice →' : 'Next →'),
-      );
+      return FilledButton(onPressed: onNext, child: Text(nextLabel));
     }
 
     return Padding(
@@ -405,29 +491,40 @@ class _ObservePhase extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Fixed-size grid: AspectRatio(1) gets its width from the Column
+          // (full width minus padding), so height == width and never shifts.
+          AspectRatio(
+            aspectRatio: 1,
+            child: Stack(
+              children: [
+                SudokuGrid(
+                  state: boardState,
+                  selectedRow: selectedRow,
+                  selectedCol: selectedCol,
+                ),
+                if (overlayStep != null)
+                  TechniqueOverlay(step: overlayStep!, onDismiss: () {}),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           Expanded(
-            child: Center(
-              child: Stack(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SudokuGrid(
-                    state: boardState,
-                    selectedRow: selectedRow,
-                    selectedCol: selectedCol,
+                  Text(
+                    descText,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  if (revealed && !applied && explain.step != null)
-                    TechniqueOverlay(step: explain.step!, onDismiss: () {}),
+                  const SizedBox(height: 20),
+                  buildButton(),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            descText,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          button(),
         ],
       ),
     );
@@ -438,71 +535,50 @@ class _ObservePhase extends StatelessWidget {
 
 class _FindPhase extends StatelessWidget {
   const _FindPhase({
-    required this.lesson,
     required this.boardState,
     required this.wrongRow,
     required this.wrongCol,
-    required this.digitPlaced,
-    required this.pendingCount,
-    required this.eliminatedCount,
+    required this.instrText,
     required this.onCellTap,
     this.selectedRow,
     this.selectedCol,
   });
 
-  final TutorialLesson lesson;
   final GameState boardState;
   final int? wrongRow;
   final int? wrongCol;
-  final bool digitPlaced;
-  final int pendingCount;
-  final int eliminatedCount;
+  final String instrText;
   final int? selectedRow;
   final int? selectedCol;
   final void Function(int row, int col) onCellTap;
 
   @override
   Widget build(BuildContext context) {
-    final target = lesson.practice.isNotEmpty
-        ? lesson.practice[0].step?.actions.firstOrNull
-        : null;
-    final remaining = pendingCount - eliminatedCount;
-
-    final String instrText;
-    if (!digitPlaced) {
-      instrText =
-          'Tap the cell where you can apply '
-          '${techniqueDisplayName(lesson.technique)}.';
-    } else if (remaining > 0) {
-      instrText =
-          'Now tap each cell to remove ${target?.digit ?? '?'} from its '
-          'notes — $remaining cell${remaining == 1 ? '' : 's'} remaining.';
-    } else {
-      instrText = 'All done!';
-    }
-
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Center(
-              child: SudokuGrid(
-                state: boardState,
-                selectedRow: selectedRow,
-                selectedCol: selectedCol,
-                conflictRow: wrongRow,
-                conflictCol: wrongCol,
-                onCellTap: onCellTap,
-              ),
+          AspectRatio(
+            aspectRatio: 1,
+            child: SudokuGrid(
+              state: boardState,
+              selectedRow: selectedRow,
+              selectedCol: selectedCol,
+              conflictRow: wrongRow,
+              conflictCol: wrongCol,
+              onCellTap: onCellTap,
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            instrText,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Text(
+                instrText,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
           ),
         ],
       ),
