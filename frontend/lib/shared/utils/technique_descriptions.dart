@@ -40,12 +40,16 @@ const _lessonIntros = <String, String>{
       'auto-note-removal in Settings — the app removes candidates '
       'automatically each time you place a digit.',
   'hiddenSingles':
-      'Look at the notes you filled in for each unit (row, column, box).\n\n'
+      'Building on naked singles.\n\n'
       'A hidden single is a digit that appears as a candidate in only one '
-      'cell of a unit. Even if that cell has other candidates, this digit '
-      'must go there — it has no other home.\n\n'
+      'cell of a row, column, or box. Even if that cell has other '
+      'candidates, this digit must go there — it has no other home in '
+      'that unit.\n\n'
       'Scan each row, column, and box: if a digit appears in only one '
-      "cell's notes, place it.",
+      "cell's notes, place it.\n\n"
+      'Just like with naked singles, placing the digit removes it from '
+      'the notes of every cell that sees the placed cell. '
+      'We will walk through that cleanup step together.',
 };
 
 String techniqueLessonIntro(String id) =>

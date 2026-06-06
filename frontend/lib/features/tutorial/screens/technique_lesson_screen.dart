@@ -38,7 +38,8 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
 
   final int _practiceIndex = 0;
 
-  bool get _needsEliminationTeaching => widget.technique == 'nakedSingles';
+  bool get _needsEliminationTeaching =>
+      widget.technique == 'nakedSingles' || widget.technique == 'hiddenSingles';
 
   GameState _boardToState(LessonBoard board) => GameState(
     initialGrid: board.initialGrid,
