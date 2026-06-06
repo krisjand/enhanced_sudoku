@@ -145,23 +145,40 @@ class _LessonBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          const Text(
-            'Fill in the candidates for every empty cell.\n'
-            'Tap a cell, then tap digits to toggle pencil marks.',
+          Text(
+            'Why use notes?',
+            style: theme.textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Text(
+            'Notes (also called candidates) are pencil marks showing which '
+            'digits could still go in a cell. Writing them out reveals '
+            'patterns — like a cell with only one remaining option, or a '
+            'digit that can only go in one place within a row.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const Divider(height: 24),
+          Text(
+            'Fill in the candidates for every empty cell below. '
+            'Tap a cell, then tap each digit that could go there.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
           SudokuGrid(
             state: _state,
             selectedRow: selectedRow,
             selectedCol: selectedCol,
             onCellTap: onCellTap,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _DigitRow(onDigitTap: onDigitTap),
         ],
       ),

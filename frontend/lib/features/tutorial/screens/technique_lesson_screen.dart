@@ -174,12 +174,14 @@ class _ObservePhase extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Stack(
-              children: [
-                SudokuGrid(state: boardState),
-                if (!applied && explain.step != null)
-                  TechniqueOverlay(step: explain.step!, onDismiss: () {}),
-              ],
+            child: Center(
+              child: Stack(
+                children: [
+                  SudokuGrid(state: boardState),
+                  if (!applied && explain.step != null)
+                    TechniqueOverlay(step: explain.step!, onDismiss: () {}),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -235,11 +237,13 @@ class _FindPhase extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: SudokuGrid(
-              state: boardState,
-              conflictRow: wrongRow,
-              conflictCol: wrongCol,
-              onCellTap: onCellTap,
+            child: Center(
+              child: SudokuGrid(
+                state: boardState,
+                conflictRow: wrongRow,
+                conflictCol: wrongCol,
+                onCellTap: onCellTap,
+              ),
             ),
           ),
           const SizedBox(height: 16),
