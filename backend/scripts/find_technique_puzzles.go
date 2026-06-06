@@ -6,14 +6,27 @@
 // Useful for filling gaps where a technique is rare — e.g. hiddenQuadruples
 // has only ~7 examples in the default corpus.
 //
+// Sub-type filters narrow the search further without changing the decisive
+// technique. They are useful for finding rare forced-chain variants:
+//
+//   -also nakedQuadruples       only keep puzzles that also use nakedQuadruples
+//   -also nakedQuadruples,hiddenQuadruples  (comma-separated, all must appear)
+//   -chainType mutualElimination only keep puzzles with an elimination chain step
+//   -seedType biLocation         only keep puzzles with a bi-location seed step
+//
 // Usage (from the backend/ directory):
 //
 //	go run ./scripts/find_technique_puzzles.go -technique hiddenQuadruples
 //	go run ./scripts/find_technique_puzzles.go -technique hiddenQuadruples -target 20 -seed 42
+//	go run ./scripts/find_technique_puzzles.go -technique forcedChains -also nakedQuadruples -target 20
+//	go run ./scripts/find_technique_puzzles.go -technique forcedChains -chainType mutualElimination -target 20
 //
 // Flags:
 //
 //	-technique  Technique identifier to search for (required)
+//	-also       Comma-separated co-techniques that must also appear in the solve
+//	-chainType  Forced chain type that must appear (contradiction/mutualInclusion/mutualElimination)
+//	-seedType   Forced chain seed type that must appear (biValue/biLocation/triValue)
 //	-target     How many new decisive puzzles to find (default: 20)
 //	-corpus     Corpus directory (default: ../puzzle_corpus)
 //	-seed       Random seed (default: current time)
@@ -29,6 +42,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -220,12 +234,44 @@ func appendRecord(path string, rec puzzleRecord) error {
 	return writeRecords(path, append(records, rec))
 }
 
+// matchesFilters returns true if rec satisfies all active sub-type filters.
+// alsoTechs is a slice of technique names that must all appear in rec.Techniques.
+// chainType and seedType, when non-empty, must appear in the corresponding maps.
+func matchesFilters(rec puzzleRecord, alsoTechs []string, chainType, seedType string) bool {
+	if len(alsoTechs) > 0 {
+		techSet := make(map[string]bool, len(rec.Techniques))
+		for _, t := range rec.Techniques {
+			techSet[t] = true
+		}
+		for _, t := range alsoTechs {
+			if !techSet[t] {
+				return false
+			}
+		}
+	}
+	if chainType != "" && rec.ForcedChainTypes[chainType] == 0 {
+		return false
+	}
+	if seedType != "" && rec.ForcedChainSeedTypes[seedType] == 0 {
+		return false
+	}
+	return true
+}
+
 func main() {
 	technique := flag.String("technique", "", "technique identifier to search for (required)")
+	also      := flag.String("also", "", "comma-separated co-techniques that must also appear in the solve")
+	chainType := flag.String("chainType", "", "forced chain type that must appear (contradiction/mutualInclusion/mutualElimination)")
+	seedType  := flag.String("seedType", "", "forced chain seed type that must appear (biValue/biLocation/triValue)")
 	target    := flag.Int("target", 20, "number of new decisive puzzles to find")
 	corpusDir := flag.String("corpus", "../puzzle_corpus", "corpus directory")
 	seed      := flag.Int64("seed", time.Now().UnixNano(), "random seed")
 	flag.Parse()
+
+	var alsoTechs []string
+	if *also != "" {
+		alsoTechs = strings.Split(*also, ",")
+	}
 
 	if *technique == "" {
 		fmt.Fprintln(os.Stderr, "error: -technique is required")
@@ -252,20 +298,29 @@ func main() {
 	corpusFile := corpusFileForLevel[level]
 	outPath := filepath.Join(*corpusDir, corpusFile)
 	fmt.Printf("Searching for puzzles decisive in: %s\n", *technique)
-	fmt.Printf("Output file:                        %s\n", outPath)
-	fmt.Printf("Target new puzzles:                 %d\n", *target)
-	fmt.Printf("Seed:                               %d\n\n", *seed)
+	if len(alsoTechs) > 0 {
+		fmt.Printf("Also requires techniques:          %s\n", strings.Join(alsoTechs, ", "))
+	}
+	if *chainType != "" {
+		fmt.Printf("Required chain type:               %s\n", *chainType)
+	}
+	if *seedType != "" {
+		fmt.Printf("Required seed type:                %s\n", *seedType)
+	}
+	fmt.Printf("Output file:                       %s\n", outPath)
+	fmt.Printf("Target new puzzles:                %d\n", *target)
+	fmt.Printf("Seed:                              %d\n\n", *seed)
 
 	records, seen := loadExisting(outPath)
 
-	// Count how many decisive puzzles already exist for this technique.
+	// Count how many puzzles already match all filters.
 	alreadyHave := 0
 	for _, r := range records {
-		if r.Decisive == *technique {
+		if r.Decisive == *technique && matchesFilters(r, alsoTechs, *chainType, *seedType) {
 			alreadyHave++
 		}
 	}
-	fmt.Printf("Already in corpus: %d decisive, %d total records\n\n", alreadyHave, len(records))
+	fmt.Printf("Already in corpus: %d matching, %d total records\n\n", alreadyHave, len(records))
 
 	rng       := rand.New(rand.NewSource(*seed))
 	found     := 0
@@ -277,7 +332,7 @@ func main() {
 		generated++
 
 		rec, ok := buildRecord(puzzle, solution, *technique, reg)
-		if !ok {
+		if !ok || !matchesFilters(rec, alsoTechs, *chainType, *seedType) {
 			if generated%500 == 0 {
 				elapsed := time.Since(start).Seconds()
 				rate := float64(generated) / elapsed
@@ -303,7 +358,7 @@ func main() {
 	fmt.Fprintln(os.Stderr, "")
 	finalRecords, _ := loadExisting(outPath)
 	elapsed := time.Since(start)
-	fmt.Printf("\nDone — found %d decisive puzzles in %d generated (%s)\n",
+	fmt.Printf("\nDone — found %d puzzles in %d generated (%s)\n",
 		found, generated, elapsed.Round(time.Second))
 	fmt.Printf("Corpus file now has %d total records.\n", len(finalRecords))
 }

@@ -36,29 +36,22 @@ func defaultForcedChainsOptions() forcedChainsOptions {
 }
 
 // NewForcedChains returns a TechniqueFn that searches for forced chains.
-// Seeds are tried in three passes, stopping at the first that yields a conclusion:
+// All seed types are searched together in a single BFS so the globally
+// shortest chain is found first, regardless of seed type:
 //  1. Bi-value cell seeds (cell with exactly 2 candidates)
 //  2. Bi-location unit seeds (digit with exactly 2 candidate cells in a unit)
 //  3. Tri-value cell seeds (cell with exactly 3 candidates)
 //
-// Within each pass all seeds are advanced one depth step at a time (BFS) so
-// the shortest chain is found first.
+// Seeds are appended in that order so bi-value is preferred when two chains
+// have equal depth. SolveStep.SeedType records the actual seed type of the
+// winning chain.
 func NewForcedChains(opts forcedChainsOptions) TechniqueFn {
 	return func(g Grid, cands Candidates) []SolveStep {
 		start := time.Now()
-		// Pass 1: bi-value cells
-		if steps := runForcedChainPass(collectBivalueSeeds(g, cands), opts, start); steps != nil {
-			return steps
-		}
-		// Pass 2: bi-location units
-		if steps := runForcedChainPass(collectBilocationSeeds(g, cands), opts, start); steps != nil {
-			return steps
-		}
-		// Pass 3: tri-value cells
-		if steps := runForcedChainPass(collectCellSeeds(g, cands, 3), opts, start); steps != nil {
-			return steps
-		}
-		return nil
+		seeds := collectBivalueSeeds(g, cands)
+		seeds = append(seeds, collectBilocationSeeds(g, cands)...)
+		seeds = append(seeds, collectCellSeeds(g, cands, 3)...)
+		return runForcedChainPass(seeds, opts, start)
 	}
 }
 
