@@ -1,3 +1,4 @@
+// Short one-liners used in the tutorial list subtitle.
 const _descriptions = <String, String>{
   'notes': 'Learn to track candidate digits using pencil marks.',
   'nakedSingles': 'A cell with only one possible digit — place it immediately.',
@@ -25,3 +26,22 @@ const _descriptions = <String, String>{
 
 String techniqueDescription(String id) =>
     _descriptions[id] ?? 'Advanced technique.';
+
+// Longer in-lesson intros that reference previously learned techniques.
+const _lessonIntros = <String, String>{
+  'nakedSingles':
+      'Look at the notes you just filled in.\n\n'
+      'When only one candidate remains in a cell, that digit has nowhere '
+      'else to go — place it immediately.\n\n'
+      'Scan the board for a cell with a single pencil mark.',
+  'hiddenSingles':
+      'Look at the notes you filled in for each unit (row, column, box).\n\n'
+      'A hidden single is a digit that appears as a candidate in only one '
+      'cell of a unit. Even if that cell has other candidates, this digit '
+      'must go there — it has no other home.\n\n'
+      'Scan each row, column, and box: if a digit appears in only one '
+      "cell's notes, place it.",
+};
+
+String techniqueLessonIntro(String id) =>
+    _lessonIntros[id] ?? techniqueDescription(id);

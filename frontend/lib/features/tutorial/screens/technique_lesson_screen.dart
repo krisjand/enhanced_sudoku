@@ -25,6 +25,7 @@ class TechniqueLessonScreen extends ConsumerStatefulWidget {
 
 class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
   _Phase _phase = _Phase.observe;
+  bool _revealed = false;
   bool _applied = false;
   final int _practiceIndex = 0;
   int? _wrongRow;
@@ -60,11 +61,14 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
     );
   }
 
+  void _onReveal() => setState(() => _revealed = true);
+
   void _onApply() => setState(() => _applied = true);
 
   void _onNext() {
     setState(() {
       _phase = _Phase.find;
+      _revealed = false;
       _applied = false;
     });
   }
@@ -125,26 +129,30 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(techniqueDisplayName(widget.technique))),
-      body: lessonAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (lesson) => _phase == _Phase.observe
-            ? _ObservePhase(
-                lesson: lesson,
-                applied: _applied,
-                boardState: _applied
-                    ? _appliedState(lesson.explain)
-                    : _boardToState(lesson.explain),
-                onApply: _applied ? null : _onApply,
-                onNext: _applied ? _onNext : null,
-              )
-            : _FindPhase(
-                lesson: lesson,
-                boardState: _boardToState(lesson.practice[_practiceIndex]),
-                wrongRow: _wrongRow,
-                wrongCol: _wrongCol,
-                onCellTap: (r, c) => _onCellTap(lesson, r, c),
-              ),
+      body: SafeArea(
+        child: lessonAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (lesson) => _phase == _Phase.observe
+              ? _ObservePhase(
+                  lesson: lesson,
+                  revealed: _revealed,
+                  applied: _applied,
+                  boardState: _applied
+                      ? _appliedState(lesson.explain)
+                      : _boardToState(lesson.explain),
+                  onReveal: _onReveal,
+                  onApply: _onApply,
+                  onNext: _onNext,
+                )
+              : _FindPhase(
+                  lesson: lesson,
+                  boardState: _boardToState(lesson.practice[_practiceIndex]),
+                  wrongRow: _wrongRow,
+                  wrongCol: _wrongCol,
+                  onCellTap: (r, c) => _onCellTap(lesson, r, c),
+                ),
+        ),
       ),
     );
   }
@@ -153,17 +161,21 @@ class _TechniqueLessonScreenState extends ConsumerState<TechniqueLessonScreen> {
 class _ObservePhase extends StatelessWidget {
   const _ObservePhase({
     required this.lesson,
+    required this.revealed,
     required this.applied,
     required this.boardState,
+    required this.onReveal,
     required this.onApply,
     required this.onNext,
   });
 
   final TutorialLesson lesson;
+  final bool revealed;
   final bool applied;
   final GameState boardState;
-  final VoidCallback? onApply;
-  final VoidCallback? onNext;
+  final VoidCallback onReveal;
+  final VoidCallback onApply;
+  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +190,7 @@ class _ObservePhase extends StatelessWidget {
               child: Stack(
                 children: [
                   SudokuGrid(state: boardState),
-                  if (!applied && explain.step != null)
+                  if (revealed && !applied && explain.step != null)
                     TechniqueOverlay(step: explain.step!, onDismiss: () {}),
                 ],
               ),
@@ -186,28 +198,17 @@ class _ObservePhase extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            techniqueDescription(lesson.technique),
+            techniqueLessonIntro(lesson.technique),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: onApply,
-                  child: const Text('Apply'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: onNext,
-                  child: const Text('Next →'),
-                ),
-              ),
-            ],
-          ),
+          if (!revealed)
+            FilledButton(onPressed: onReveal, child: const Text('Show me →'))
+          else if (!applied)
+            FilledButton(onPressed: onApply, child: const Text('Apply'))
+          else
+            FilledButton(onPressed: onNext, child: const Text('Next →')),
         ],
       ),
     );
