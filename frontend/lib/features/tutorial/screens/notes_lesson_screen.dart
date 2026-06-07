@@ -52,6 +52,8 @@ class _NotesLessonScreenState extends ConsumerState<NotesLessonScreen> {
 
   Set<(int, int)> _badPeers = {};
 
+  String? _hintMessage;
+
   bool _done = false;
 
   void _initGuidedCell(LessonBoard board) {
@@ -239,10 +241,7 @@ class _NotesLessonScreenState extends ConsumerState<NotesLessonScreen> {
       for (var c = 0; c < 9; c++) {
         if (board.initialGrid[r][c] != 0) continue;
         if (_playerNotes[r][c].any((d) => !board.notes[r][c].contains(d))) {
-          setState(() {
-            _selectedRow = r;
-            _selectedCol = c;
-          });
+          _showHint(r, c, 'This cell has wrong candidates.');
           return;
         }
       }
@@ -254,14 +253,22 @@ class _NotesLessonScreenState extends ConsumerState<NotesLessonScreen> {
         final player = _playerNotes[r][c];
         if (!target.every(player.contains) ||
             player.any((d) => !target.contains(d))) {
-          setState(() {
-            _selectedRow = r;
-            _selectedCol = c;
-          });
+          _showHint(r, c, 'This cell is missing some candidates.');
           return;
         }
       }
     }
+  }
+
+  void _showHint(int r, int c, String message) {
+    setState(() {
+      _selectedRow = r;
+      _selectedCol = c;
+      _hintMessage = message;
+    });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _hintMessage = null);
+    });
   }
 
   bool _isPracticeComplete(LessonBoard board) {
@@ -322,13 +329,13 @@ class _NotesLessonScreenState extends ConsumerState<NotesLessonScreen> {
         'Notes mode is on. Tap a digit to record it as a '
             'candidate for this cell.',
       _SubStep.waitNoteRemoval =>
-        'Some nearby cells have digit $_firstNoteDigit marked as a note, '
-            'but it does not belong there. '
-            'Tap each red cell and remove digit $_firstNoteDigit from it.',
+        'Oops! Someone accidentally placed digit $_firstNoteDigit as a note '
+            'in a few cells where it does not belong. '
+            'Tap each red cell to select it, then tap $_firstNoteDigit to remove it.',
       _SubStep.fillingNotes =>
-        'Fill in candidates for every empty cell. '
-            'Tap a cell, then tap each digit that could go there. '
-            'Wrong candidates are shown in red.',
+        'Now it is up to you! Select each empty cell and fill in every '
+            'candidate that could go there. '
+            'If you place a wrong candidate, the cell and digit will turn red.',
     };
   }
 
@@ -424,6 +431,7 @@ class _NotesLessonScreenState extends ConsumerState<NotesLessonScreen> {
               invalidDigit: _invalidDigit,
               firstNoteDigit: _firstNoteDigit,
               showNotesOffBanner: _showNotesOffBanner,
+              hintMessage: _hintMessage,
               descText: _buildDescText(),
               onCellTap: onCellTap,
               onDigitTap: (d) => _onDigitTap(board, d),
@@ -523,6 +531,7 @@ class _GuidedBody extends StatelessWidget {
     required this.invalidDigit,
     required this.firstNoteDigit,
     required this.showNotesOffBanner,
+    required this.hintMessage,
     required this.descText,
     required this.onCellTap,
     required this.onDigitTap,
@@ -546,6 +555,7 @@ class _GuidedBody extends StatelessWidget {
   final int? invalidDigit;
   final int? firstNoteDigit;
   final bool showNotesOffBanner;
+  final String? hintMessage;
   final String descText;
   final void Function(int, int)? onCellTap;
   final void Function(int) onDigitTap;
@@ -615,6 +625,17 @@ class _GuidedBody extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium,
                 ),
+                if (hintMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    hintMessage!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _buildControls(),
               ],
