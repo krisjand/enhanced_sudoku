@@ -7,6 +7,7 @@ import '../../../shared/models/lesson_board.dart';
 import '../../../shared/models/tutorial_lesson.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 import '../providers/tutorial_provider.dart';
+import 'tutorial_widgets.dart';
 
 enum _Phase { intro, observe, find, eliminate }
 
@@ -133,24 +134,6 @@ class _HiddenSinglesLessonScreenState
     );
   }
 
-  List<(int, int)> _computePeers(LessonBoard board, int row, int col, int d) {
-    final peers = <(int, int)>[];
-    final br = (row ~/ 3) * 3;
-    final bc = (col ~/ 3) * 3;
-    for (var r = 0; r < 9; r++) {
-      for (var c = 0; c < 9; c++) {
-        if (r == row && c == col) continue;
-        if ((r == row ||
-                c == col ||
-                (r >= br && r < br + 3 && c >= bc && c < bc + 3)) &&
-            board.notes[r][c].contains(d)) {
-          peers.add((r, c));
-        }
-      }
-    }
-    return peers;
-  }
-
   // ── Callbacks ─────────────────────────────────────────────────────────────
 
   void _onDigitFindTap(LessonBoard board, int d) {
@@ -171,7 +154,7 @@ class _HiddenSinglesLessonScreenState
               a.digit == d,
         );
     if (isValid) {
-      final peers = _computePeers(board, r, c, d);
+      final peers = tutorialComputePeers(board, r, c, d);
       setState(() {
         _placedRow = r;
         _placedCol = c;
@@ -217,7 +200,7 @@ class _HiddenSinglesLessonScreenState
     });
   }
 
-  Future<void> _showSuccess() async {
+  Future<void> _showSuccess({bool didCleanup = true}) async {
     ref.read(completedLessonsProvider.notifier).markComplete('hiddenSingles');
     if (!mounted) return;
     await showDialog<void>(
@@ -225,11 +208,15 @@ class _HiddenSinglesLessonScreenState
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Lesson complete!'),
-        content: const Text(
-          'You found the hidden single, placed the digit, and cleaned up '
-          'the notes.\n\n'
-          'Tip: scan each unit for digits that can only appear in one '
-          'cell — whenever you spot one, place it immediately.',
+        content: Text(
+          didCleanup
+              ? 'You found the hidden single, placed the digit, and cleaned up '
+                    'the notes.\n\n'
+                    'Tip: scan each unit for digits that can only appear in one '
+                    'cell — whenever you spot one, place it immediately.'
+              : 'You found the hidden single and placed the digit!\n\n'
+                    'Tip: scan each unit for digits that can only appear in one '
+                    'cell — whenever you spot one, place it immediately.',
         ),
         actions: [
           FilledButton(
@@ -302,16 +289,22 @@ class _HiddenSinglesLessonScreenState
 
             // _Phase.eliminate
             if (_pendingPeers.isEmpty) {
-              return _NoPeersBody(
+              final pd = _placedDigit!;
+              return TutorialNoPeersBody(
                 boardState: _eliminatePhaseState(practiceBoard),
-                digit: _placedDigit!,
-                onDone: () => _showSuccess(),
+                digit: pd,
+                message:
+                    'Well done! You placed digit $pd.\n\n'
+                    'In this puzzle no peer cell had $pd as a candidate '
+                    'note, so there is nothing to clean up — that is perfectly '
+                    'valid. Hidden singles do not always require note removal.',
+                onDone: () => _showSuccess(didCleanup: false),
               );
             }
             final remaining = _pendingPeers
                 .where((p) => !_eliminatedPeers.contains(p))
                 .toSet();
-            return _EliminateBody(
+            return TutorialEliminateBody(
               boardState: _eliminatePhaseState(practiceBoard),
               selRow: _selRow,
               selCol: _selCol,
@@ -645,53 +638,6 @@ class _ObserveBodyState extends State<_ObserveBody> {
   }
 }
 
-// ── No-peers completion ───────────────────────────────────────────────────────
-
-class _NoPeersBody extends StatelessWidget {
-  const _NoPeersBody({
-    required this.boardState,
-    required this.digit,
-    required this.onDone,
-  });
-
-  final GameState boardState;
-  final int digit;
-  final VoidCallback onDone;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        AspectRatio(aspectRatio: 1, child: SudokuGrid(state: boardState)),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Well done! You placed digit $digit.\n\n'
-                  'In this puzzle no peer cell had $digit as a candidate '
-                  'note, so there is nothing to clean up — that is perfectly '
-                  'valid. Hidden singles do not always require note removal.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: onDone,
-                  child: const Text('Finish lesson →'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Find ──────────────────────────────────────────────────────────────────────
 
 class _FindBody extends StatelessWidget {
@@ -742,180 +688,12 @@ class _FindBody extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                _DigitRow(onDigitTap: onDigitTap),
+                TutorialDigitRow(onDigitTap: onDigitTap),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Eliminate ─────────────────────────────────────────────────────────────────
-
-class _EliminateBody extends StatelessWidget {
-  const _EliminateBody({
-    required this.boardState,
-    required this.notesOn,
-    required this.wrongCells,
-    required this.wrongNotes,
-    required this.placedDigit,
-    required this.remainingCount,
-    required this.onCellTap,
-    required this.onDigitTap,
-    required this.onNotesToggle,
-    this.selRow,
-    this.selCol,
-  });
-
-  final GameState boardState;
-  final int? selRow;
-  final int? selCol;
-  final bool notesOn;
-  final Set<(int, int)> wrongCells;
-  final Map<(int, int), Set<int>> wrongNotes;
-  final int placedDigit;
-  final int remainingCount;
-  final void Function(int, int) onCellTap;
-  final void Function(int) onDigitTap;
-  final VoidCallback onNotesToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final String descText;
-    if (!notesOn) {
-      descText =
-          'You placed digit $placedDigit — now remove it from the notes of '
-          'every cell that can see it.\n\n'
-          'First, switch to notes mode using the pencil button.';
-    } else if (remainingCount > 0) {
-      descText =
-          'Notes mode is on. Tap each red cell to select it, '
-          'then tap $placedDigit to remove it from that cell\'s notes.\n'
-          '$remainingCount cell${remainingCount == 1 ? '' : 's'} remaining.';
-    } else {
-      descText = 'All done!';
-    }
-
-    return Column(
-      children: [
-        AspectRatio(
-          aspectRatio: 1,
-          child: SudokuGrid(
-            state: boardState,
-            selectedRow: selRow,
-            selectedCol: selCol,
-            wrongCells: wrongCells,
-            wrongNotes: wrongNotes,
-            onCellTap: onCellTap,
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  descText,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                _NotesToggle(notesOn: notesOn, onToggle: onNotesToggle),
-                if (notesOn && remainingCount > 0) ...[
-                  const SizedBox(height: 12),
-                  _DigitRow(onDigitTap: onDigitTap, markedDigit: placedDigit),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Shared widgets ────────────────────────────────────────────────────────────
-
-class _NotesToggle extends StatelessWidget {
-  const _NotesToggle({required this.notesOn, required this.onToggle});
-
-  final bool notesOn;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return FilledButton.tonal(
-      onPressed: onToggle,
-      style: FilledButton.styleFrom(
-        backgroundColor: notesOn
-            ? colorScheme.primaryContainer
-            : colorScheme.secondaryContainer,
-        foregroundColor: notesOn
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onSecondaryContainer,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(notesOn ? Icons.edit : Icons.edit_off, size: 18),
-          const SizedBox(width: 8),
-          Text(notesOn ? 'Notes on' : 'Notes off'),
-        ],
-      ),
-    );
-  }
-}
-
-class _DigitRow extends StatelessWidget {
-  const _DigitRow({required this.onDigitTap, this.markedDigit});
-
-  final void Function(int) onDigitTap;
-  final int? markedDigit;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: List.generate(9, (i) {
-        final d = i + 1;
-        final isMarked = d == markedDigit;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  backgroundColor: isMarked
-                      ? colorScheme.primaryContainer
-                      : colorScheme.secondaryContainer,
-                  foregroundColor: isMarked
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSecondaryContainer,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                onPressed: () => onDigitTap(d),
-                child: Text(
-                  '$d',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
     );
   }
 }
