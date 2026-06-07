@@ -616,7 +616,7 @@ class _GuidedBody extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                _buildControls(colorScheme),
+                _buildControls(),
               ],
             ),
           ),
@@ -625,7 +625,7 @@ class _GuidedBody extends StatelessWidget {
     );
   }
 
-  Widget _buildControls(ColorScheme colorScheme) {
+  Widget _buildControls() {
     return switch (subStep) {
       _SubStep.waitHighlight when !anyTapped => const SizedBox.shrink(),
       _SubStep.waitHighlight => FilledButton(
