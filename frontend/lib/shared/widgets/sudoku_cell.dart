@@ -44,11 +44,12 @@ class SudokuCell extends StatelessWidget {
   final Set<int> wrongNoteDigits;
 
   Color get _background {
-    if (hasConflict || hasWrongBackground) {
+    if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
+    if (isSelected || isDigitMatch) return GameColors.selectedCell;
+    if (isTarget) return GameColors.highlightedDigit.withValues(alpha: 0.5);
+    if (hasWrongBackground) {
       return GameColors.errorDigit.withValues(alpha: 0.25);
     }
-    if (isTarget) return GameColors.highlightedDigit.withValues(alpha: 0.5);
-    if (isSelected || isDigitMatch) return GameColors.selectedCell;
     if (isPeer) return GameColors.peerCell;
     return Colors.transparent;
   }

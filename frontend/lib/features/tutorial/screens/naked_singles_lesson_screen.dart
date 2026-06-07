@@ -331,9 +331,9 @@ class _IntroBody extends StatelessWidget {
   }
 }
 
-// ── Observe (show and tell) ───────────────────────────────────────────────────
+// ── Observe (show and tell, 2 sub-steps) ─────────────────────────────────────
 
-class _ObserveBody extends StatelessWidget {
+class _ObserveBody extends StatefulWidget {
   const _ObserveBody({
     required this.board,
     required this.nakedSingle,
@@ -345,27 +345,97 @@ class _ObserveBody extends StatelessWidget {
   final VoidCallback onNext;
 
   @override
+  State<_ObserveBody> createState() => _ObserveBodyState();
+}
+
+class _ObserveBodyState extends State<_ObserveBody> {
+  int _step = 0;
+
+  GameState _beforeState(LessonBoard board) => GameState(
+    initialGrid: board.initialGrid,
+    currentGrid: board.currentGrid,
+    notes: List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    ),
+  );
+
+  GameState _afterState(LessonBoard board, int row, int col, int digit) {
+    final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
+    newGrid[row][col] = digit;
+    final newNotes = List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    );
+    newNotes[row][col] = {};
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (var r = 0; r < 9; r++) {
+      for (var c = 0; c < 9; c++) {
+        if (r == row && c == col) continue;
+        if (r == row ||
+            c == col ||
+            (r >= br && r < br + 3 && c >= bc && c < bc + 3)) {
+          newNotes[r][c].remove(digit);
+        }
+      }
+    }
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: newGrid,
+      notes: newNotes,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (row, col, digit) = nakedSingle;
-    final state = GameState(
-      initialGrid: board.initialGrid,
-      currentGrid: board.currentGrid,
-      notes: List.generate(
-        9,
-        (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
-      ),
-    );
+    final board = widget.board;
+    final (row, col, digit) = widget.nakedSingle;
+
+    final GameState gridState;
+    final int? selRow;
+    final int? selCol;
+    final int? targetRow;
+    final int? targetCol;
+    final String descText;
+    final String buttonLabel;
+
+    if (_step == 0) {
+      gridState = _beforeState(board);
+      selRow = row;
+      selCol = col;
+      targetRow = row;
+      targetCol = col;
+      descText =
+          'The highlighted cell has only one candidate: digit $digit.\n\n'
+          'Every other digit is already present in its row, column, or box, '
+          'so $digit is the only possibility. Place it immediately.';
+      buttonLabel = 'Place it →';
+    } else {
+      gridState = _afterState(board, row, col, digit);
+      selRow = row;
+      selCol = col;
+      targetRow = null;
+      targetCol = null;
+      descText =
+          'Digit $digit is now placed.\n\n'
+          'Every peer cell that still had $digit as a candidate (greyed cells) '
+          'no longer needs it — $digit can appear only once in each row, '
+          'column, and box, so those notes are removed.';
+      buttonLabel = 'Got it →';
+    }
+
     return Column(
       children: [
         AspectRatio(
           aspectRatio: 1,
           child: SudokuGrid(
-            state: state,
-            selectedRow: row,
-            selectedCol: col,
-            targetRow: row,
-            targetCol: col,
+            state: gridState,
+            selectedRow: selRow,
+            selectedCol: selCol,
+            targetRow: targetRow,
+            targetCol: targetCol,
           ),
         ),
         Expanded(
@@ -375,16 +445,21 @@ class _ObserveBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Look at the highlighted cell — it has only one candidate: '
-                  'digit $digit.\n\n'
-                  'Every other digit has been placed somewhere in its row, '
-                  'column, or box, leaving $digit as the only possibility.\n\n'
-                  'This is a naked single.',
+                  descText,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 20),
-                FilledButton(onPressed: onNext, child: const Text('Got it →')),
+                FilledButton(
+                  onPressed: () {
+                    if (_step == 0) {
+                      setState(() => _step = 1);
+                    } else {
+                      widget.onNext();
+                    }
+                  },
+                  child: Text(buttonLabel),
+                ),
               ],
             ),
           ),
