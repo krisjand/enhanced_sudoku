@@ -565,7 +565,7 @@ class _ObserveBodyState extends State<_ObserveBody> {
         gridState = _placedState(row, col, digit);
         targetRow = null;
         targetCol = null;
-        gridUnitCells = const {};
+        gridUnitCells = _allPeerUnits(row, col);
         gridWrongCells = affected;
         gridWrongNotes = {
           for (final p in affected) p: {digit},
