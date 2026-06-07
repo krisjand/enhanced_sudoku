@@ -22,6 +22,10 @@ class SudokuGrid extends StatelessWidget {
     this.targetCol,
     this.wrongCells = const {},
     this.wrongNotes = const {},
+    this.unitCells = const {},
+    this.singleHighlightRow,
+    this.singleHighlightCol,
+    this.singleHighlightDigit,
   });
 
   final GameState state;
@@ -38,6 +42,12 @@ class SudokuGrid extends StatelessWidget {
   final Set<(int, int)> wrongCells;
   // Specific note digits rendered in red per cell.
   final Map<(int, int), Set<int>> wrongNotes;
+  // Light tint applied to a specific unit during hidden-singles show-and-tell.
+  final Set<(int, int)> unitCells;
+  // Highlight a single note digit in one specific cell (tutorial use).
+  final int? singleHighlightRow;
+  final int? singleHighlightCol;
+  final int? singleHighlightDigit;
 
   // The digit in the selected cell (1–9), or null when nothing useful to highlight.
   int? get selectedDigit {
@@ -79,14 +89,15 @@ class SudokuGrid extends StatelessWidget {
                         isPeer: isPeer(row, col),
                         hasConflict: row == conflictRow && col == conflictCol,
                         isDigitMatch: isDigitMatch(row, col, highlightDigit),
-                        highlightedNote: highlightedNote(
-                          row,
-                          col,
-                          highlightDigit,
-                        ),
+                        highlightedNote:
+                            (row == singleHighlightRow &&
+                                col == singleHighlightCol)
+                            ? singleHighlightDigit
+                            : highlightedNote(row, col, highlightDigit),
                         isTarget: row == targetRow && col == targetCol,
                         hasWrongBackground: wrongCells.contains((row, col)),
                         wrongNoteDigits: wrongNotes[(row, col)] ?? const {},
+                        hasUnitTint: unitCells.contains((row, col)),
                       ),
                     ),
                   );

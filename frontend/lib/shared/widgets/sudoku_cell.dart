@@ -20,6 +20,7 @@ class SudokuCell extends StatelessWidget {
     this.isTarget = false,
     this.hasWrongBackground = false,
     this.wrongNoteDigits = const {},
+    this.hasUnitTint = false,
   });
 
   final int digit;
@@ -42,6 +43,8 @@ class SudokuCell extends StatelessWidget {
   final bool hasWrongBackground;
   // Specific note digits rendered in red (tutorial wrong-note feedback).
   final Set<int> wrongNoteDigits;
+  // Light tint for the unit being examined during hidden-singles show-and-tell.
+  final bool hasUnitTint;
 
   Color get _background {
     if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
@@ -50,7 +53,7 @@ class SudokuCell extends StatelessWidget {
     if (hasWrongBackground) {
       return GameColors.errorDigit.withValues(alpha: 0.25);
     }
-    if (isPeer) return GameColors.peerCell;
+    if (hasUnitTint || isPeer) return GameColors.peerCell;
     return Colors.transparent;
   }
 
