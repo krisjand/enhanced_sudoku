@@ -43,7 +43,200 @@
         }
       ]
     },
-    "sub_variant": "lockedCandidatesPointingRow"
+    "sub_variant": "lockedCandidatesPointingRow",
+    "all_steps": [
+      {
+        "technique": "lockedCandidatesPointingRow",
+        "sources": [
+          {
+            "row": 6,
+            "col": 7,
+            "digits": [6]
+          },
+          {
+            "row": 6,
+            "col": 8,
+            "digits": [6]
+          }
+        ],
+        "actions": [
+          {
+            "row": 6,
+            "col": 1,
+            "digit": 6,
+            "type": "eliminate"
+          },
+          {
+            "row": 6,
+            "col": 2,
+            "digit": 6,
+            "type": "eliminate"
+          }
+        ]
+      },
+      {
+        "technique": "lockedCandidatesPointingColumn",
+        "sources": [
+          {
+            "row": 3,
+            "col": 7,
+            "digits": [4]
+          },
+          {
+            "row": 4,
+            "col": 7,
+            "digits": [4]
+          }
+        ],
+        "actions": [
+          {
+            "row": 0,
+            "col": 7,
+            "digit": 4,
+            "type": "eliminate"
+          },
+          {
+            "row": 2,
+            "col": 7,
+            "digit": 4,
+            "type": "eliminate"
+          }
+        ]
+      },
+      {
+        "technique": "lockedCandidatesPointingColumn",
+        "sources": [
+          {
+            "row": 6,
+            "col": 4,
+            "digits": [3]
+          },
+          {
+            "row": 7,
+            "col": 4,
+            "digits": [3]
+          }
+        ],
+        "actions": [
+          {
+            "row": 3,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          },
+          {
+            "row": 5,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          }
+        ]
+      },
+      {
+        "technique": "lockedCandidatesReductionRow",
+        "sources": [
+          {
+            "row": 8,
+            "col": 1,
+            "digits": [6]
+          },
+          {
+            "row": 8,
+            "col": 2,
+            "digits": [6]
+          }
+        ],
+        "actions": [
+          {
+            "row": 6,
+            "col": 1,
+            "digit": 6,
+            "type": "eliminate"
+          },
+          {
+            "row": 6,
+            "col": 2,
+            "digit": 6,
+            "type": "eliminate"
+          }
+        ]
+      },
+      {
+        "technique": "lockedCandidatesReductionColumn",
+        "sources": [
+          {
+            "row": 3,
+            "col": 3,
+            "digits": [3]
+          },
+          {
+            "row": 4,
+            "col": 3,
+            "digits": [3]
+          }
+        ],
+        "actions": [
+          {
+            "row": 3,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          },
+          {
+            "row": 5,
+            "col": 4,
+            "digit": 3,
+            "type": "eliminate"
+          }
+        ]
+      },
+      {
+        "technique": "lockedCandidatesReductionColumn",
+        "sources": [
+          {
+            "row": 0,
+            "col": 8,
+            "digits": [4]
+          },
+          {
+            "row": 1,
+            "col": 8,
+            "digits": [4]
+          },
+          {
+            "row": 2,
+            "col": 8,
+            "digits": [4]
+          }
+        ],
+        "actions": [
+          {
+            "row": 0,
+            "col": 7,
+            "digit": 4,
+            "type": "eliminate"
+          },
+          {
+            "row": 2,
+            "col": 7,
+            "digit": 4,
+            "type": "eliminate"
+          }
+        ]
+      }
+    ]
   },
   "practice": [
     {
@@ -72,16 +265,6 @@
             "row": 1,
             "col": 2,
             "digits": [8]
-          },
-          {
-            "row": 4,
-            "col": 7,
-            "digits": [4]
-          },
-          {
-            "row": 5,
-            "col": 7,
-            "digits": [4]
           }
         ],
         "actions": [
@@ -90,16 +273,209 @@
             "col": 2,
             "digit": 8,
             "type": "eliminate"
-          },
-          {
-            "row": 0,
-            "col": 7,
-            "digit": 4,
-            "type": "eliminate"
           }
         ]
       },
-      "sub_variant": "lockedCandidatesPointingColumn"
+      "sub_variant": "lockedCandidatesPointingColumn",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 0,
+              "col": 2,
+              "digits": [8]
+            },
+            {
+              "row": 1,
+              "col": 2,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 4,
+              "col": 2,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 4,
+              "col": 7,
+              "digits": [4]
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "digits": [4]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 7,
+              "digit": 4,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionRow",
+          "sources": [
+            {
+              "row": 3,
+              "col": 6,
+              "digits": [8]
+            },
+            {
+              "row": 3,
+              "col": 7,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 4,
+              "col": 7,
+              "digit": 8,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "digit": 8,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 4,
+              "col": 1,
+              "digits": [8]
+            },
+            {
+              "row": 5,
+              "col": 1,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 4,
+              "col": 2,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 6,
+              "digits": [6]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "digits": [6]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 7,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 4,
+              "col": 7,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "digit": 6,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 6,
+              "digits": [8]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 7,
+              "digit": 8,
+              "type": "eliminate"
+            },
+            {
+              "row": 4,
+              "col": 7,
+              "digit": 8,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 1,
+              "col": 8,
+              "digits": [4]
+            },
+            {
+              "row": 2,
+              "col": 8,
+              "digits": [4]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 7,
+              "digit": 4,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,4,0,5,2,0,0,0,0],[0,2,0,7,0,0,9,0,0],[0,0,0,0,4,6,0,7,0],[0,0,0,0,0,0,2,0,0],[0,0,9,0,0,7,0,8,0],[0,0,3,6,5,0,0,0,0],[0,1,0,0,0,9,0,0,0],[0,0,0,0,0,4,5,0,8],[0,0,0,3,1,0,0,0,9]],
@@ -144,7 +520,38 @@
           }
         ]
       },
-      "sub_variant": "lockedCandidatesReductionColumn"
+      "sub_variant": "lockedCandidatesReductionColumn",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 1,
+              "digits": [5]
+            },
+            {
+              "row": 4,
+              "col": 1,
+              "digits": [5]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 0,
+              "digit": 5,
+              "type": "eliminate"
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "digit": 5,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,0,0,0,0,0,2,0,0],[0,1,7,0,0,6,0,8,5],[0,6,3,0,0,5,7,0,0],[0,0,0,7,0,0,0,4,1],[0,3,0,1,0,0,9,0,2],[0,9,0,0,0,0,0,0,0],[0,0,4,3,9,0,0,0,0],[0,0,0,5,0,8,0,0,0],[5,0,0,0,0,2,0,0,0]],
@@ -218,7 +625,67 @@
           }
         ]
       },
-      "sub_variant": "lockedCandidatesReductionRow"
+      "sub_variant": "lockedCandidatesReductionRow",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesReductionRow",
+          "sources": [
+            {
+              "row": 6,
+              "col": 6,
+              "digits": [6]
+            },
+            {
+              "row": 6,
+              "col": 7,
+              "digits": [6]
+            },
+            {
+              "row": 6,
+              "col": 8,
+              "digits": [6]
+            }
+          ],
+          "actions": [
+            {
+              "row": 7,
+              "col": 6,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 7,
+              "col": 7,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 7,
+              "col": 8,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 8,
+              "col": 6,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 8,
+              "col": 7,
+              "digit": 6,
+              "type": "eliminate"
+            },
+            {
+              "row": 8,
+              "col": 8,
+              "digit": 6,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,6,0,0,0,0,0,1,0],[0,0,0,0,0,6,3,0,0],[7,0,0,0,4,0,2,0,0],[0,0,0,0,0,0,0,0,6],[0,7,0,0,0,1,0,8,0],[6,0,0,0,0,5,0,3,9],[0,4,0,0,8,0,0,0,0],[5,8,0,2,9,0,0,0,0],[0,1,0,0,6,3,0,0,0]],
@@ -263,7 +730,240 @@
           }
         ]
       },
-      "sub_variant": "lockedCandidatesPointingRow"
+      "sub_variant": "lockedCandidatesPointingRow",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesPointingRow",
+          "sources": [
+            {
+              "row": 3,
+              "col": 3,
+              "digits": [9]
+            },
+            {
+              "row": 3,
+              "col": 5,
+              "digits": [9]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 1,
+              "digit": 9,
+              "type": "eliminate"
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "digit": 9,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 1,
+              "col": 1,
+              "digits": [5]
+            },
+            {
+              "row": 2,
+              "col": 1,
+              "digits": [5]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 1,
+              "digit": 5,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 0,
+              "col": 3,
+              "digits": [3]
+            },
+            {
+              "row": 2,
+              "col": 3,
+              "digits": [3]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 3,
+              "digit": 3,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 2,
+              "digits": [8]
+            },
+            {
+              "row": 5,
+              "col": 2,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 2,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 6,
+              "col": 0,
+              "digits": [9]
+            },
+            {
+              "row": 8,
+              "col": 0,
+              "digits": [9]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 0,
+              "digit": 9,
+              "type": "eliminate"
+            },
+            {
+              "row": 1,
+              "col": 0,
+              "digit": 9,
+              "type": "eliminate"
+            },
+            {
+              "row": 4,
+              "col": 0,
+              "digit": 9,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionRow",
+          "sources": [
+            {
+              "row": 4,
+              "col": 0,
+              "digits": [9]
+            },
+            {
+              "row": 4,
+              "col": 2,
+              "digits": [9]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 1,
+              "digit": 9,
+              "type": "eliminate"
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "digit": 9,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 0,
+              "col": 0,
+              "digits": [8]
+            },
+            {
+              "row": 1,
+              "col": 0,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 2,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 2,
+              "digits": [5]
+            },
+            {
+              "row": 4,
+              "col": 2,
+              "digits": [5]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 1,
+              "digit": 5,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 4,
+              "digits": [3]
+            },
+            {
+              "row": 4,
+              "col": 4,
+              "digits": [3]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 3,
+              "digit": 3,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,9,0,7,0,0,1,8,0],[6,3,0,0,0,0,0,0,0],[0,8,0,0,2,0,0,0,6],[0,0,0,2,6,0,5,0,0],[0,0,3,4,0,0,0,0,0],[0,0,1,0,0,0,4,0,2],[0,0,8,0,0,0,0,6,0],[0,2,9,0,0,0,7,0,0],[0,0,0,0,0,4,0,0,0]],
@@ -291,16 +991,6 @@
             "row": 2,
             "col": 2,
             "digits": [7]
-          },
-          {
-            "row": 6,
-            "col": 4,
-            "digits": [7]
-          },
-          {
-            "row": 8,
-            "col": 4,
-            "digits": [7]
           }
         ],
         "actions": [
@@ -309,22 +999,121 @@
             "col": 2,
             "digit": 7,
             "type": "eliminate"
-          },
-          {
-            "row": 4,
-            "col": 4,
-            "digit": 7,
-            "type": "eliminate"
-          },
-          {
-            "row": 5,
-            "col": 4,
-            "digit": 7,
-            "type": "eliminate"
           }
         ]
       },
-      "sub_variant": "lockedCandidatesPointingColumn"
+      "sub_variant": "lockedCandidatesPointingColumn",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 1,
+              "col": 2,
+              "digits": [7]
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "digits": [7]
+            }
+          ],
+          "actions": [
+            {
+              "row": 3,
+              "col": 2,
+              "digit": 7,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesPointingColumn",
+          "sources": [
+            {
+              "row": 6,
+              "col": 4,
+              "digits": [7]
+            },
+            {
+              "row": 8,
+              "col": 4,
+              "digits": [7]
+            }
+          ],
+          "actions": [
+            {
+              "row": 4,
+              "col": 4,
+              "digit": 7,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "digit": 7,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 1,
+              "col": 2,
+              "digits": [5]
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "digits": [5]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 0,
+              "digit": 5,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 3,
+              "col": 5,
+              "digits": [7]
+            },
+            {
+              "row": 4,
+              "col": 5,
+              "digits": [7]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "digits": [7]
+            }
+          ],
+          "actions": [
+            {
+              "row": 4,
+              "col": 4,
+              "digit": 7,
+              "type": "eliminate"
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "digit": 7,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,0,0,0,0,4,0,0,9],[0,0,0,0,7,0,2,6,0],[7,0,0,2,0,6,4,0,0],[9,0,0,0,0,0,0,1,0],[0,0,5,3,0,2,9,0,0],[3,4,0,0,0,8,0,5,0],[0,6,0,0,4,7,0,0,0],[0,0,0,0,3,0,0,0,0],[0,0,0,0,0,9,8,0,7]],
@@ -369,7 +1158,38 @@
           }
         ]
       },
-      "sub_variant": "lockedCandidatesReductionRow"
+      "sub_variant": "lockedCandidatesReductionRow",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesReductionRow",
+          "sources": [
+            {
+              "row": 1,
+              "col": 0,
+              "digits": [8]
+            },
+            {
+              "row": 1,
+              "col": 2,
+              "digits": [8]
+            }
+          ],
+          "actions": [
+            {
+              "row": 0,
+              "col": 0,
+              "digit": 8,
+              "type": "eliminate"
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "digit": 8,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     },
     {
       "initial_grid": [[0,0,5,0,0,9,0,0,0],[0,0,0,6,0,0,1,2,0],[0,3,0,0,0,8,0,0,5],[0,6,0,0,0,0,8,0,0],[0,9,0,2,0,0,0,0,6],[5,0,0,0,0,0,4,0,2],[3,0,0,0,8,0,0,0,0],[0,0,2,0,0,6,0,0,0],[8,1,0,4,9,0,0,3,0]],
@@ -397,16 +1217,6 @@
             "row": 7,
             "col": 1,
             "digits": [4]
-          },
-          {
-            "row": 6,
-            "col": 3,
-            "digits": [5]
-          },
-          {
-            "row": 7,
-            "col": 3,
-            "digits": [5]
           }
         ],
         "actions": [
@@ -421,28 +1231,76 @@
             "col": 0,
             "digit": 4,
             "type": "eliminate"
-          },
-          {
-            "row": 6,
-            "col": 5,
-            "digit": 5,
-            "type": "eliminate"
-          },
-          {
-            "row": 7,
-            "col": 4,
-            "digit": 5,
-            "type": "eliminate"
-          },
-          {
-            "row": 8,
-            "col": 5,
-            "digit": 5,
-            "type": "eliminate"
           }
         ]
       },
-      "sub_variant": "lockedCandidatesReductionColumn"
+      "sub_variant": "lockedCandidatesReductionColumn",
+      "all_steps": [
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 6,
+              "col": 1,
+              "digits": [4]
+            },
+            {
+              "row": 7,
+              "col": 1,
+              "digits": [4]
+            }
+          ],
+          "actions": [
+            {
+              "row": 6,
+              "col": 2,
+              "digit": 4,
+              "type": "eliminate"
+            },
+            {
+              "row": 7,
+              "col": 0,
+              "digit": 4,
+              "type": "eliminate"
+            }
+          ]
+        },
+        {
+          "technique": "lockedCandidatesReductionColumn",
+          "sources": [
+            {
+              "row": 6,
+              "col": 3,
+              "digits": [5]
+            },
+            {
+              "row": 7,
+              "col": 3,
+              "digits": [5]
+            }
+          ],
+          "actions": [
+            {
+              "row": 6,
+              "col": 5,
+              "digit": 5,
+              "type": "eliminate"
+            },
+            {
+              "row": 7,
+              "col": 4,
+              "digit": 5,
+              "type": "eliminate"
+            },
+            {
+              "row": 8,
+              "col": 5,
+              "digit": 5,
+              "type": "eliminate"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

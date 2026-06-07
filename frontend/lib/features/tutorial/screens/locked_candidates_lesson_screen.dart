@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/cell_action.dart';
 import '../../../shared/models/game_state.dart';
 import '../../../shared/models/lesson_board.dart';
+import '../../../shared/models/solve_step.dart';
 import '../../../shared/models/tutorial_lesson.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 import '../providers/tutorial_provider.dart';
@@ -17,14 +18,7 @@ const _kSubTypeOrder = [
   'lockedCandidatesReductionColumn',
 ];
 
-const _kSubTypeOptions = [
-  ('Pointing — row', 'lockedCandidatesPointingRow'),
-  ('Pointing — column', 'lockedCandidatesPointingColumn'),
-  ('Reduction — row', 'lockedCandidatesReductionRow'),
-  ('Reduction — column', 'lockedCandidatesReductionColumn'),
-];
-
-enum _Phase { intro, observe, findCells, findDigit, findSubType, eliminate }
+enum _Phase { intro, observe, findCells, findDigit, eliminate }
 
 class LockedCandidatesLessonScreen extends ConsumerStatefulWidget {
   const LockedCandidatesLessonScreen({super.key});
@@ -49,9 +43,6 @@ class _LockedCandidatesLessonScreenState
   // findDigit
   int? _flashDigit;
 
-  // findSubType
-  String? _flashSubType;
-
   // eliminate
   int? _selRow;
   int? _selCol;
@@ -59,6 +50,7 @@ class _LockedCandidatesLessonScreenState
 
   // practice state
   int _practiceIdx = 0; // 0–3
+  SolveStep? _matchedStep; // set after a valid lock-in
 
   // organised boards — populated once lesson loads
   bool _boardsReady = false;
@@ -96,7 +88,7 @@ class _LockedCandidatesLessonScreenState
   LessonBoard get _currentObserveBoard => _observeBoards[_observeIdx];
   LessonBoard get _currentPracticeBoard => _practiceBoards[_practiceIdx];
 
-  // ── Extraction helpers ────────────────────────────────────────────────────
+  // ── Observe helpers (use board.step — single group) ───────────────────────
 
   Set<(int, int)> _sourceCells(LessonBoard board) => {
     for (final s in board.step!.sources) (s.row, s.col),
@@ -159,6 +151,24 @@ class _LockedCandidatesLessonScreenState
     return '$rowName-$colName box';
   }
 
+  // ── Practice helpers ──────────────────────────────────────────────────────
+
+  String _findCellsInstruction(String sv) => switch (sv) {
+    'lockedCandidatesPointingRow' =>
+      'Find a Pointing Row: in one box, a digit\'s candidates all lie in '
+          'the same row. Tap those cells, then tap Lock in.',
+    'lockedCandidatesPointingColumn' =>
+      'Find a Pointing Column: in one box, a digit\'s candidates all lie in '
+          'the same column. Tap those cells, then tap Lock in.',
+    'lockedCandidatesReductionRow' =>
+      'Find a Reduction Row: in one row, a digit\'s candidates all lie in '
+          'the same box. Tap those cells, then tap Lock in.',
+    'lockedCandidatesReductionColumn' =>
+      'Find a Reduction Column: in one column, a digit\'s candidates all '
+          'lie in the same box. Tap those cells, then tap Lock in.',
+    _ => 'Find the locked candidate group and tap Lock in.',
+  };
+
   // ── GameState builders ────────────────────────────────────────────────────
 
   GameState _boardState(LessonBoard board) => GameState(
@@ -188,7 +198,7 @@ class _LockedCandidatesLessonScreenState
   }
 
   GameState _eliminatePhaseState(LessonBoard board) {
-    final digit = _lockedDigit(board);
+    final digit = _matchedStep!.actions.first.digit;
     final notes = List.generate(
       9,
       (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
@@ -219,10 +229,21 @@ class _LockedCandidatesLessonScreenState
 
   void _onLockIn() {
     final board = _currentPracticeBoard;
-    final expected = _sourceCells(board);
-    if (_selectedCells.length == expected.length &&
-        _selectedCells.containsAll(expected)) {
+    final targetSv = board.subVariant!;
+    // Accept any individual group of the requested sub-type.
+    SolveStep? matched;
+    for (final step in board.allSteps) {
+      if (step.technique != targetSv) continue;
+      final sourcePairs = {for (final s in step.sources) (s.row, s.col)};
+      if (_selectedCells.length == sourcePairs.length &&
+          _selectedCells.containsAll(sourcePairs)) {
+        matched = step;
+        break;
+      }
+    }
+    if (matched != null) {
       setState(() {
+        _matchedStep = matched;
         _phase = _Phase.findDigit;
         _flashCells = {};
       });
@@ -241,26 +262,13 @@ class _LockedCandidatesLessonScreenState
   }
 
   void _onDigitTap(int digit) {
-    final board = _currentPracticeBoard;
-    if (digit == _lockedDigit(board)) {
-      setState(() {
-        _phase = _Phase.findSubType;
-        _flashDigit = null;
-      });
-    } else {
-      setState(() => _flashDigit = digit);
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) setState(() => _flashDigit = null);
-      });
-    }
-  }
-
-  void _onSubTypeSelect(String value) {
-    final board = _currentPracticeBoard;
-    if (value == board.subVariant) {
-      _doneEliminations.clear();
-      if (_targetCells(board).isEmpty) {
-        // No notes to eliminate — advance directly, same pattern as no-peers guard.
+    final expected = _matchedStep!.actions.first.digit;
+    if (digit == expected) {
+      final targets = {
+        for (final a in _matchedStep!.actions)
+          if (a.type == ActionType.eliminate) (a.row, a.col),
+      };
+      if (targets.isEmpty) {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _onPracticeRoundDone(),
         );
@@ -268,14 +276,15 @@ class _LockedCandidatesLessonScreenState
       }
       setState(() {
         _phase = _Phase.eliminate;
-        _flashSubType = null;
+        _flashDigit = null;
+        _doneEliminations.clear();
         _selRow = null;
         _selCol = null;
       });
     } else {
-      setState(() => _flashSubType = value);
+      setState(() => _flashDigit = digit);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) setState(() => _flashSubType = null);
+        if (mounted) setState(() => _flashDigit = null);
       });
     }
   }
@@ -286,16 +295,19 @@ class _LockedCandidatesLessonScreenState
   });
 
   void _onEliminateDigitTap(int digit) {
-    final board = _currentPracticeBoard;
     final r = _selRow;
     final c = _selCol;
     if (r == null || c == null) return;
-    final locked = _lockedDigit(board);
+    final locked = _matchedStep!.actions.first.digit;
     if (digit != locked) return;
-    final remaining = _targetCells(board).difference(_doneEliminations);
+    final allTargets = {
+      for (final a in _matchedStep!.actions)
+        if (a.type == ActionType.eliminate) (a.row, a.col),
+    };
+    final remaining = allTargets.difference(_doneEliminations);
     if (!remaining.contains((r, c))) return;
     setState(() => _doneEliminations.add((r, c)));
-    if (_doneEliminations.length == _targetCells(board).length) {
+    if (_doneEliminations.length == allTargets.length) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _onPracticeRoundDone(),
       );
@@ -310,7 +322,7 @@ class _LockedCandidatesLessonScreenState
         _selectedCells.clear();
         _flashCells = {};
         _flashDigit = null;
-        _flashSubType = null;
+        _matchedStep = null;
         _doneEliminations.clear();
         _selRow = null;
         _selCol = null;
@@ -407,48 +419,42 @@ class _LockedCandidatesLessonScreenState
                 flashCells: _flashCells,
                 onCellTap: _onCellTap,
                 onLockIn: _onLockIn,
-                instructionText:
-                    'Find the locked group: tap every cell whose candidates '
-                    'are confined to a single row, column, or box. '
-                    'When you have selected them all, tap Lock in.',
+                instructionText: _findCellsInstruction(board.subVariant ?? ''),
               );
             }
 
             if (_phase == _Phase.findDigit) {
+              final matchedSources = {
+                for (final s in _matchedStep!.sources) (s.row, s.col),
+              };
               return TutorialDigitPickerBody(
                 key: ValueKey('findDigit-$_practiceIdx'),
                 boardState: _boardState(board),
-                sourceCells: _sourceCells(board),
+                sourceCells: matchedSources,
                 flashDigit: _flashDigit,
                 onDigitTap: _onDigitTap,
                 instructionText:
-                    'Which digit is the locked candidate in the selected cells? '
-                    'Tap it below.',
-              );
-            }
-
-            if (_phase == _Phase.findSubType) {
-              return TutorialSubTypePickerBody(
-                key: ValueKey('findSubType-$_practiceIdx'),
-                boardState: _boardState(board),
-                sourceCells: _sourceCells(board),
-                targetCells: _targetCells(board),
-                options: _kSubTypeOptions,
-                flashValue: _flashSubType,
-                onSelect: _onSubTypeSelect,
-                instructionText: 'What type of locked candidate is this?',
+                    'The highlighted cells are your locked group. '
+                    'Which digit is the locked candidate? Tap it below.',
               );
             }
 
             // _Phase.eliminate
-            final targets = _targetCells(board);
-            final remaining = targets.difference(_doneEliminations);
+            final matched = _matchedStep!;
+            final matchedSources = {
+              for (final s in matched.sources) (s.row, s.col),
+            };
+            final allTargets = {
+              for (final a in matched.actions)
+                if (a.type == ActionType.eliminate) (a.row, a.col),
+            };
+            final remaining = allTargets.difference(_doneEliminations);
             return TutorialEliminateNotesBody(
               key: ValueKey('eliminate-$_practiceIdx'),
               boardState: _eliminatePhaseState(board),
-              sourceCells: _sourceCells(board),
+              sourceCells: matchedSources,
               remainingTargets: remaining,
-              digit: _lockedDigit(board),
+              digit: matched.actions.first.digit,
               remainingCount: remaining.length,
               selRow: _selRow,
               selCol: _selCol,
