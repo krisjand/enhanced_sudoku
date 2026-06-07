@@ -446,6 +446,7 @@ class _LockedCandidatesLessonScreenState
 
             // _Phase.eliminate
             final matched = _matchedStep!;
+            if (matched.actions.isEmpty) return const SizedBox.shrink();
             final matchedSources = {
               for (final s in matched.sources) (s.row, s.col),
             };
