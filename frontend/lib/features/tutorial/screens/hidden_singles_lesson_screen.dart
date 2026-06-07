@@ -183,9 +183,6 @@ class _HiddenSinglesLessonScreenState
         _selCol = null;
         _notesOn = false;
       });
-      if (peers.isEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _showSuccess());
-      }
     } else {
       _flashWrong(r, c);
     }
@@ -304,6 +301,13 @@ class _HiddenSinglesLessonScreenState
             }
 
             // _Phase.eliminate
+            if (_pendingPeers.isEmpty) {
+              return _NoPeersBody(
+                boardState: _eliminatePhaseState(practiceBoard),
+                digit: _placedDigit!,
+                onDone: () => _showSuccess(),
+              );
+            }
             final remaining = _pendingPeers
                 .where((p) => !_eliminatedPeers.contains(p))
                 .toSet();
@@ -424,9 +428,9 @@ class _ObserveBody extends StatefulWidget {
 }
 
 class _ObserveBodyState extends State<_ObserveBody> {
-  int _step = 0; // 0 = unit only, 1 = reveal single, 2 = placed + cleanup
+  // 0 = unit only  1 = reveal single  2 = placed + red peers  3 = cleaned + grey peers
+  int _step = 0;
 
-  // All cells in row + col + box of (row, col), excluding (row, col) itself.
   Set<(int, int)> _allPeerUnits(int row, int col) {
     final cells = <(int, int)>{};
     for (var c = 0; c < 9; c++) {
@@ -446,7 +450,16 @@ class _ObserveBodyState extends State<_ObserveBody> {
     return cells;
   }
 
-  GameState _placedCleanState(int row, int col, int digit) {
+  // Peers of (row,col) that still carry digit as a note.
+  Set<(int, int)> _affectedPeers(int row, int col, int digit) {
+    return _allPeerUnits(
+      row,
+      col,
+    ).where((p) => widget.board.notes[p.$1][p.$2].contains(digit)).toSet();
+  }
+
+  // Digit placed; peer notes still intact.
+  GameState _placedState(int row, int col, int digit) {
     final board = widget.board;
     final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
     newGrid[row][col] = digit;
@@ -455,13 +468,38 @@ class _ObserveBodyState extends State<_ObserveBody> {
       (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
     );
     newNotes[row][col] = {};
-    for (final (r, c) in _allPeerUnits(row, col)) {
-      newNotes[r][c].remove(digit);
-    }
     return GameState(
       initialGrid: board.initialGrid,
       currentGrid: newGrid,
       notes: newNotes,
+    );
+  }
+
+  // Digit placed; peer notes cleaned.
+  GameState _placedCleanState(int row, int col, int digit) {
+    final base = _placedState(row, col, digit);
+    final newNotes = base.notes
+        .map((r) => r.map((s) => Set<int>.from(s)).toList())
+        .toList();
+    for (final (r, c) in _allPeerUnits(row, col)) {
+      newNotes[r][c].remove(digit);
+    }
+    return GameState(
+      initialGrid: base.initialGrid,
+      currentGrid: base.currentGrid,
+      notes: newNotes,
+    );
+  }
+
+  GameState _originalState() {
+    final board = widget.board;
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: board.currentGrid,
+      notes: List.generate(
+        9,
+        (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+      ),
     );
   }
 
@@ -481,6 +519,8 @@ class _ObserveBodyState extends State<_ObserveBody> {
     final int? targetRow;
     final int? targetCol;
     final Set<(int, int)> gridUnitCells;
+    final Set<(int, int)> gridWrongCells;
+    final Map<(int, int), Set<int>> gridWrongNotes;
     final int? shlRow;
     final int? shlCol;
     final int? shlDigit;
@@ -489,17 +529,12 @@ class _ObserveBodyState extends State<_ObserveBody> {
 
     switch (_step) {
       case 0:
-        gridState = GameState(
-          initialGrid: widget.board.initialGrid,
-          currentGrid: widget.board.currentGrid,
-          notes: List.generate(
-            9,
-            (r) => List.generate(9, (c) => widget.board.notes[r][c].toSet()),
-          ),
-        );
+        gridState = _originalState();
         targetRow = null;
         targetCol = null;
         gridUnitCells = unitCells;
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
         shlRow = null;
         shlCol = null;
         shlDigit = null;
@@ -509,17 +544,12 @@ class _ObserveBodyState extends State<_ObserveBody> {
         buttonLabel = 'Reveal →';
 
       case 1:
-        gridState = GameState(
-          initialGrid: widget.board.initialGrid,
-          currentGrid: widget.board.currentGrid,
-          notes: List.generate(
-            9,
-            (r) => List.generate(9, (c) => widget.board.notes[r][c].toSet()),
-          ),
-        );
+        gridState = _originalState();
         targetRow = row;
         targetCol = col;
         gridUnitCells = unitCells;
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
         shlRow = row;
         shlCol = col;
         shlDigit = digit;
@@ -530,18 +560,39 @@ class _ObserveBodyState extends State<_ObserveBody> {
             'Digit $digit must go here — it is a hidden single!';
         buttonLabel = 'Place $digit →';
 
-      default: // step 2
+      case 2:
+        final affected = _affectedPeers(row, col, digit);
+        gridState = _placedState(row, col, digit);
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = const {};
+        gridWrongCells = affected;
+        gridWrongNotes = {
+          for (final p in affected) p: {digit},
+        };
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText = affected.isEmpty
+            ? 'Digit $digit is placed. No peer cell had $digit as a note, '
+                  'so there is nothing to remove here.'
+            : 'Digit $digit is placed. The red cells still carry $digit as a '
+                  'note — it must be removed from all of them.';
+        buttonLabel = 'Remove them →';
+
+      default: // step 3
         gridState = _placedCleanState(row, col, digit);
         targetRow = null;
         targetCol = null;
         gridUnitCells = _allPeerUnits(row, col);
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
         shlRow = null;
         shlCol = null;
         shlDigit = null;
         descText =
-            'Digit $digit is placed. Every cell in its row, column, and box '
-            '(highlighted in grey) that had $digit as a candidate note has '
-            'had that note removed.';
+            'Done. Every peer cell in the row, column, and box '
+            '(highlighted in grey) that had $digit as a note has had it removed.';
         buttonLabel = widget.isLastExample
             ? 'Got it, let me try! →'
             : 'Next example →';
@@ -551,12 +602,13 @@ class _ObserveBodyState extends State<_ObserveBody> {
       children: [
         AspectRatio(
           aspectRatio: 1,
-          // No selectedRow/Col — grey comes from unitCells only.
           child: SudokuGrid(
             state: gridState,
             targetRow: targetRow,
             targetCol: targetCol,
             unitCells: gridUnitCells,
+            wrongCells: gridWrongCells,
+            wrongNotes: gridWrongNotes,
             singleHighlightRow: shlRow,
             singleHighlightCol: shlCol,
             singleHighlightDigit: shlDigit,
@@ -576,13 +628,60 @@ class _ObserveBodyState extends State<_ObserveBody> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: () {
-                    if (_step < 2) {
+                    if (_step < 3) {
                       setState(() => _step++);
                     } else {
                       widget.onNext();
                     }
                   },
                   child: Text(buttonLabel),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── No-peers completion ───────────────────────────────────────────────────────
+
+class _NoPeersBody extends StatelessWidget {
+  const _NoPeersBody({
+    required this.boardState,
+    required this.digit,
+    required this.onDone,
+  });
+
+  final GameState boardState;
+  final int digit;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        AspectRatio(aspectRatio: 1, child: SudokuGrid(state: boardState)),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Well done! You placed digit $digit.\n\n'
+                  'In this puzzle no peer cell had $digit as a candidate '
+                  'note, so there is nothing to clean up — that is perfectly '
+                  'valid. Hidden singles do not always require note removal.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: onDone,
+                  child: const Text('Finish lesson →'),
                 ),
               ],
             ),
