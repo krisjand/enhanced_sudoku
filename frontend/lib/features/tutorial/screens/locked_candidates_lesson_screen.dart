@@ -198,6 +198,9 @@ class _LockedCandidatesLessonScreenState
   }
 
   GameState _eliminatePhaseState(LessonBoard board) {
+    if (_matchedStep == null || _matchedStep!.actions.isEmpty) {
+      return _boardState(board);
+    }
     final digit = _matchedStep!.actions.first.digit;
     final notes = List.generate(
       9,
@@ -262,6 +265,7 @@ class _LockedCandidatesLessonScreenState
   }
 
   void _onDigitTap(int digit) {
+    if (_matchedStep!.actions.isEmpty) return;
     final expected = _matchedStep!.actions.first.digit;
     if (digit == expected) {
       final targets = {
@@ -295,6 +299,7 @@ class _LockedCandidatesLessonScreenState
   });
 
   void _onEliminateDigitTap(int digit) {
+    if (_matchedStep!.actions.isEmpty) return;
     final r = _selRow;
     final c = _selCol;
     if (r == null || c == null) return;

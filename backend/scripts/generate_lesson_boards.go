@@ -272,6 +272,12 @@ func captureBoard(grid [9][9]int, technique string) (lessonBoard, bool) {
 						break
 					}
 				}
+				// Fallback: if the per-group function found no matching step
+				// (shouldn't happen with a consistent solver), use the solver's
+				// own step so board.Step is always non-nil for observe helpers.
+				if board.Step == nil {
+					board.Step = toStepJSON(step)
+				}
 			} else {
 				board.Step = toStepJSON(step)
 			}
