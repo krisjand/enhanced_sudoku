@@ -159,8 +159,18 @@ class _HiddenSinglesLessonScreenState
     if (r == null || c == null) return;
     if (board.initialGrid[r][c] != 0) return;
 
-    final (tr, tc, td) = _findHiddenSingle(board);
-    if (r == tr && c == tc && d == td) {
+    // Accept any hidden single listed in the step — not just the first one.
+    final step = board.step;
+    final isValid =
+        step != null &&
+        step.actions.any(
+          (a) =>
+              a.type == ActionType.set &&
+              a.row == r &&
+              a.col == c &&
+              a.digit == d,
+        );
+    if (isValid) {
       final peers = _computePeers(board, r, c, d);
       setState(() {
         _placedRow = r;
@@ -414,7 +424,46 @@ class _ObserveBody extends StatefulWidget {
 }
 
 class _ObserveBodyState extends State<_ObserveBody> {
-  bool _revealed = false;
+  int _step = 0; // 0 = unit only, 1 = reveal single, 2 = placed + cleanup
+
+  // All cells in row + col + box of (row, col), excluding (row, col) itself.
+  Set<(int, int)> _allPeerUnits(int row, int col) {
+    final cells = <(int, int)>{};
+    for (var c = 0; c < 9; c++) {
+      cells.add((row, c));
+    }
+    for (var r = 0; r < 9; r++) {
+      cells.add((r, col));
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (var r = br; r < br + 3; r++) {
+      for (var c = bc; c < bc + 3; c++) {
+        cells.add((r, c));
+      }
+    }
+    cells.remove((row, col));
+    return cells;
+  }
+
+  GameState _placedCleanState(int row, int col, int digit) {
+    final board = widget.board;
+    final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
+    newGrid[row][col] = digit;
+    final newNotes = List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    );
+    newNotes[row][col] = {};
+    for (final (r, c) in _allPeerUnits(row, col)) {
+      newNotes[r][c].remove(digit);
+    }
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: newGrid,
+      notes: newNotes,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,49 +477,89 @@ class _ObserveBodyState extends State<_ObserveBody> {
       _UnitType.box => 'box',
     };
 
-    final state = GameState(
-      initialGrid: widget.board.initialGrid,
-      currentGrid: widget.board.currentGrid,
-      notes: List.generate(
-        9,
-        (r) => List.generate(9, (c) => widget.board.notes[r][c].toSet()),
-      ),
-    );
-
+    final GameState gridState;
+    final int? targetRow;
+    final int? targetCol;
+    final Set<(int, int)> gridUnitCells;
+    final int? shlRow;
+    final int? shlCol;
+    final int? shlDigit;
     final String descText;
     final String buttonLabel;
 
-    if (!_revealed) {
-      descText =
-          'Look at the highlighted $typeLabel ($unitLabel). '
-          'Which cells in this $typeLabel can contain digit $digit?';
-      buttonLabel = 'Reveal →';
-    } else {
-      descText =
-          'Only one cell in this $typeLabel has $digit as a candidate '
-          '(highlighted in blue). Every other cell in this $typeLabel either '
-          'already has a digit placed, or $digit is ruled out by its row, '
-          'column, or box.\n\n'
-          'Digit $digit must go in this cell — it is a hidden single!';
-      buttonLabel = widget.isLastExample
-          ? 'Got it, let me try! →'
-          : 'Next example →';
+    switch (_step) {
+      case 0:
+        gridState = GameState(
+          initialGrid: widget.board.initialGrid,
+          currentGrid: widget.board.currentGrid,
+          notes: List.generate(
+            9,
+            (r) => List.generate(9, (c) => widget.board.notes[r][c].toSet()),
+          ),
+        );
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = unitCells;
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText =
+            'Look at the highlighted $typeLabel ($unitLabel). '
+            'Which cell in this $typeLabel can contain digit $digit?';
+        buttonLabel = 'Reveal →';
+
+      case 1:
+        gridState = GameState(
+          initialGrid: widget.board.initialGrid,
+          currentGrid: widget.board.currentGrid,
+          notes: List.generate(
+            9,
+            (r) => List.generate(9, (c) => widget.board.notes[r][c].toSet()),
+          ),
+        );
+        targetRow = row;
+        targetCol = col;
+        gridUnitCells = unitCells;
+        shlRow = row;
+        shlCol = col;
+        shlDigit = digit;
+        descText =
+            'Only this cell has $digit as a candidate in this $typeLabel. '
+            'Every other cell either already has a digit or $digit is ruled '
+            'out by its row, column, or box.\n\n'
+            'Digit $digit must go here — it is a hidden single!';
+        buttonLabel = 'Place $digit →';
+
+      default: // step 2
+        gridState = _placedCleanState(row, col, digit);
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = _allPeerUnits(row, col);
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText =
+            'Digit $digit is placed. Every cell in its row, column, and box '
+            '(highlighted in grey) that had $digit as a candidate note has '
+            'had that note removed.';
+        buttonLabel = widget.isLastExample
+            ? 'Got it, let me try! →'
+            : 'Next example →';
     }
 
     return Column(
       children: [
         AspectRatio(
           aspectRatio: 1,
+          // No selectedRow/Col — grey comes from unitCells only.
           child: SudokuGrid(
-            state: state,
-            selectedRow: _revealed ? row : null,
-            selectedCol: _revealed ? col : null,
-            targetRow: _revealed ? row : null,
-            targetCol: _revealed ? col : null,
-            unitCells: unitCells,
-            singleHighlightRow: _revealed ? row : null,
-            singleHighlightCol: _revealed ? col : null,
-            singleHighlightDigit: _revealed ? digit : null,
+            state: gridState,
+            targetRow: targetRow,
+            targetCol: targetCol,
+            unitCells: gridUnitCells,
+            singleHighlightRow: shlRow,
+            singleHighlightCol: shlCol,
+            singleHighlightDigit: shlDigit,
           ),
         ),
         Expanded(
@@ -487,8 +576,8 @@ class _ObserveBodyState extends State<_ObserveBody> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: () {
-                    if (!_revealed) {
-                      setState(() => _revealed = true);
+                    if (_step < 2) {
+                      setState(() => _step++);
                     } else {
                       widget.onNext();
                     }
