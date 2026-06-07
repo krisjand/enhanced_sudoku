@@ -7,6 +7,7 @@ import 'features/home/screens/home_screen.dart';
 import 'features/scores/screens/scores_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/tutorial/screens/hidden_singles_lesson_screen.dart';
+import 'features/tutorial/screens/locked_candidates_lesson_screen.dart';
 import 'features/tutorial/screens/naked_singles_lesson_screen.dart';
 import 'features/tutorial/screens/notes_lesson_screen.dart';
 import 'features/tutorial/screens/technique_lesson_screen.dart';
@@ -58,6 +59,10 @@ GoRouter buildAppRouter() => GoRouter(
         GoRoute(
           path: 'lesson/hiddenSingles',
           builder: (context, state) => const HiddenSinglesLessonScreen(),
+        ),
+        GoRoute(
+          path: 'lesson/lockedCandidates',
+          builder: (context, state) => const LockedCandidatesLessonScreen(),
         ),
         GoRoute(
           path: 'lesson/:technique',

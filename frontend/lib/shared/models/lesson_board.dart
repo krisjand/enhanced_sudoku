@@ -7,6 +7,7 @@ class LessonBoard {
     required this.notes,
     this.step,
     this.subVariant,
+    this.allSteps = const [],
   });
 
   final List<List<int>> initialGrid;
@@ -14,6 +15,9 @@ class LessonBoard {
   final List<List<List<int>>> notes; // [row][col][digit]
   final SolveStep? step;
   final String? subVariant;
+  // Per-group steps for techniques that aggregate multiple groups (e.g. locked
+  // candidates). Each entry is one independent group; use for practice validation.
+  final List<SolveStep> allSteps;
 
   factory LessonBoard.fromJson(Map<String, dynamic> json) => LessonBoard(
     initialGrid: _grid(json['initial_grid']),
@@ -23,6 +27,11 @@ class LessonBoard {
         ? SolveStep.fromJson(json['step'] as Map<String, dynamic>)
         : null,
     subVariant: json['sub_variant'] as String?,
+    allSteps: json['all_steps'] != null
+        ? (json['all_steps'] as List<dynamic>)
+              .map((s) => SolveStep.fromJson(s as Map<String, dynamic>))
+              .toList()
+        : const [],
   );
 
   static List<List<int>> _grid(dynamic raw) => (raw as List)

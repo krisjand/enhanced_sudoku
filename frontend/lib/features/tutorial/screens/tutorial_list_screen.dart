@@ -20,7 +20,7 @@ const _groups = [
     ('hiddenSingles', true),
   ]),
   _Group('Intermediate', [
-    ('lockedCandidates', false),
+    ('lockedCandidates', true),
     ('nakedPairs', false),
     ('hiddenPairs', false),
     ('nakedTriples', false),

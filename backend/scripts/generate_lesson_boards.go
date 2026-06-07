@@ -39,6 +39,7 @@ type lessonBoard struct {
 	Notes       [9][9][]int `json:"notes"`
 	Step        *stepJSON   `json:"step,omitempty"`
 	SubVariant  string      `json:"sub_variant,omitempty"`
+	AllSteps    []stepJSON  `json:"all_steps,omitempty"`
 }
 
 type stepJSON struct {
@@ -130,7 +131,7 @@ var curriculum = []struct {
 }{
 	{"nakedSingles", "../puzzle_corpus/easy.json", 5},
 	{"hiddenSingles", "../puzzle_corpus/easy.json", 5},
-	{"lockedCandidates", "../puzzle_corpus/medium.json", 5},
+	{"lockedCandidates", "../puzzle_corpus/medium.json", 7},
 	{"nakedPairs", "../puzzle_corpus/medium.json", 5},
 	{"hiddenPairs", "../puzzle_corpus/hard.json", 5},
 	{"nakedTriples", "../puzzle_corpus/hard.json", 5},
@@ -251,13 +252,36 @@ func captureBoard(grid [9][9]int, technique string) (lessonBoard, bool) {
 		}
 		topLevel := stepToTopLevel[step.Technique]
 		if topLevel == technique {
-			return lessonBoard{
+			board := lessonBoard{
 				InitialGrid: grid,
 				CurrentGrid: toIntGrid(g),
 				Notes:       toNotes(cands, g),
-				Step:        toStepJSON(step),
 				SubVariant:  step.Technique,
-			}, true
+			}
+			if technique == "lockedCandidates" {
+				// Compute per-group steps so the tutorial can show one group at a
+				// time and accept any valid group of the requested sub-type.
+				all := lockedCandidatesEachGroup(cands)
+				board.AllSteps = all
+				// Use the first per-group step matching the sub-variant as the
+				// display step — guaranteed to be a single-group step.
+				for i := range all {
+					if all[i].Technique == step.Technique {
+						s := all[i]
+						board.Step = &s
+						break
+					}
+				}
+				// Fallback: if the per-group function found no matching step
+				// (shouldn't happen with a consistent solver), use the solver's
+				// own step so board.Step is always non-nil for observe helpers.
+				if board.Step == nil {
+					board.Step = toStepJSON(step)
+				}
+			} else {
+				board.Step = toStepJSON(step)
+			}
+			return board, true
 		}
 		// Apply and continue.
 		for _, a := range step.Actions {
@@ -270,6 +294,198 @@ func captureBoard(grid [9][9]int, technique string) (lessonBoard, bool) {
 			}
 		}
 	}
+}
+
+// lockedCandidatesEachGroup returns one stepJSON per individual locked-candidate
+// group (one per box+digit for pointing; one per row/col+digit for reduction).
+// This differs from sudoku.LockedCandidates which aggregates all groups of each
+// sub-type into a single step.
+func lockedCandidatesEachGroup(cands sudoku.Candidates) []stepJSON {
+	var steps []stepJSON
+
+	// Pointing rows: one step per (box, digit) group.
+	for b := 0; b < 9; b++ {
+		br, bc := (b/3)*3, (b%3)*3
+		for d := 1; d <= 9; d++ {
+			bit := uint16(1) << uint(d-1)
+			row, count, confined := -1, 0, true
+		ptRow:
+			for dr := 0; dr < 3; dr++ {
+				for dc := 0; dc < 3; dc++ {
+					if cands[br+dr][bc+dc]&bit != 0 {
+						count++
+						if row == -1 {
+							row = br + dr
+						} else if row != br+dr {
+							confined = false
+							break ptRow
+						}
+					}
+				}
+			}
+			if !confined || count < 2 || row < 0 {
+				continue
+			}
+			var actions []actionJSON
+			for c := 0; c < 9; c++ {
+				if c >= bc && c < bc+3 {
+					continue
+				}
+				if cands[row][c]&bit != 0 {
+					actions = append(actions, actionJSON{Row: row, Col: c, Digit: d, Type: "eliminate"})
+				}
+			}
+			if len(actions) == 0 {
+				continue
+			}
+			var sources []sourceJSON
+			for dc := 0; dc < 3; dc++ {
+				if cands[row][bc+dc]&bit != 0 {
+					sources = append(sources, sourceJSON{Row: row, Col: bc + dc, Digits: []int{d}})
+				}
+			}
+			steps = append(steps, stepJSON{Technique: "lockedCandidatesPointingRow", Sources: sources, Actions: actions})
+		}
+	}
+
+	// Pointing cols: one step per (box, digit) group.
+	for b := 0; b < 9; b++ {
+		br, bc := (b/3)*3, (b%3)*3
+		for d := 1; d <= 9; d++ {
+			bit := uint16(1) << uint(d-1)
+			col, count, confined := -1, 0, true
+		ptCol:
+			for dr := 0; dr < 3; dr++ {
+				for dc := 0; dc < 3; dc++ {
+					if cands[br+dr][bc+dc]&bit != 0 {
+						count++
+						if col == -1 {
+							col = bc + dc
+						} else if col != bc+dc {
+							confined = false
+							break ptCol
+						}
+					}
+				}
+			}
+			if !confined || count < 2 || col < 0 {
+				continue
+			}
+			var actions []actionJSON
+			for r := 0; r < 9; r++ {
+				if r >= br && r < br+3 {
+					continue
+				}
+				if cands[r][col]&bit != 0 {
+					actions = append(actions, actionJSON{Row: r, Col: col, Digit: d, Type: "eliminate"})
+				}
+			}
+			if len(actions) == 0 {
+				continue
+			}
+			var sources []sourceJSON
+			for dr := 0; dr < 3; dr++ {
+				if cands[br+dr][col]&bit != 0 {
+					sources = append(sources, sourceJSON{Row: br + dr, Col: col, Digits: []int{d}})
+				}
+			}
+			steps = append(steps, stepJSON{Technique: "lockedCandidatesPointingColumn", Sources: sources, Actions: actions})
+		}
+	}
+
+	// Reduction rows: one step per (row, digit) group.
+	for r := 0; r < 9; r++ {
+		for d := 1; d <= 9; d++ {
+			bit := uint16(1) << uint(d-1)
+			boxIdx, count, confined := -1, 0, true
+			for c := 0; c < 9; c++ {
+				if cands[r][c]&bit != 0 {
+					count++
+					b := (r/3)*3 + c/3
+					if boxIdx == -1 {
+						boxIdx = b
+					} else if boxIdx != b {
+						confined = false
+						break
+					}
+				}
+			}
+			if !confined || count < 2 || boxIdx < 0 {
+				continue
+			}
+			br, bc := (boxIdx/3)*3, (boxIdx%3)*3
+			var actions []actionJSON
+			for dr := 0; dr < 3; dr++ {
+				if br+dr == r {
+					continue
+				}
+				for dc := 0; dc < 3; dc++ {
+					cr, cc := br+dr, bc+dc
+					if cands[cr][cc]&bit != 0 {
+						actions = append(actions, actionJSON{Row: cr, Col: cc, Digit: d, Type: "eliminate"})
+					}
+				}
+			}
+			if len(actions) == 0 {
+				continue
+			}
+			var sources []sourceJSON
+			for c := 0; c < 9; c++ {
+				if cands[r][c]&bit != 0 {
+					sources = append(sources, sourceJSON{Row: r, Col: c, Digits: []int{d}})
+				}
+			}
+			steps = append(steps, stepJSON{Technique: "lockedCandidatesReductionRow", Sources: sources, Actions: actions})
+		}
+	}
+
+	// Reduction cols: one step per (col, digit) group.
+	for c := 0; c < 9; c++ {
+		for d := 1; d <= 9; d++ {
+			bit := uint16(1) << uint(d-1)
+			boxIdx, count, confined := -1, 0, true
+			for r := 0; r < 9; r++ {
+				if cands[r][c]&bit != 0 {
+					count++
+					b := (r/3)*3 + c/3
+					if boxIdx == -1 {
+						boxIdx = b
+					} else if boxIdx != b {
+						confined = false
+						break
+					}
+				}
+			}
+			if !confined || count < 2 || boxIdx < 0 {
+				continue
+			}
+			br, bc := (boxIdx/3)*3, (boxIdx%3)*3
+			var actions []actionJSON
+			for dr := 0; dr < 3; dr++ {
+				for dc := 0; dc < 3; dc++ {
+					cr, cc := br+dr, bc+dc
+					if cc == c {
+						continue
+					}
+					if cands[cr][cc]&bit != 0 {
+						actions = append(actions, actionJSON{Row: cr, Col: cc, Digit: d, Type: "eliminate"})
+					}
+				}
+			}
+			if len(actions) == 0 {
+				continue
+			}
+			var sources []sourceJSON
+			for r := 0; r < 9; r++ {
+				if cands[r][c]&bit != 0 {
+					sources = append(sources, sourceJSON{Row: r, Col: c, Digits: []int{d}})
+				}
+			}
+			steps = append(steps, stepJSON{Technique: "lockedCandidatesReductionColumn", Sources: sources, Actions: actions})
+		}
+	}
+
+	return steps
 }
 
 // ── Notes lesson ──────────────────────────────────────────────────────────────
