@@ -18,6 +18,10 @@ class SudokuGrid extends StatelessWidget {
     this.conflictCol,
     this.isHighlightMode = true,
     this.onCellTap,
+    this.targetRow,
+    this.targetCol,
+    this.wrongCells = const {},
+    this.wrongNotes = const {},
   });
 
   final GameState state;
@@ -27,6 +31,13 @@ class SudokuGrid extends StatelessWidget {
   final int? conflictCol;
   final bool isHighlightMode;
   final void Function(int row, int col)? onCellTap;
+  // Yellow highlight on the cell the user should interact with next.
+  final int? targetRow;
+  final int? targetCol;
+  // Cells with invalid notes — shown with a red background.
+  final Set<(int, int)> wrongCells;
+  // Specific note digits rendered in red per cell.
+  final Map<(int, int), Set<int>> wrongNotes;
 
   // The digit in the selected cell (1–9), or null when nothing useful to highlight.
   int? get selectedDigit {
@@ -73,6 +84,9 @@ class SudokuGrid extends StatelessWidget {
                           col,
                           highlightDigit,
                         ),
+                        isTarget: row == targetRow && col == targetCol,
+                        hasWrongBackground: wrongCells.contains((row, col)),
+                        wrongNoteDigits: wrongNotes[(row, col)] ?? const {},
                       ),
                     ),
                   );

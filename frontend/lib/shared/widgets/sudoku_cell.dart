@@ -17,6 +17,9 @@ class SudokuCell extends StatelessWidget {
     this.hasConflict = false,
     this.isDigitMatch = false,
     this.highlightedNote,
+    this.isTarget = false,
+    this.hasWrongBackground = false,
+    this.wrongNoteDigits = const {},
   });
 
   final int digit;
@@ -33,9 +36,18 @@ class SudokuCell extends StatelessWidget {
   final bool isDigitMatch;
   // When non-null, this note digit slot inside the notes grid is highlighted.
   final int? highlightedNote;
+  // Yellow ring — marks the cell the user should interact with next.
+  final bool isTarget;
+  // Red background — marks a cell with invalid notes (tutorial use).
+  final bool hasWrongBackground;
+  // Specific note digits rendered in red (tutorial wrong-note feedback).
+  final Set<int> wrongNoteDigits;
 
   Color get _background {
-    if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
+    if (hasConflict || hasWrongBackground) {
+      return GameColors.errorDigit.withValues(alpha: 0.25);
+    }
+    if (isTarget) return GameColors.highlightedDigit.withValues(alpha: 0.5);
     if (isSelected || isDigitMatch) return GameColors.selectedCell;
     if (isPeer) return GameColors.peerCell;
     return Colors.transparent;
@@ -56,7 +68,11 @@ class SudokuCell extends StatelessWidget {
       ),
       child: digit != 0
           ? _DigitContent(digit: digit, isClue: isClue)
-          : _NotesContent(notes: notes, highlightedNote: highlightedNote),
+          : _NotesContent(
+              notes: notes,
+              highlightedNote: highlightedNote,
+              wrongNoteDigits: wrongNoteDigits,
+            ),
     );
   }
 }
@@ -85,10 +101,15 @@ class _DigitContent extends StatelessWidget {
 }
 
 class _NotesContent extends StatelessWidget {
-  const _NotesContent({required this.notes, this.highlightedNote});
+  const _NotesContent({
+    required this.notes,
+    this.highlightedNote,
+    this.wrongNoteDigits = const {},
+  });
 
   final Set<int> notes;
   final int? highlightedNote;
+  final Set<int> wrongNoteDigits;
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +121,7 @@ class _NotesContent extends StatelessWidget {
               final digit = row * 3 + col + 1;
               final isHighlit =
                   digit == highlightedNote && notes.contains(digit);
+              final isWrong = wrongNoteDigits.contains(digit);
               return Expanded(
                 child: Container(
                   color: isHighlit ? GameColors.selectedCell : null,
@@ -108,8 +130,10 @@ class _NotesContent extends StatelessWidget {
                         ? FittedBox(
                             child: Text(
                               '$digit',
-                              style: const TextStyle(
-                                color: GameColors.noteText,
+                              style: TextStyle(
+                                color: isWrong
+                                    ? GameColors.errorDigit
+                                    : GameColors.noteText,
                               ),
                             ),
                           )
