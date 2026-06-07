@@ -41,6 +41,20 @@ const App({super.key, this.router});
 final GoRouter? router;
 ```
 
+## Per-group asset steps for multi-group elimination techniques
+
+Solver functions (e.g. `LockedCandidates`) aggregate **all** groups of a sub-type into one `SolveStep` (sources and actions from multiple groups merged). For tutorial purposes each group must be shown and validated independently.
+
+Pattern:
+- Add a `lockedCandidatesEachGroup(cands Candidates) []stepJSON` function in `generate_lesson_boards.go` that emits one step per (unit, digit) pair — mirroring the solver logic but yielding individual groups.
+- Store two fields per lesson board in the JSON:
+  - `step`: the **first** per-group step matching the board's `sub_variant` — a single-group step used exclusively by the observe phase
+  - `all_steps`: all individual per-group steps across all sub-types — used by practice validation
+- In the Flutter lesson screen, `_onLockIn` iterates `board.allSteps` filtered to the target sub-type and checks whether `_selectedCells` exactly matches any group's sources. The matched step is stored as `_matchedStep` and used for all subsequent phases.
+- Add a nil-fallback in `captureBoard` after the per-group search loop: `if board.Step == nil { board.Step = toStepJSON(step) }`. This keeps the observe phase functional if the per-group function ever diverges from the solver.
+
+Apply this pattern to any future elimination technique where multiple independent groups of the same sub-type can coexist on the same board (pairs, triples, X-wing, etc.).
+
 ## Null guard must cover every force-unwrap on the same line
 
 When a guard checks one nullable (`if (x == null) return`) but the following line also force-unwraps a different nullable (`y!`), the second unwrap is unguarded. Always guard ALL nullables that will be unwrapped:
@@ -53,6 +67,29 @@ peerCells[selectedRow!][selectedCol!] ...
 // CORRECT
 if (selectedRow == null || selectedCol == null) return false;
 peerCells[selectedRow!][selectedCol!] ...
+```
+
+## Defensive guards: cover every call site, including build()
+
+When adding a defensive guard for a crash scenario (e.g. empty list, null field) at one call site, grep for all other places the same expression is used in the file — especially inside `build()` methods. A guard in a callback does not protect a `build()` call that runs synchronously on every frame.
+
+```dart
+// Guard in _onDigitTap — does NOT protect the build block
+void _onDigitTap(int digit) {
+  if (_matchedStep!.actions.isEmpty) return; // ✓ guarded
+  ...
+}
+
+Widget build(...) {
+  final digit = _matchedStep!.actions.first.digit; // ✗ still unguarded
+  ...
+}
+```
+
+Fix: add a matching guard in the `build` method before any force-unwrap:
+
+```dart
+if (matched.actions.isEmpty) return const SizedBox.shrink();
 ```
 
 ## GridView on Flutter web triggers hover blobs
