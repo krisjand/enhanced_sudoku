@@ -130,7 +130,7 @@ var curriculum = []struct {
 }{
 	{"nakedSingles", "../puzzle_corpus/easy.json", 5},
 	{"hiddenSingles", "../puzzle_corpus/easy.json", 5},
-	{"lockedCandidates", "../puzzle_corpus/medium.json", 5},
+	{"lockedCandidates", "../puzzle_corpus/medium.json", 7},
 	{"nakedPairs", "../puzzle_corpus/medium.json", 5},
 	{"hiddenPairs", "../puzzle_corpus/hard.json", 5},
 	{"nakedTriples", "../puzzle_corpus/hard.json", 5},
