@@ -148,7 +148,7 @@ class _LockedCandidatesLessonScreenState
     final bc = (c0 ~/ 3) * 3;
     final rowName = br == 0 ? 'top' : (br == 3 ? 'middle' : 'bottom');
     final colName = bc == 0 ? 'left' : (bc == 3 ? 'centre' : 'right');
-    return '$rowName-$colName box';
+    return 'the $rowName-$colName box';
   }
 
   // ── Practice helpers ──────────────────────────────────────────────────────
