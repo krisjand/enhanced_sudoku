@@ -6,6 +6,7 @@ import 'features/game/screens/game_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/scores/screens/scores_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
+import 'features/tutorial/screens/naked_singles_lesson_screen.dart';
 import 'features/tutorial/screens/notes_lesson_screen.dart';
 import 'features/tutorial/screens/technique_lesson_screen.dart';
 import 'features/tutorial/screens/tutorial_list_screen.dart';
@@ -48,6 +49,10 @@ GoRouter buildAppRouter() => GoRouter(
         GoRoute(
           path: 'notes',
           builder: (context, state) => const NotesLessonScreen(),
+        ),
+        GoRoute(
+          path: 'lesson/nakedSingles',
+          builder: (context, state) => const NakedSinglesLessonScreen(),
         ),
         GoRoute(
           path: 'lesson/:technique',
