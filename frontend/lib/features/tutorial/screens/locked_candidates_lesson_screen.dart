@@ -258,10 +258,17 @@ class _LockedCandidatesLessonScreenState
   void _onSubTypeSelect(String value) {
     final board = _currentPracticeBoard;
     if (value == board.subVariant) {
+      _doneEliminations.clear();
+      if (_targetCells(board).isEmpty) {
+        // No notes to eliminate — advance directly, same pattern as no-peers guard.
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _onPracticeRoundDone(),
+        );
+        return;
+      }
       setState(() {
         _phase = _Phase.eliminate;
         _flashSubType = null;
-        _doneEliminations.clear();
         _selRow = null;
         _selCol = null;
       });
