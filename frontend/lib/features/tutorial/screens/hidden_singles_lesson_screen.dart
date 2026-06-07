@@ -1,0 +1,699 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../shared/models/cell_action.dart';
+import '../../../shared/models/game_state.dart';
+import '../../../shared/models/lesson_board.dart';
+import '../../../shared/models/tutorial_lesson.dart';
+import '../../../shared/widgets/sudoku_grid.dart';
+import '../providers/tutorial_provider.dart';
+import 'tutorial_widgets.dart';
+
+enum _Phase { intro, observe, find, eliminate }
+
+enum _UnitType { row, col, box }
+
+// Number of boards used for show-and-tell; practice starts after these.
+const _kObserveCount = 3;
+
+class HiddenSinglesLessonScreen extends ConsumerStatefulWidget {
+  const HiddenSinglesLessonScreen({super.key});
+
+  @override
+  ConsumerState<HiddenSinglesLessonScreen> createState() =>
+      _HiddenSinglesLessonScreenState();
+}
+
+class _HiddenSinglesLessonScreenState
+    extends ConsumerState<HiddenSinglesLessonScreen> {
+  _Phase _phase = _Phase.intro;
+
+  // observe
+  int _exampleIndex = 0; // 0–2
+
+  // find
+  int? _selRow;
+  int? _selCol;
+  int? _wrongRow;
+  int? _wrongCol;
+
+  // eliminate
+  int? _placedRow;
+  int? _placedCol;
+  int? _placedDigit;
+  bool _notesOn = false;
+  List<(int, int)> _pendingPeers = [];
+  final Set<(int, int)> _eliminatedPeers = {};
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  LessonBoard _observeBoard(TutorialLesson lesson) =>
+      _exampleIndex == 0 ? lesson.explain : lesson.practice[_exampleIndex - 1];
+
+  /// Returns the first (row, col, digit) set-action in the board's step.
+  (int, int, int) _findHiddenSingle(LessonBoard board) {
+    final step = board.step;
+    if (step != null) {
+      for (final a in step.actions) {
+        if (a.type == ActionType.set) return (a.row, a.col, a.digit);
+      }
+    }
+    return (0, 0, 1);
+  }
+
+  _UnitType _unitType(LessonBoard board) {
+    final sv = board.subVariant ?? '';
+    if (sv.contains('Column')) return _UnitType.col;
+    if (sv.contains('Box')) return _UnitType.box;
+    return _UnitType.row;
+  }
+
+  Set<(int, int)> _unitCells(_UnitType type, int row, int col) {
+    switch (type) {
+      case _UnitType.row:
+        return {for (var c = 0; c < 9; c++) (row, c)};
+      case _UnitType.col:
+        return {for (var r = 0; r < 9; r++) (r, col)};
+      case _UnitType.box:
+        final br = (row ~/ 3) * 3;
+        final bc = (col ~/ 3) * 3;
+        return {
+          for (var r = br; r < br + 3; r++)
+            for (var c = bc; c < bc + 3; c++) (r, c),
+        };
+    }
+  }
+
+  String _unitLabel(_UnitType type, int row, int col) {
+    switch (type) {
+      case _UnitType.row:
+        return 'row ${row + 1}';
+      case _UnitType.col:
+        return 'column ${col + 1}';
+      case _UnitType.box:
+        final br = (row ~/ 3) * 3;
+        final bc = (col ~/ 3) * 3;
+        final name = _boxName(br, bc);
+        return '$name box';
+    }
+  }
+
+  String _boxName(int br, int bc) {
+    final rowName = br == 0 ? 'top' : (br == 3 ? 'middle' : 'bottom');
+    final colName = bc == 0 ? 'left' : (bc == 3 ? 'centre' : 'right');
+    return '$rowName-$colName';
+  }
+
+  GameState _boardToState(LessonBoard board) => GameState(
+    initialGrid: board.initialGrid,
+    currentGrid: board.currentGrid,
+    notes: List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    ),
+  );
+
+  GameState _eliminatePhaseState(LessonBoard board) {
+    final pr = _placedRow!;
+    final pc = _placedCol!;
+    final pd = _placedDigit!;
+    final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
+    newGrid[pr][pc] = pd;
+    final newNotes = List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    );
+    newNotes[pr][pc] = {};
+    for (final (r, c) in _eliminatedPeers) {
+      newNotes[r][c].remove(pd);
+    }
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: newGrid,
+      notes: newNotes,
+    );
+  }
+
+  // ── Callbacks ─────────────────────────────────────────────────────────────
+
+  void _onDigitFindTap(LessonBoard board, int d) {
+    final r = _selRow;
+    final c = _selCol;
+    if (r == null || c == null) return;
+    if (board.initialGrid[r][c] != 0) return;
+
+    // Accept any hidden single listed in the step — not just the first one.
+    final step = board.step;
+    final isValid =
+        step != null &&
+        step.actions.any(
+          (a) =>
+              a.type == ActionType.set &&
+              a.row == r &&
+              a.col == c &&
+              a.digit == d,
+        );
+    if (isValid) {
+      final peers = tutorialComputePeers(board, r, c, d);
+      setState(() {
+        _placedRow = r;
+        _placedCol = c;
+        _placedDigit = d;
+        _pendingPeers = peers;
+        _eliminatedPeers.clear();
+        _phase = _Phase.eliminate;
+        _selRow = null;
+        _selCol = null;
+        _notesOn = false;
+      });
+    } else {
+      _flashWrong(r, c);
+    }
+  }
+
+  void _onDigitEliminateTap(int d) {
+    final r = _selRow;
+    final c = _selCol;
+    if (r == null || c == null) return;
+    if (!_notesOn) return;
+    if (d != _placedDigit) return;
+    if (!_pendingPeers.contains((r, c))) return;
+    if (_eliminatedPeers.contains((r, c))) return;
+    setState(() => _eliminatedPeers.add((r, c)));
+    if (_eliminatedPeers.length == _pendingPeers.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showSuccess());
+    }
+  }
+
+  void _flashWrong(int row, int col) {
+    setState(() {
+      _wrongRow = row;
+      _wrongCol = col;
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _wrongRow = null;
+          _wrongCol = null;
+        });
+      }
+    });
+  }
+
+  Future<void> _showSuccess({bool didCleanup = true}) async {
+    ref.read(completedLessonsProvider.notifier).markComplete('hiddenSingles');
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lesson complete!'),
+        content: Text(
+          didCleanup
+              ? 'You found the hidden single, placed the digit, and cleaned up '
+                    'the notes.\n\n'
+                    'Tip: scan each unit for digits that can only appear in one '
+                    'cell — whenever you spot one, place it immediately.'
+              : 'You found the hidden single and placed the digit!\n\n'
+                    'Tip: scan each unit for digits that can only appear in one '
+                    'cell — whenever you spot one, place it immediately.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final lessonAsync = ref.watch(tutorialLessonProvider('hiddenSingles'));
+    return Scaffold(
+      appBar: AppBar(title: const Text('Hidden Singles')),
+      body: SafeArea(
+        child: lessonAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (lesson) {
+            if (_phase == _Phase.intro) {
+              return _IntroBody(
+                onNext: () => setState(() => _phase = _Phase.observe),
+              );
+            }
+
+            if (_phase == _Phase.observe) {
+              final board = _observeBoard(lesson);
+              final isLast = _exampleIndex == _kObserveCount - 1;
+              return _ObserveBody(
+                key: ValueKey(_exampleIndex),
+                board: board,
+                hiddenSingle: _findHiddenSingle(board),
+                unitType: _unitType(board),
+                unitCellsFn: _unitCells,
+                unitLabelFn: _unitLabel,
+                isLastExample: isLast,
+                onNext: () => setState(() {
+                  if (isLast) {
+                    _phase = _Phase.find;
+                  } else {
+                    _exampleIndex++;
+                  }
+                }),
+              );
+            }
+
+            final practiceBoard = lesson.practice[_kObserveCount - 1];
+
+            if (_phase == _Phase.find) {
+              return _FindBody(
+                boardState: _boardToState(practiceBoard),
+                selRow: _selRow,
+                selCol: _selCol,
+                wrongRow: _wrongRow,
+                wrongCol: _wrongCol,
+                onCellTap: (r, c) => setState(() {
+                  _selRow = r;
+                  _selCol = c;
+                }),
+                onDigitTap: (d) => _onDigitFindTap(practiceBoard, d),
+              );
+            }
+
+            // _Phase.eliminate
+            if (_pendingPeers.isEmpty) {
+              final pd = _placedDigit!;
+              return TutorialNoPeersBody(
+                boardState: _eliminatePhaseState(practiceBoard),
+                digit: pd,
+                message:
+                    'Well done! You placed digit $pd.\n\n'
+                    'In this puzzle no peer cell had $pd as a candidate '
+                    'note, so there is nothing to clean up — that is perfectly '
+                    'valid. Hidden singles do not always require note removal.',
+                onDone: () => _showSuccess(didCleanup: false),
+              );
+            }
+            final remaining = _pendingPeers
+                .where((p) => !_eliminatedPeers.contains(p))
+                .toSet();
+            return TutorialEliminateBody(
+              boardState: _eliminatePhaseState(practiceBoard),
+              selRow: _selRow,
+              selCol: _selCol,
+              notesOn: _notesOn,
+              wrongCells: remaining,
+              wrongNotes: {
+                for (final p in remaining) p: {_placedDigit!},
+              },
+              placedDigit: _placedDigit!,
+              remainingCount: remaining.length,
+              onCellTap: (r, c) => setState(() {
+                _selRow = r;
+                _selCol = c;
+              }),
+              onDigitTap: _onDigitEliminateTap,
+              onNotesToggle: () => setState(() => _notesOn = !_notesOn),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ── Intro ─────────────────────────────────────────────────────────────────────
+
+class _IntroBody extends StatelessWidget {
+  const _IntroBody({required this.onNext});
+
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Hidden singles',
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You already know naked singles — cells where only one candidate '
+            'remains. Hidden singles are the next step up.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const Divider(height: 32),
+          Text(
+            'What is a hidden single?',
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'A hidden single is a digit that can only go in one cell within '
+            'a particular row, column, or box — even though that cell still '
+            'has other candidates.\n\n'
+            'The digit is "hidden" among the other notes, but within its unit '
+            'it has nowhere else to go.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const Divider(height: 32),
+          Text(
+            'How to find one',
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'For each digit 1–9, scan every row, column, and box. If a '
+            'digit appears as a note in exactly one cell of a unit, '
+            'that cell must hold that digit.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 32),
+          FilledButton(onPressed: onNext, child: const Text('See examples →')),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Observe ───────────────────────────────────────────────────────────────────
+
+class _ObserveBody extends StatefulWidget {
+  const _ObserveBody({
+    super.key,
+    required this.board,
+    required this.hiddenSingle,
+    required this.unitType,
+    required this.unitCellsFn,
+    required this.unitLabelFn,
+    required this.isLastExample,
+    required this.onNext,
+  });
+
+  final LessonBoard board;
+  final (int, int, int) hiddenSingle;
+  final _UnitType unitType;
+  final Set<(int, int)> Function(_UnitType, int, int) unitCellsFn;
+  final String Function(_UnitType, int, int) unitLabelFn;
+  final bool isLastExample;
+  final VoidCallback onNext;
+
+  @override
+  State<_ObserveBody> createState() => _ObserveBodyState();
+}
+
+class _ObserveBodyState extends State<_ObserveBody> {
+  // 0 = unit only  1 = reveal single  2 = placed + red peers  3 = cleaned + grey peers
+  int _step = 0;
+
+  Set<(int, int)> _allPeerUnits(int row, int col) {
+    final cells = <(int, int)>{};
+    for (var c = 0; c < 9; c++) {
+      cells.add((row, c));
+    }
+    for (var r = 0; r < 9; r++) {
+      cells.add((r, col));
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (var r = br; r < br + 3; r++) {
+      for (var c = bc; c < bc + 3; c++) {
+        cells.add((r, c));
+      }
+    }
+    cells.remove((row, col));
+    return cells;
+  }
+
+  // Peers of (row,col) that still carry digit as a note.
+  Set<(int, int)> _affectedPeers(int row, int col, int digit) {
+    return _allPeerUnits(
+      row,
+      col,
+    ).where((p) => widget.board.notes[p.$1][p.$2].contains(digit)).toSet();
+  }
+
+  // Digit placed; peer notes still intact.
+  GameState _placedState(int row, int col, int digit) {
+    final board = widget.board;
+    final newGrid = board.currentGrid.map((r) => List<int>.from(r)).toList();
+    newGrid[row][col] = digit;
+    final newNotes = List.generate(
+      9,
+      (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+    );
+    newNotes[row][col] = {};
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: newGrid,
+      notes: newNotes,
+    );
+  }
+
+  // Digit placed; peer notes cleaned.
+  GameState _placedCleanState(int row, int col, int digit) {
+    final base = _placedState(row, col, digit);
+    final newNotes = base.notes
+        .map((r) => r.map((s) => Set<int>.from(s)).toList())
+        .toList();
+    for (final (r, c) in _allPeerUnits(row, col)) {
+      newNotes[r][c].remove(digit);
+    }
+    return GameState(
+      initialGrid: base.initialGrid,
+      currentGrid: base.currentGrid,
+      notes: newNotes,
+    );
+  }
+
+  GameState _originalState() {
+    final board = widget.board;
+    return GameState(
+      initialGrid: board.initialGrid,
+      currentGrid: board.currentGrid,
+      notes: List.generate(
+        9,
+        (r) => List.generate(9, (c) => board.notes[r][c].toSet()),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (row, col, digit) = widget.hiddenSingle;
+    final unitCells = widget.unitCellsFn(widget.unitType, row, col);
+    final unitLabel = widget.unitLabelFn(widget.unitType, row, col);
+    final typeLabel = switch (widget.unitType) {
+      _UnitType.row => 'row',
+      _UnitType.col => 'column',
+      _UnitType.box => 'box',
+    };
+
+    final GameState gridState;
+    final int? targetRow;
+    final int? targetCol;
+    final Set<(int, int)> gridUnitCells;
+    final Set<(int, int)> gridWrongCells;
+    final Map<(int, int), Set<int>> gridWrongNotes;
+    final int? shlRow;
+    final int? shlCol;
+    final int? shlDigit;
+    final String descText;
+    final String buttonLabel;
+
+    switch (_step) {
+      case 0:
+        gridState = _originalState();
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = unitCells;
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText =
+            'Look at the highlighted $typeLabel ($unitLabel). '
+            'Which cell in this $typeLabel can contain digit $digit?';
+        buttonLabel = 'Reveal →';
+
+      case 1:
+        gridState = _originalState();
+        targetRow = row;
+        targetCol = col;
+        gridUnitCells = unitCells;
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
+        shlRow = row;
+        shlCol = col;
+        shlDigit = digit;
+        descText =
+            'Only this cell has $digit as a candidate in this $typeLabel. '
+            'Every other cell either already has a digit or $digit is ruled '
+            'out by its row, column, or box.\n\n'
+            'Digit $digit must go here — it is a hidden single!';
+        buttonLabel = 'Place $digit →';
+
+      case 2:
+        final affected = _affectedPeers(row, col, digit);
+        gridState = _placedState(row, col, digit);
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = _allPeerUnits(row, col);
+        gridWrongCells = affected;
+        gridWrongNotes = {
+          for (final p in affected) p: {digit},
+        };
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText = affected.isEmpty
+            ? 'Digit $digit is placed. No peer cell had $digit as a note, '
+                  'so there is nothing to remove here.'
+            : 'Digit $digit is placed. The red cells still carry $digit as a '
+                  'note — it must be removed from all of them.';
+        buttonLabel = 'Remove them →';
+
+      default: // step 3
+        gridState = _placedCleanState(row, col, digit);
+        targetRow = null;
+        targetCol = null;
+        gridUnitCells = _allPeerUnits(row, col);
+        gridWrongCells = const {};
+        gridWrongNotes = const {};
+        shlRow = null;
+        shlCol = null;
+        shlDigit = null;
+        descText =
+            'Done. Every peer cell in the row, column, and box '
+            '(highlighted in grey) that had $digit as a note has had it removed.';
+        buttonLabel = widget.isLastExample
+            ? 'Got it, let me try! →'
+            : 'Next example →';
+    }
+
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: SudokuGrid(
+            state: gridState,
+            targetRow: targetRow,
+            targetCol: targetCol,
+            unitCells: gridUnitCells,
+            wrongCells: gridWrongCells,
+            wrongNotes: gridWrongNotes,
+            singleHighlightRow: shlRow,
+            singleHighlightCol: shlCol,
+            singleHighlightDigit: shlDigit,
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  descText,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    if (_step < 3) {
+                      setState(() => _step++);
+                    } else {
+                      widget.onNext();
+                    }
+                  },
+                  child: Text(buttonLabel),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Find ──────────────────────────────────────────────────────────────────────
+
+class _FindBody extends StatelessWidget {
+  const _FindBody({
+    required this.boardState,
+    required this.onCellTap,
+    required this.onDigitTap,
+    this.selRow,
+    this.selCol,
+    this.wrongRow,
+    this.wrongCol,
+  });
+
+  final GameState boardState;
+  final int? selRow;
+  final int? selCol;
+  final int? wrongRow;
+  final int? wrongCol;
+  final void Function(int, int) onCellTap;
+  final void Function(int) onDigitTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: SudokuGrid(
+            state: boardState,
+            selectedRow: selRow,
+            selectedCol: selCol,
+            conflictRow: wrongRow,
+            conflictCol: wrongCol,
+            onCellTap: onCellTap,
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Find the hidden single — a digit that can only appear in '
+                  'one cell within its row, column, or box. Select the cell '
+                  'and tap that digit to place it.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                TutorialDigitRow(onDigitTap: onDigitTap),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

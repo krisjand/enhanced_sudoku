@@ -1,3 +1,4 @@
+// Short one-liners used in the tutorial list subtitle.
 const _descriptions = <String, String>{
   'notes': 'Learn to track candidate digits using pencil marks.',
   'nakedSingles': 'A cell with only one possible digit — place it immediately.',
@@ -25,3 +26,31 @@ const _descriptions = <String, String>{
 
 String techniqueDescription(String id) =>
     _descriptions[id] ?? 'Advanced technique.';
+
+// Longer in-lesson intros that reference previously learned techniques.
+const _lessonIntros = <String, String>{
+  'nakedSingles':
+      'Building on the notes from the previous lesson.\n\n'
+      'When only one candidate remains in a cell, that digit has nowhere '
+      'else to go — place it immediately.\n\n'
+      'After placing a digit, it must be removed from the notes of every '
+      'cell that sees the placed cell (same row, column, or box). '
+      "We'll walk through this step together.\n\n"
+      'Tip: once you are comfortable with this, you can enable '
+      'auto-note-removal in Settings — the app removes candidates '
+      'automatically each time you place a digit.',
+  'hiddenSingles':
+      'Building on naked singles.\n\n'
+      'A hidden single is a digit that appears as a candidate in only one '
+      'cell of a row, column, or box. Even if that cell has other '
+      'candidates, this digit must go there — it has no other home in '
+      'that unit.\n\n'
+      'Scan each row, column, and box: if a digit appears in only one '
+      "cell's notes, place it.\n\n"
+      'Just like with naked singles, placing the digit removes it from '
+      'the notes of every cell that sees the placed cell. '
+      'We will walk through that cleanup step together.',
+};
+
+String techniqueLessonIntro(String id) =>
+    _lessonIntros[id] ?? techniqueDescription(id);
