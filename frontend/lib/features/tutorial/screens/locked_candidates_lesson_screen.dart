@@ -230,6 +230,7 @@ class _LockedCandidatesLessonScreenState
   }
 
   void _onSelectToggle() {
+    if (_phase != _Phase.findCells) return;
     if (_activeRow == null || _activeCol == null) return;
     final key = (_activeRow!, _activeCol!);
     setState(() {
@@ -266,16 +267,14 @@ class _LockedCandidatesLessonScreenState
       });
     } else {
       final wrong = Set<(int, int)>.from(_selectedCells);
-      setState(() => _flashCells = wrong);
+      setState(() {
+        _flashCells = wrong;
+        _selectedCells.clear();
+        _activeRow = null;
+        _activeCol = null;
+      });
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          setState(() {
-            _flashCells = {};
-            _selectedCells.clear();
-            _activeRow = null;
-            _activeCol = null;
-          });
-        }
+        if (mounted) setState(() => _flashCells = {});
       });
     }
   }

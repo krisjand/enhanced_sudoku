@@ -48,7 +48,7 @@ class TutorialCellPickerBody extends StatelessWidget {
 
   bool get _activeIsEmptyCell {
     if (activeRow == null || activeCol == null) return false;
-    return boardState.digit(activeRow!, activeCol!) == 0;
+    return boardState.isEmpty(activeRow!, activeCol!);
   }
 
   bool get _activeIsSelected {
