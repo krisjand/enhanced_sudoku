@@ -51,11 +51,11 @@ class SudokuCell extends StatelessWidget {
 
   Color get _background {
     if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
+    if (isSource) return GameColors.sourceCell;
     if (isSelected || isDigitMatch) return GameColors.selectedCell;
     if (hasWrongBackground) {
       return GameColors.errorDigit.withValues(alpha: 0.25);
     }
-    if (isSource) return GameColors.sourceCell;
     if (isTarget) return GameColors.highlightedDigit.withValues(alpha: 0.5);
     if (hasUnitTint || isPeer) return GameColors.peerCell;
     return Colors.transparent;

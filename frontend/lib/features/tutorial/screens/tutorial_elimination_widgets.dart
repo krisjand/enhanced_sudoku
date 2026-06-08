@@ -6,41 +6,70 @@ import 'tutorial_widgets.dart';
 
 // ── Cell picker ───────────────────────────────────────────────────────────────
 
-// Board with multi-cell tap-to-toggle selection and a "Lock in" button.
-// The parent manages [selectedCells] and provides [onCellTap] / [onLockIn].
-// [flashCells] triggers a brief red background on incorrect selections.
+// Board with normal game-style cell selection plus explicit Select/Deselect,
+// a Highlighting toggle, and a "Lock in" button.
+//
+// Interaction model:
+//   - Tapping a cell sets it as the active cell (normal sudoku highlight +
+//     digit/note matching when highlightingEnabled is true).
+//   - The Select/Deselect button adds/removes the active cell from
+//     [selectedCells] (shown green). It is only enabled for empty cells.
+//   - The Highlighting toggle controls peer/row/col/box tinting.
+//   - Lock in submits [selectedCells] as the answer.
+//
+// [flashCells] triggers a brief red background on incorrect lock-ins.
 class TutorialCellPickerBody extends StatelessWidget {
   const TutorialCellPickerBody({
     super.key,
     required this.boardState,
     required this.selectedCells,
     required this.onCellTap,
+    required this.onSelectToggle,
+    required this.onHighlightToggle,
     required this.onLockIn,
     required this.instructionText,
+    required this.highlightingEnabled,
+    this.activeRow,
+    this.activeCol,
     this.flashCells = const {},
   });
 
   final GameState boardState;
   final Set<(int, int)> selectedCells;
   final void Function(int, int) onCellTap;
+  final VoidCallback onSelectToggle;
+  final VoidCallback onHighlightToggle;
   final VoidCallback onLockIn;
   final String instructionText;
+  final bool highlightingEnabled;
+  final int? activeRow;
+  final int? activeCol;
   final Set<(int, int)> flashCells;
+
+  bool get _activeIsEmptyCell {
+    if (activeRow == null || activeCol == null) return false;
+    return boardState.isEmpty(activeRow!, activeCol!);
+  }
+
+  bool get _activeIsSelected {
+    if (activeRow == null || activeCol == null) return false;
+    return selectedCells.contains((activeRow!, activeCol!));
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveWrong = flashCells.isNotEmpty
-        ? flashCells
-        : const <(int, int)>{};
     return Column(
       children: [
         AspectRatio(
           aspectRatio: 1,
           child: SudokuGrid(
             state: boardState,
+            selectedRow: activeRow,
+            selectedCol: activeCol,
+            isHighlightMode: highlightingEnabled,
             sourceCells: selectedCells,
-            wrongCells: effectiveWrong,
+            wrongCells: flashCells,
             onCellTap: onCellTap,
           ),
         ),
@@ -56,6 +85,28 @@ class TutorialCellPickerBody extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onHighlightToggle,
+                        child: Text(
+                          highlightingEnabled
+                              ? 'Highlighting: ON'
+                              : 'Highlighting: OFF',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.tonal(
+                        onPressed: _activeIsEmptyCell ? onSelectToggle : null,
+                        child: Text(_activeIsSelected ? 'Deselect' : 'Select'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 FilledButton(
                   onPressed: selectedCells.isNotEmpty ? onLockIn : null,
                   child: const Text('Lock in →'),

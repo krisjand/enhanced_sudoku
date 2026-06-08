@@ -39,6 +39,9 @@ class _LockedCandidatesLessonScreenState
   // findCells
   final Set<(int, int)> _selectedCells = {};
   Set<(int, int)> _flashCells = {};
+  int? _activeRow;
+  int? _activeCol;
+  bool _highlightingEnabled = true;
 
   // findDigit
   int? _flashDigit;
@@ -221,7 +224,16 @@ class _LockedCandidatesLessonScreenState
   void _onCellTap(int row, int col) {
     if (_phase != _Phase.findCells) return;
     setState(() {
-      final key = (row, col);
+      _activeRow = row;
+      _activeCol = col;
+    });
+  }
+
+  void _onSelectToggle() {
+    if (_phase != _Phase.findCells) return;
+    if (_activeRow == null || _activeCol == null) return;
+    final key = (_activeRow!, _activeCol!);
+    setState(() {
       if (_selectedCells.contains(key)) {
         _selectedCells.remove(key);
       } else {
@@ -229,6 +241,9 @@ class _LockedCandidatesLessonScreenState
       }
     });
   }
+
+  void _onHighlightToggle() =>
+      setState(() => _highlightingEnabled = !_highlightingEnabled);
 
   void _onLockIn() {
     final board = _currentPracticeBoard;
@@ -252,14 +267,14 @@ class _LockedCandidatesLessonScreenState
       });
     } else {
       final wrong = Set<(int, int)>.from(_selectedCells);
-      setState(() => _flashCells = wrong);
+      setState(() {
+        _flashCells = wrong;
+        _selectedCells.clear();
+        _activeRow = null;
+        _activeCol = null;
+      });
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          setState(() {
-            _flashCells = {};
-            _selectedCells.clear();
-          });
-        }
+        if (mounted) setState(() => _flashCells = {});
       });
     }
   }
@@ -331,6 +346,8 @@ class _LockedCandidatesLessonScreenState
         _doneEliminations.clear();
         _selRow = null;
         _selCol = null;
+        _activeRow = null;
+        _activeCol = null;
       });
     } else {
       await _showSuccess();
@@ -422,7 +439,12 @@ class _LockedCandidatesLessonScreenState
                 boardState: _boardState(board),
                 selectedCells: _selectedCells,
                 flashCells: _flashCells,
+                activeRow: _activeRow,
+                activeCol: _activeCol,
+                highlightingEnabled: _highlightingEnabled,
                 onCellTap: _onCellTap,
+                onSelectToggle: _onSelectToggle,
+                onHighlightToggle: _onHighlightToggle,
                 onLockIn: _onLockIn,
                 instructionText: _findCellsInstruction(board.subVariant ?? ''),
               );
