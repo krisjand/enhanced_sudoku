@@ -6,8 +6,8 @@ import '../../../shared/models/game_state.dart';
 import '../../../shared/providers/settings_provider.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
 
-// Fixed preview board — standard easy puzzle so every unit is represented,
-// with notes pre-filled so all colors are visible at once.
+// Fixed preview board — Wikipedia example puzzle (partial solve).
+// Clue grid: the cells given at the start.
 const _previewGrid = [
   [5, 3, 0, 0, 7, 0, 0, 0, 0],
   [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -20,12 +20,26 @@ const _previewGrid = [
   [0, 0, 0, 0, 8, 0, 0, 7, 9],
 ];
 
-// Notes for empty cells so the preview shows note text colour.
+// User-placed digits (correct, from the known solution) added to make the
+// user-digit colour visible on the preview board.
+const _previewCurrentGrid = [
+  [5, 3, 4, 6, 7, 0, 0, 0, 0],
+  [6, 7, 2, 1, 9, 5, 0, 0, 0],
+  [1, 9, 8, 0, 0, 0, 0, 6, 0],
+  [8, 5, 0, 0, 6, 0, 0, 0, 3],
+  [4, 0, 0, 8, 0, 3, 0, 0, 1],
+  [7, 0, 0, 0, 2, 0, 0, 0, 6],
+  [0, 6, 0, 0, 0, 0, 2, 8, 0],
+  [0, 0, 0, 4, 1, 9, 0, 0, 5],
+  [0, 0, 0, 0, 8, 0, 0, 7, 9],
+];
+
+// Notes for remaining empty cells so the note-text colour is also visible.
 // Computed once — the preview grid never changes.
 final _previewNotes = List.generate(
   9,
   (r) => List.generate(9, (c) {
-    if (_previewGrid[r][c] != 0) return <int>{};
+    if (_previewCurrentGrid[r][c] != 0) return <int>{};
     final d = (r + c) % 9 + 1;
     final d2 = (r * 2 + c + 3) % 9 + 1;
     return {d, if (d2 != d) d2};
@@ -34,7 +48,7 @@ final _previewNotes = List.generate(
 
 final _previewState = GameState(
   initialGrid: _previewGrid,
-  currentGrid: _previewGrid,
+  currentGrid: _previewCurrentGrid,
   notes: _previewNotes,
 );
 
@@ -46,8 +60,19 @@ class ColorSettingsTab extends ConsumerStatefulWidget {
 }
 
 class _ColorSettingsTabState extends ConsumerState<ColorSettingsTab> {
-  static const _previewSelRow = 1;
-  static const _previewSelCol = 1;
+  int? _selRow;
+  int? _selCol;
+
+  void _onCellTap(int row, int col) {
+    setState(() {
+      if (_selRow == row && _selCol == col) {
+        _selRow = _selCol = null;
+      } else {
+        _selRow = row;
+        _selCol = col;
+      }
+    });
+  }
 
   void _pickColor({
     required String title,
@@ -101,9 +126,10 @@ class _ColorSettingsTabState extends ConsumerState<ColorSettingsTab> {
           aspectRatio: 1,
           child: SudokuGrid(
             state: _previewState,
-            selectedRow: _previewSelRow,
-            selectedCol: _previewSelCol,
+            selectedRow: _selRow,
+            selectedCol: _selCol,
             isHighlightMode: true,
+            onCellTap: _onCellTap,
           ),
         ),
         const SizedBox(height: 20),
