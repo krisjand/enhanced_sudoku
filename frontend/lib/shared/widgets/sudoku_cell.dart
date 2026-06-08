@@ -49,23 +49,24 @@ class SudokuCell extends StatelessWidget {
   // Green tint — marks source cells for elimination-based technique tutorials.
   final bool isSource;
 
-  Color get _background {
-    if (hasConflict) return GameColors.errorDigit.withValues(alpha: 0.25);
-    if (isSource) return GameColors.sourceCell;
-    if (isSelected || isDigitMatch) return GameColors.selectedCell;
+  Color _background(GameColors c) {
+    if (hasConflict) return c.errorDigit.withValues(alpha: 0.25);
+    if (isSource) return c.sourceCell;
+    if (isSelected || isDigitMatch) return c.selectedCell;
     if (hasWrongBackground) {
-      return GameColors.errorDigit.withValues(alpha: 0.25);
+      return c.errorDigit.withValues(alpha: 0.25);
     }
-    if (isTarget) return GameColors.highlightedDigit.withValues(alpha: 0.5);
-    if (hasUnitTint || isPeer) return GameColors.peerCell;
+    if (isTarget) return c.highlightedDigit.withValues(alpha: 0.5);
+    if (hasUnitTint || isPeer) return c.peerCell;
     return Colors.transparent;
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<GameColors>()!;
     return Container(
       decoration: BoxDecoration(
-        color: _background,
+        color: _background(c),
         border: Border(
           right: BorderSide(color: rightBorderColor, width: rightBorderWidth),
           bottom: BorderSide(
@@ -75,21 +76,27 @@ class SudokuCell extends StatelessWidget {
         ),
       ),
       child: digit != 0
-          ? _DigitContent(digit: digit, isClue: isClue)
+          ? _DigitContent(digit: digit, isClue: isClue, c: c)
           : _NotesContent(
               notes: notes,
               highlightedNote: highlightedNote,
               wrongNoteDigits: wrongNoteDigits,
+              c: c,
             ),
     );
   }
 }
 
 class _DigitContent extends StatelessWidget {
-  const _DigitContent({required this.digit, required this.isClue});
+  const _DigitContent({
+    required this.digit,
+    required this.isClue,
+    required this.c,
+  });
 
   final int digit;
   final bool isClue;
+  final GameColors c;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +106,7 @@ class _DigitContent extends StatelessWidget {
           '$digit',
           style: TextStyle(
             fontSize: constraints.maxWidth * 0.65,
-            color: isClue ? GameColors.clueDigit : GameColors.userDigit,
+            color: isClue ? c.clueDigit : c.userDigit,
             fontWeight: isClue ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -111,11 +118,13 @@ class _DigitContent extends StatelessWidget {
 class _NotesContent extends StatelessWidget {
   const _NotesContent({
     required this.notes,
+    required this.c,
     this.highlightedNote,
     this.wrongNoteDigits = const {},
   });
 
   final Set<int> notes;
+  final GameColors c;
   final int? highlightedNote;
   final Set<int> wrongNoteDigits;
 
@@ -132,16 +141,14 @@ class _NotesContent extends StatelessWidget {
               final isWrong = wrongNoteDigits.contains(digit);
               return Expanded(
                 child: Container(
-                  color: isHighlit ? GameColors.selectedCell : null,
+                  color: isHighlit ? c.selectedCell : null,
                   child: Center(
                     child: notes.contains(digit)
                         ? FittedBox(
                             child: Text(
                               '$digit',
                               style: TextStyle(
-                                color: isWrong
-                                    ? GameColors.errorDigit
-                                    : GameColors.noteText,
+                                color: isWrong ? c.errorDigit : c.noteText,
                               ),
                             ),
                           )

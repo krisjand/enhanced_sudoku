@@ -57,7 +57,7 @@ void main() {
       await tester.tap(find.text('Settings'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Backend URL'), findsOneWidget);
+      expect(find.text('Colors'), findsOneWidget);
     });
   });
 }

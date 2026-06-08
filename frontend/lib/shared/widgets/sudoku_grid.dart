@@ -62,15 +62,13 @@ class SudokuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<GameColors>()!;
     final highlightDigit = selectedDigit;
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: GameColors.gridLineHeavy,
-            width: _thickBorder,
-          ),
+          border: Border.all(color: c.gridLineHeavy, width: _thickBorder),
         ),
         child: Column(
           children: List.generate(9, (row) {
@@ -86,8 +84,8 @@ class SudokuGrid extends StatelessWidget {
                         notes: state.notes[row][col],
                         rightBorderWidth: _rightBorder(col),
                         bottomBorderWidth: _bottomBorder(row),
-                        rightBorderColor: _borderColor(_rightBorder(col)),
-                        bottomBorderColor: _borderColor(_bottomBorder(row)),
+                        rightBorderColor: _borderColor(c, _rightBorder(col)),
+                        bottomBorderColor: _borderColor(c, _bottomBorder(row)),
                         isSelected: row == selectedRow && col == selectedCol,
                         isPeer: isPeer(row, col),
                         hasConflict: row == conflictRow && col == conflictCol,
@@ -140,9 +138,8 @@ class SudokuGrid extends StatelessWidget {
         : null;
   }
 
-  static Color _borderColor(double width) => width == _thickBorder
-      ? GameColors.gridLineHeavy
-      : GameColors.gridLineLight;
+  static Color _borderColor(GameColors c, double width) =>
+      width == _thickBorder ? c.gridLineHeavy : c.gridLineLight;
 
   static double _rightBorder(int col) {
     if (col == 8) return 0;

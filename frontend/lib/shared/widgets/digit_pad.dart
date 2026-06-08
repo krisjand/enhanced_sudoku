@@ -32,6 +32,7 @@ class DigitPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<GameColors>()!;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -60,13 +61,13 @@ class DigitPad extends StatelessWidget {
               icon: const Icon(Icons.undo),
               tooltip: 'Undo',
               onPressed: canUndo ? onUndo : null,
-              color: GameColors.primary,
+              color: c.primary,
             ),
             IconButton(
               icon: const Icon(Icons.redo),
               tooltip: 'Redo',
               onPressed: canRedo ? onRedo : null,
-              color: GameColors.primary,
+              color: c.primary,
             ),
             const SizedBox(width: 8),
             TextButton.icon(
@@ -76,9 +77,7 @@ class DigitPad extends StatelessWidget {
               ),
               label: Text(isNotesMode ? 'Notes on' : 'Notes off'),
               style: TextButton.styleFrom(
-                foregroundColor: isNotesMode
-                    ? GameColors.primary
-                    : GameColors.noteText,
+                foregroundColor: isNotesMode ? c.primary : c.noteText,
                 textStyle: const TextStyle(fontSize: 13),
               ),
               onPressed: onToggleNotes,
@@ -88,14 +87,14 @@ class DigitPad extends StatelessWidget {
               icon: const Icon(Icons.highlight),
               tooltip: 'Highlight digit',
               onPressed: onToggleHighlight,
-              color: isHighlightMode ? GameColors.primary : GameColors.noteText,
+              color: isHighlightMode ? c.primary : c.noteText,
             ),
             const SizedBox(width: 8),
             TextButton.icon(
               icon: const Icon(Icons.auto_fix_high, size: 18),
               label: const Text('Auto-fill'),
               style: TextButton.styleFrom(
-                foregroundColor: GameColors.noteText,
+                foregroundColor: c.noteText,
                 textStyle: const TextStyle(fontSize: 13),
               ),
               onPressed: onAutoFillNotes,
@@ -115,12 +114,13 @@ class _DigitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<GameColors>()!;
     final enabled = onTap != null;
     return Material(
-      color: enabled ? GameColors.digitPadButton : GameColors.background,
+      color: enabled ? c.digitPadButton : c.background,
       borderRadius: BorderRadius.circular(6),
       elevation: enabled ? 2 : 0,
-      shadowColor: GameColors.gridLineHeavy.withValues(alpha: 0.3),
+      shadowColor: c.gridLineHeavy.withValues(alpha: 0.3),
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: onTap,
@@ -131,7 +131,7 @@ class _DigitButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: constraints.maxWidth * 0.55,
                 fontWeight: FontWeight.w600,
-                color: enabled ? GameColors.clueDigit : GameColors.noteText,
+                color: enabled ? c.clueDigit : c.noteText,
               ),
             ),
           ),
