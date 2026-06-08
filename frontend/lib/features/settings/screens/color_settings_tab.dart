@@ -21,22 +21,21 @@ const _previewGrid = [
 ];
 
 // Notes for empty cells so the preview shows note text colour.
-List<List<Set<int>>> _buildPreviewNotes() {
-  return List.generate(
-    9,
-    (r) => List.generate(9, (c) {
-      if (_previewGrid[r][c] != 0) return <int>{};
-      final d = (r + c) % 9 + 1;
-      final d2 = (r * 2 + c + 3) % 9 + 1;
-      return {d, if (d2 != d) d2};
-    }),
-  );
-}
+// Computed once — the preview grid never changes.
+final _previewNotes = List.generate(
+  9,
+  (r) => List.generate(9, (c) {
+    if (_previewGrid[r][c] != 0) return <int>{};
+    final d = (r + c) % 9 + 1;
+    final d2 = (r * 2 + c + 3) % 9 + 1;
+    return {d, if (d2 != d) d2};
+  }),
+);
 
-GameState _buildPreviewState(int selRow, int selCol) => GameState(
+final _previewState = GameState(
   initialGrid: _previewGrid,
   currentGrid: _previewGrid,
-  notes: _buildPreviewNotes(),
+  notes: _previewNotes,
 );
 
 class ColorSettingsTab extends ConsumerStatefulWidget {
@@ -101,7 +100,7 @@ class _ColorSettingsTabState extends ConsumerState<ColorSettingsTab> {
         AspectRatio(
           aspectRatio: 1,
           child: SudokuGrid(
-            state: _buildPreviewState(_previewSelRow, _previewSelCol),
+            state: _previewState,
             selectedRow: _previewSelRow,
             selectedCol: _previewSelCol,
             isHighlightMode: true,

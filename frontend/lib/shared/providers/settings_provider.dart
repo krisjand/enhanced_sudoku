@@ -5,6 +5,13 @@ import '../services/persistence_service.dart';
 import '../theme/game_colors.dart';
 import 'persistence_provider.dart';
 
+// ── Default configurable colors ───────────────────────────────────────────────
+
+const _defaultSelectedCell = Color(0xFF90CAF9);
+const _defaultUserDigit = Color(0xFF2B6CB0);
+const _defaultNoteText = Color(0xFF718096);
+const _defaultPeerCell = Color(0xFFD1D5DB);
+
 // ── Keys used in SettingsDao ──────────────────────────────────────────────────
 
 const _kBackendUrl = 'backendUrl';
@@ -22,10 +29,10 @@ class SettingsState {
     this.backendUrl = 'http://localhost:8080',
     this.autoRemoveNotes = true,
     this.highlightModeDefault = true,
-    this.selectedCellColor = const Color(0xFF90CAF9),
-    this.userDigitColor = const Color(0xFF2B6CB0),
-    this.noteTextColor = const Color(0xFF718096),
-    this.peerCellColor = const Color(0xFFD1D5DB),
+    this.selectedCellColor = _defaultSelectedCell,
+    this.userDigitColor = _defaultUserDigit,
+    this.noteTextColor = _defaultNoteText,
+    this.peerCellColor = _defaultPeerCell,
   });
 
   final String backendUrl;
@@ -86,16 +93,12 @@ class SettingsNotifier extends Notifier<SettingsState> {
       highlightModeDefault: hlDefault != 'false',
       selectedCellColor: selCell != null
           ? Color(int.parse(selCell))
-          : const Color(0xFF90CAF9),
+          : _defaultSelectedCell,
       userDigitColor: userDig != null
           ? Color(int.parse(userDig))
-          : const Color(0xFF2B6CB0),
-      noteTextColor: noteT != null
-          ? Color(int.parse(noteT))
-          : const Color(0xFF718096),
-      peerCellColor: peerC != null
-          ? Color(int.parse(peerC))
-          : const Color(0xFFD1D5DB),
+          : _defaultUserDigit,
+      noteTextColor: noteT != null ? Color(int.parse(noteT)) : _defaultNoteText,
+      peerCellColor: peerC != null ? Color(int.parse(peerC)) : _defaultPeerCell,
     );
   }
 
@@ -135,10 +138,18 @@ class SettingsNotifier extends Notifier<SettingsState> {
   }
 
   Future<void> applyTheme(ColorTheme theme) async {
-    await setSelectedCellColor(theme.selectedCell);
-    await setUserDigitColor(theme.userDigit);
-    await setNoteTextColor(theme.noteText);
-    await setPeerCellColor(theme.peerCell);
+    await Future.wait([
+      _dao.set(_kColorSelectedCell, theme.selectedCell.toARGB32().toString()),
+      _dao.set(_kColorUserDigit, theme.userDigit.toARGB32().toString()),
+      _dao.set(_kColorNoteText, theme.noteText.toARGB32().toString()),
+      _dao.set(_kColorPeerCell, theme.peerCell.toARGB32().toString()),
+    ]);
+    state = state.copyWith(
+      selectedCellColor: theme.selectedCell,
+      userDigitColor: theme.userDigit,
+      noteTextColor: theme.noteText,
+      peerCellColor: theme.peerCell,
+    );
   }
 }
 
@@ -178,10 +189,10 @@ class ColorTheme {
 const List<ColorTheme> colorThemes = [
   ColorTheme(
     label: 'Default',
-    selectedCell: Color(0xFF90CAF9),
-    userDigit: Color(0xFF2B6CB0),
-    noteText: Color(0xFF718096),
-    peerCell: Color(0xFFD1D5DB),
+    selectedCell: _defaultSelectedCell,
+    userDigit: _defaultUserDigit,
+    noteText: _defaultNoteText,
+    peerCell: _defaultPeerCell,
   ),
   ColorTheme(
     label: 'Blues',

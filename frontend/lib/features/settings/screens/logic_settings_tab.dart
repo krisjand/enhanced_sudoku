@@ -8,6 +8,8 @@ const _backendUrls = [
   ('Android emulator', 'http://10.0.2.2:8080'),
 ];
 
+final _knownUrls = _backendUrls.map((e) => e.$2).toSet();
+
 class LogicSettingsTab extends ConsumerWidget {
   const LogicSettingsTab({super.key});
 
@@ -41,7 +43,9 @@ class LogicSettingsTab extends ConsumerWidget {
         const Text('Backend URL'),
         const SizedBox(height: 8),
         DropdownButton<String>(
-          value: settings.backendUrl,
+          value: _knownUrls.contains(settings.backendUrl)
+              ? settings.backendUrl
+              : _backendUrls.first.$2,
           isExpanded: true,
           underline: const Divider(height: 1),
           items: _backendUrls.map((entry) {
