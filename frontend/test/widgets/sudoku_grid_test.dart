@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/game/providers/selection_provider.dart';
 import 'package:frontend/shared/models/game_state.dart';
+import 'package:frontend/shared/theme/app_theme.dart';
 import 'package:frontend/shared/widgets/sudoku_cell.dart';
 import 'package:frontend/shared/widgets/sudoku_grid.dart';
 
 Widget buildGrid(GameState state, {int? selectedRow, int? selectedCol}) =>
     MaterialApp(
+      theme: AppTheme.build(),
       home: Scaffold(
         body: SudokuGrid(
           state: state,
@@ -140,6 +142,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
+              theme: AppTheme.build(),
               home: Scaffold(
                 body: Consumer(
                   builder: (context, ref, _) {
@@ -177,6 +180,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
+              theme: AppTheme.build(),
               home: Scaffold(
                 body: Consumer(
                   builder: (context, ref, _) {
@@ -309,6 +313,7 @@ void main() {
         final state = digitMatchState();
         await tester.pumpWidget(
           MaterialApp(
+            theme: AppTheme.build(),
             home: Scaffold(
               body: SudokuGrid(
                 state: state,

@@ -17,6 +17,7 @@ class SudokuGrid extends StatelessWidget {
     this.conflictRow,
     this.conflictCol,
     this.isHighlightMode = true,
+    this.highlightNoteCandidates = true,
     this.onCellTap,
     this.targetRow,
     this.targetCol,
@@ -35,6 +36,7 @@ class SudokuGrid extends StatelessWidget {
   final int? conflictRow;
   final int? conflictCol;
   final bool isHighlightMode;
+  final bool highlightNoteCandidates;
   final void Function(int row, int col)? onCellTap;
   // Yellow highlight on the cell the user should interact with next.
   final int? targetRow;
@@ -62,15 +64,13 @@ class SudokuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Theme.of(context).extension<GameColors>()!;
     final highlightDigit = selectedDigit;
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: GameColors.gridLineHeavy,
-            width: _thickBorder,
-          ),
+          border: Border.all(color: c.gridLineHeavy, width: _thickBorder),
         ),
         child: Column(
           children: List.generate(9, (row) {
@@ -86,8 +86,8 @@ class SudokuGrid extends StatelessWidget {
                         notes: state.notes[row][col],
                         rightBorderWidth: _rightBorder(col),
                         bottomBorderWidth: _bottomBorder(row),
-                        rightBorderColor: _borderColor(_rightBorder(col)),
-                        bottomBorderColor: _borderColor(_bottomBorder(row)),
+                        rightBorderColor: _borderColor(c, _rightBorder(col)),
+                        bottomBorderColor: _borderColor(c, _bottomBorder(row)),
                         isSelected: row == selectedRow && col == selectedCol,
                         isPeer: isPeer(row, col),
                         hasConflict: row == conflictRow && col == conflictCol,
@@ -133,6 +133,7 @@ class SudokuGrid extends StatelessWidget {
   // Returns the note digit to highlight in this cell, or null.
   // Only applies to empty cells whose notes contain the selected digit.
   int? highlightedNote(int row, int col, int? highlightDigit) {
+    if (!highlightNoteCandidates) return null;
     if (highlightDigit == null) return null;
     if (state.digit(row, col) != 0) return null;
     return state.notes[row][col].contains(highlightDigit)
@@ -140,9 +141,8 @@ class SudokuGrid extends StatelessWidget {
         : null;
   }
 
-  static Color _borderColor(double width) => width == _thickBorder
-      ? GameColors.gridLineHeavy
-      : GameColors.gridLineLight;
+  static Color _borderColor(GameColors c, double width) =>
+      width == _thickBorder ? c.gridLineHeavy : c.gridLineLight;
 
   static double _rightBorder(int col) {
     if (col == 8) return 0;

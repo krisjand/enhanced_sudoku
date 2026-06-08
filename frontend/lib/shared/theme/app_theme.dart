@@ -3,46 +3,47 @@ import 'package:flutter/material.dart';
 import 'game_colors.dart';
 
 abstract final class AppTheme {
-  static ThemeData get light {
+  static ThemeData build([GameColors colors = GameColors.defaults]) {
     final base = ColorScheme.fromSeed(
-      seedColor: GameColors.primary,
+      seedColor: colors.primary,
       brightness: Brightness.light,
-    ).copyWith(surface: GameColors.background, onSurface: GameColors.clueDigit);
+    ).copyWith(surface: colors.background, onSurface: colors.clueDigit);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: base,
-      scaffoldBackgroundColor: GameColors.background,
+      scaffoldBackgroundColor: colors.background,
+      extensions: [colors],
       appBarTheme: AppBarTheme(
-        backgroundColor: GameColors.background,
-        foregroundColor: GameColors.clueDigit,
+        backgroundColor: colors.background,
+        foregroundColor: colors.clueDigit,
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: true,
-        titleTextStyle: const TextStyle(
-          color: GameColors.clueDigit,
+        titleTextStyle: TextStyle(
+          color: colors.clueDigit,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
       ),
-      cardTheme: const CardThemeData(
-        color: GameColors.surface,
+      cardTheme: CardThemeData(
+        color: colors.surface,
         elevation: 2,
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: GameColors.primary,
+          backgroundColor: colors.primary,
           foregroundColor: Colors.white,
           minimumSize: const Size(120, 48),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: GameColors.primary),
+        style: TextButton.styleFrom(foregroundColor: colors.primary),
       ),
     );
   }

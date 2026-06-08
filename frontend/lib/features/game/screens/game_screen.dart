@@ -10,6 +10,7 @@ import '../../../shared/utils/format_time.dart';
 import '../../../shared/utils/technique_names.dart';
 import '../../../shared/widgets/digit_pad.dart';
 import '../../../shared/widgets/sudoku_grid.dart';
+import '../../../shared/providers/settings_provider.dart';
 import '../providers/game_state_notifier.dart';
 import '../providers/highlight_provider.dart';
 import '../providers/notes_mode_provider.dart';
@@ -168,6 +169,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final isNotesMode = ref.watch(notesModeProvider);
     final conflict = ref.watch(_conflictProvider);
     final isHighlightMode = ref.watch(highlightModeProvider);
+    final highlightNoteCandidates = ref.watch(
+      settingsProvider.select((s) => s.highlightNoteCandidates),
+    );
     final elapsed = ref.watch(timerProvider);
 
     // Completion detection: navigate once when all cells are filled.
@@ -216,6 +220,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                     conflictRow: conflict?.row,
                     conflictCol: conflict?.col,
                     isHighlightMode: isHighlightMode,
+                    highlightNoteCandidates: highlightNoteCandidates,
                     onCellTap: (row, col) =>
                         ref.read(selectionProvider.notifier).select(row, col),
                   ),
