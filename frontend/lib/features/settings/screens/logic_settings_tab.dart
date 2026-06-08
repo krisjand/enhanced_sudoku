@@ -39,6 +39,15 @@ class LogicSettingsTab extends ConsumerWidget {
           value: settings.highlightModeDefault,
           onChanged: notifier.setHighlightModeDefault,
         ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Highlight matching note candidates'),
+          subtitle: const Text(
+            'When a filled cell is selected, highlight its digit in notes',
+          ),
+          value: settings.highlightNoteCandidates,
+          onChanged: notifier.setHighlightNoteCandidates,
+        ),
         const Divider(height: 32),
         const Text('Backend URL'),
         const SizedBox(height: 8),

@@ -17,6 +17,7 @@ class SudokuGrid extends StatelessWidget {
     this.conflictRow,
     this.conflictCol,
     this.isHighlightMode = true,
+    this.highlightNoteCandidates = true,
     this.onCellTap,
     this.targetRow,
     this.targetCol,
@@ -35,6 +36,7 @@ class SudokuGrid extends StatelessWidget {
   final int? conflictRow;
   final int? conflictCol;
   final bool isHighlightMode;
+  final bool highlightNoteCandidates;
   final void Function(int row, int col)? onCellTap;
   // Yellow highlight on the cell the user should interact with next.
   final int? targetRow;
@@ -131,6 +133,7 @@ class SudokuGrid extends StatelessWidget {
   // Returns the note digit to highlight in this cell, or null.
   // Only applies to empty cells whose notes contain the selected digit.
   int? highlightedNote(int row, int col, int? highlightDigit) {
+    if (!highlightNoteCandidates) return null;
     if (highlightDigit == null) return null;
     if (state.digit(row, col) != 0) return null;
     return state.notes[row][col].contains(highlightDigit)

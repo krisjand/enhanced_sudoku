@@ -17,6 +17,7 @@ const _defaultPeerCell = Color(0xFFD1D5DB);
 const _kBackendUrl = 'backendUrl';
 const _kAutoRemoveNotes = 'autoRemoveNotes';
 const _kHighlightModeDefault = 'highlightModeDefault';
+const _kHighlightNoteCandidates = 'highlightNoteCandidates';
 const _kColorSelectedCell = 'color_selectedCell';
 const _kColorUserDigit = 'color_userDigit';
 const _kColorNoteText = 'color_noteText';
@@ -29,6 +30,7 @@ class SettingsState {
     this.backendUrl = 'http://localhost:8080',
     this.autoRemoveNotes = true,
     this.highlightModeDefault = true,
+    this.highlightNoteCandidates = true,
     this.selectedCellColor = _defaultSelectedCell,
     this.userDigitColor = _defaultUserDigit,
     this.noteTextColor = _defaultNoteText,
@@ -39,6 +41,8 @@ class SettingsState {
   final bool autoRemoveNotes;
   // Initial highlight mode state when a new game starts.
   final bool highlightModeDefault;
+  // Whether notes matching the selected cell's digit are highlighted.
+  final bool highlightNoteCandidates;
   // Configurable game-board colors.
   final Color selectedCellColor;
   final Color userDigitColor;
@@ -49,6 +53,7 @@ class SettingsState {
     String? backendUrl,
     bool? autoRemoveNotes,
     bool? highlightModeDefault,
+    bool? highlightNoteCandidates,
     Color? selectedCellColor,
     Color? userDigitColor,
     Color? noteTextColor,
@@ -57,6 +62,8 @@ class SettingsState {
     backendUrl: backendUrl ?? this.backendUrl,
     autoRemoveNotes: autoRemoveNotes ?? this.autoRemoveNotes,
     highlightModeDefault: highlightModeDefault ?? this.highlightModeDefault,
+    highlightNoteCandidates:
+        highlightNoteCandidates ?? this.highlightNoteCandidates,
     selectedCellColor: selectedCellColor ?? this.selectedCellColor,
     userDigitColor: userDigitColor ?? this.userDigitColor,
     noteTextColor: noteTextColor ?? this.noteTextColor,
@@ -81,6 +88,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
     final url = await _dao.get(_kBackendUrl);
     final autoRemove = await _dao.get(_kAutoRemoveNotes);
     final hlDefault = await _dao.get(_kHighlightModeDefault);
+    final hlNotes = await _dao.get(_kHighlightNoteCandidates);
     final selCell = await _dao.get(_kColorSelectedCell);
     final userDig = await _dao.get(_kColorUserDigit);
     final noteT = await _dao.get(_kColorNoteText);
@@ -91,6 +99,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       backendUrl: url ?? 'http://localhost:8080',
       autoRemoveNotes: autoRemove != 'false',
       highlightModeDefault: hlDefault != 'false',
+      highlightNoteCandidates: hlNotes != 'false',
       selectedCellColor: selCell != null
           ? Color(int.parse(selCell))
           : _defaultSelectedCell,
@@ -115,6 +124,11 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<void> setHighlightModeDefault(bool value) async {
     await _dao.set(_kHighlightModeDefault, value.toString());
     state = state.copyWith(highlightModeDefault: value);
+  }
+
+  Future<void> setHighlightNoteCandidates(bool value) async {
+    await _dao.set(_kHighlightNoteCandidates, value.toString());
+    state = state.copyWith(highlightNoteCandidates: value);
   }
 
   Future<void> setSelectedCellColor(Color color) async {
