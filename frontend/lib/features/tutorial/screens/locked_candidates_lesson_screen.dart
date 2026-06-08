@@ -272,6 +272,8 @@ class _LockedCandidatesLessonScreenState
           setState(() {
             _flashCells = {};
             _selectedCells.clear();
+            _activeRow = null;
+            _activeCol = null;
           });
         }
       });
